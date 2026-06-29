@@ -63,12 +63,12 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
       "sourcePortIndex": 0,
       "targetNodeId": "guid",
       "targetPortIndex": 1,
-      "midX": 450.5,
-      "vertices": [{ "x": 450.5, "y": 220.0 }]
+      "vertices": [{ "x": 450.5, "y": 220.0 }, { "x": 600.0, "y": 300.0 }]
     }
   ]
 }
 ```
+`vertices` holds every bend point along the connection, in order from source to target. Older files saved a single `midX` value instead — these still load fine (see Backward Compatibility below).
 
 ### Device Library
 - Stored server-side in `Server/devices.json`
@@ -79,8 +79,8 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
 ### Custom Classes (all defined inside Home.razor @code block)
 - **`LineFlowNode`** — extends `NodeModel`, holds `DeviceDefinition`, creates `LineFlowPort` instances
 - **`LineFlowPort`** — extends `PortModel`, holds `PortDefinition` with name/type/direction
-- **`ElbowLinkModel`** — extends `LinkModel`, stores `MidX` for the draggable vertical segment
-- **`ElbowRouter`** — extends `Router`, generates 3-point elbow paths (horizontal → vertical → horizontal)
+- **`ElbowLinkModel`** — extends `LinkModel`; routing is driven by its `Vertices` collection (one or more draggable bend points). `MidX` is kept only as a legacy fallback for old saves with no vertices.
+- **`ElbowRouter`** — extends `Router`, generates an orthogonal H-V-H-...-H path through all of the link's vertices, in order
 - **`DeviceDefinition`** — manufacturer, model, category, list of ports
 - **`PortDefinition`** — name, type (HDMI/SDI/Audio/Network/USB/IR/COM/Other), direction (In/Out/Universal)
 
@@ -94,11 +94,18 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
 - Output → Output ❌ blocked
 
 ### Elbow Routing
-Lines always make 90 degree bends:
-- Source port → horizontal to MidX → vertical → horizontal to target port
-- `ElbowRouter.GetRoute()` generates the midpoints
-- A draggable `LinkVertexModel` is added at the midpoint so users can drag the vertical segment
-- `MidX` is saved in the `.lf` file and restored on open
+Lines always make 90 degree bends, and now support multiple bends per connection:
+- When a connection is first drawn, one `LinkVertexModel` is added automatically, vertically centered between the source and target ports (its handle is shown as a white dot with a red outline, `.diagram-link-vertex` in app.css)
+- Dragging the first handle moves it horizontally only — its Y stays locked to the vertical midpoint of the segment so the handle always sits centered on the vertical line, even as the connection's endpoints move
+- Right-click a connection to open its context menu:
+  - **➕ Add Bend** — appends a new vertex between the last bend and the target port, letting the line route around a node it would otherwise cross
+  - **➖ Remove Last Bend** — removes the most recently added vertex (only shown when more than one vertex exists)
+  - Additional vertices beyond the first can be dragged freely in both X and Y
+- `ElbowRouter.GetRoute()` walks the link's `Vertices` in order and produces the full H-V-H-...-H path through all of them
+- All vertex positions are saved in the `.lf` file's `vertices` array and restored on open
+
+### Backward Compatibility
+Files saved before multi-bend support only stored a single `midX` value (no `vertices` array). On open, if `vertices` is missing/empty, the loader falls back to `ElbowLinkModel.MidX`, which `ElbowRouter` still understands as a single-bend midpoint.
 
 ### Port Alignment
 - Direction "In" → `PortAlignment.Left`
@@ -120,42 +127,8 @@ All attached to `window` object for Blazor JS interop:
 
 ## Known Issues / Work in Progress
 
-### 🔴 ACTIVELY BEING WORKED ON: Draggable Elbow Midpoint (NOT working yet)
-The vertical segment of elbow connections should be draggable left/right so users can avoid overlapping lines. Here is the current state and what has been tried:
-
-**How it's supposed to work:**
-- `ElbowLinkModel` has a `MidX` property storing the X position of the vertical segment
-- A `LinkVertexModel` is added to the link at the midpoint so the library renders a draggable dot
-- When the user drags the dot, `Changed` event fires, updates `MidX`, and `ElbowRouter` uses the new `MidX` on next render
-- `MidX` is saved in the `.lf` file and restored on open
-
-**Current problem:**
-- The vertex dot either doesn't appear, appears at wrong position, or appears but isn't draggable
-- The vertex is added in `OnLinkAdded` inside the `TargetChanged` event handler
-- Port positions (`srcPort.Position`) may not be calculated yet when `TargetChanged` fires, causing the vertex to be placed at (0,0)
-
-**What has been tried:**
-- Adding vertex immediately in `OnLinkAdded` — positions are null at that point
-- Adding vertex in `TargetChanged` — sometimes works but position is wrong
-- Using `_diagram.GetRelativePoint()` to convert screen coords — didn't match canvas coords
-- Manually calculating from node position + port index — close but off by a few pixels
-- Using `srcPort.Position` directly — these appear to be screen coordinates not canvas coordinates
-- Subtracting toolbar height (48px) and side panel width (200px) — partial fix but still wrong
-
-**Debugging notes:**
-- Node `Position` (X,Y) IS in canvas coordinates — confirmed working for save/load
-- Port `Position` (X,Y) appears to be in SCREEN coordinates (includes toolbar/panel offsets)
-- `_diagram.Pan` is (0,0) and `_diagram.Zoom` is 1.0 at default state
-- `ElbowRouter.GetRoute()` receives port positions that include screen offsets
-- The `Changed` event on `ElbowLinkModel` fires correctly when vertex is dragged
-
-**Suggested next approach:**
-- Try adding the vertex AFTER a short delay using `Task.Delay` so port positions are calculated
-- Or listen to `_diagram.Changed` instead and add vertices there
-- Or explore if `PortModel.Position` can be converted to canvas coords via `_diagram.GetRelativeMousePoint`
-
-- DXF export connection lines are slightly misaligned with port positions (port Y calculation uses estimated row heights rather than actual rendered positions)
-- The `OnLinkAdded` casts `BaseLinkModel` to `LinkModel` — if the library changes this will break
+- DXF export now converts each vertex from screen/port coordinate space into DXF drawing space (anchored off the source port position, scaled, Y-flipped) and draws the same multi-segment path the live app renders. This has not yet been visually confirmed pixel-perfect against the app for connections with multiple bends — worth a side-by-side check after adding a few bends and exporting.
+- The `OnLinkAdded` flow casts a new connection's `BaseLinkModel` to `LinkModel` before promoting it to an `ElbowLinkModel` — if the library changes this internal type, this will break.
 
 ## NuGet Packages
 ```xml
@@ -231,14 +204,15 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 ## Features Implemented
 - ✅ Drag-and-drop device nodes from side panel onto canvas
 - ✅ Labeled ports on left (inputs) and right (outputs/universal) edges
-- ✅ Elbow-routed connections with draggable midpoint
+- ✅ Elbow-routed connections with a draggable, vertically-centered handle on the first segment
+- ✅ Multi-bend connection routing — add/remove additional bend points via right-click ("➕ Add Bend" / "➖ Remove Last Bend") to route around blocking nodes
 - ✅ Connection direction rules enforced (no input→input etc.)
-- ✅ Right-click context menu: delete node, delete connection
+- ✅ Right-click context menu: delete node, delete connection, add/remove bends
 - ✅ Delete key removes selected nodes/links
-- ✅ New / Save (.lf) / Open (.lf) diagram files
+- ✅ New / Save (.lf) / Open (.lf) diagram files, with multi-vertex routing persisted and legacy single-`midX` files still loading correctly
 - ✅ Server-side device library with add custom device
 - ✅ PDF export (white background, title + date header)
-- ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers)
+- ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers), now generating the same multi-segment path as the live app's routing instead of a single hardcoded midpoint
 - ✅ Zoom and pan on canvas
 
 ## Features Planned / Not Yet Implemented
@@ -246,6 +220,6 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ⬜ Color coding per port/connection type
 - ⬜ Rename nodes on canvas
 - ⬜ Delete devices from side panel
-- ⬜ DXF connection lines perfectly aligned with port positions
+- ⬜ Visual confirmation that DXF export lines match the app pixel-for-pixel on multi-bend connections
 - ⬜ MAUI desktop wrapper
 - ⬜ Ubuntu deployment tested end-to-end

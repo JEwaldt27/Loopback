@@ -85,6 +85,11 @@
             }
             @if (_contextTarget == "link")
             {
+                <div class="context-menu-item" @onclick="AddBend">➕ Add Bend</div>
+                @if (_contextLink is ElbowLinkModel elm && elm.Vertices.Count > 1)
+                {
+                    <div class="context-menu-item" @onclick="RemoveLastBend">➖ Remove Last Bend</div>
+                }
                 <div class="context-menu-item" @onclick="DeleteContextLink">🗑 Delete Connection</div>
             }
         </div>
@@ -122,7 +127,13 @@
 
     private void OnLinkAdded(LinkModel link)
     {
-        link.TargetChanged += (l, oldTarget, newTarget) =>
+        if (link is ElbowLinkModel elbowLink)
+        {
+            SetupElbowLink(elbowLink);
+            return;
+        }
+
+        link.TargetChanged += async (l, _, newTarget) =>
         {
             if (newTarget?.Model is not PortModel targetPort) return;
             if (l.Source.Model is not PortModel sourcePort) return;
@@ -135,38 +146,79 @@
                 (sourceDir == "Out" && (targetDir == "In" || targetDir == "Universal")) ||
                 (sourceDir == "Universal");
 
-            if (!valid)
+            await InvokeAsync(async () =>
             {
                 _diagram.Links.Remove(l);
-                StateHasChanged();
-                return;
-            }
+                if (!valid) { StateHasChanged(); return; }
 
-            // Add midpoint vertex once target is set
-            if (l is ElbowLinkModel elbowLink && elbowLink.Vertices.Count == 0)
-            {
-                if (sourcePort.Position != null && targetPort.Position != null)
-                {
-                    double srcX = sourcePort.Position.X + (sourcePort.Size?.Width / 2 ?? 0);
-                    double tgtX = targetPort.Position.X + (targetPort.Size?.Width / 2 ?? 0);
-                    double srcY = sourcePort.Position.Y + (sourcePort.Size?.Height / 2 ?? 0);
-                    double midX = elbowLink.MidX ?? (srcX + tgtX) / 2;
+                var elbow = new ElbowLinkModel(sourcePort, targetPort);
+                _diagram.Links.Add(elbow); // fires OnLinkAdded → SetupElbowLink
 
-                    elbowLink.Vertices.Add(new LinkVertexModel(elbowLink, new Point(midX, srcY)));
-                }
-            }
+                await Task.Delay(100);
+
+                if (sourcePort.Position == null || targetPort.Position == null) return;
+
+                double srcX = sourcePort.Position.X + (sourcePort.Size?.Width / 2 ?? 0);
+                double tgtX = targetPort.Position.X + (targetPort.Size?.Width / 2 ?? 0);
+                double srcY = sourcePort.Position.Y + (sourcePort.Size?.Height / 2 ?? 0);
+                double tgtY = targetPort.Position.Y + (targetPort.Size?.Height / 2 ?? 0);
+                double midX = elbow.MidX ?? (srcX + tgtX) / 2;
+                double centerY = (srcY + tgtY) / 2;
+
+                elbow.Vertices.Add(new LinkVertexModel(elbow, new Point(midX, centerY)));
+                elbow.Refresh();
+            });
         };
+    }
 
-        if (link is ElbowLinkModel elbow)
+    private void SetupElbowLink(ElbowLinkModel elbow)
+    {
+        bool updating = false;
+        elbow.Changed += _ =>
         {
-            elbow.Changed += (model) =>
-            {
-                if (elbow.Vertices.Count > 0)
-                {
-                    elbow.MidX = elbow.Vertices[0].Position.X;
-                }
-            };
+            if (updating || elbow.Vertices.Count == 0) return;
+            if (elbow.Source.Model is not PortModel srcPort || elbow.Target?.Model is not PortModel tgtPort) return;
+            if (srcPort.Position == null || tgtPort.Position == null) return;
+
+            // Lock vertex[0] Y so the first handle only slides left/right
+            updating = true;
+            double srcY = srcPort.Position.Y + (srcPort.Size?.Height / 2 ?? 0);
+            double nextY = elbow.Vertices.Count > 1
+                ? elbow.Vertices[1].Position.Y
+                : tgtPort.Position.Y + (tgtPort.Size?.Height / 2 ?? 0);
+            elbow.Vertices[0].SetPosition(elbow.Vertices[0].Position.X, (srcY + nextY) / 2);
+            updating = false;
+        };
+    }
+
+    private void AddBend()
+    {
+        if (_contextLink is not ElbowLinkModel elbow) return;
+        _contextMenuVisible = false;
+        if (elbow.Target?.Model is not PortModel tgtPort || tgtPort.Position == null) return;
+
+        double tgtX = tgtPort.Position.X + (tgtPort.Size?.Width / 2 ?? 0);
+        double tgtY = tgtPort.Position.Y + (tgtPort.Size?.Height / 2 ?? 0);
+
+        double newX, newY;
+        if (elbow.Vertices.Count > 0)
+        {
+            var last = elbow.Vertices[^1];
+            newX = (last.Position.X + tgtX) / 2;
+            newY = (last.Position.Y + tgtY) / 2;
         }
+        else { newX = tgtX; newY = tgtY; }
+
+        elbow.Vertices.Add(new LinkVertexModel(elbow, new Point(newX, newY)));
+        elbow.Refresh();
+    }
+
+    private void RemoveLastBend()
+    {
+        if (_contextLink is not ElbowLinkModel elbow || elbow.Vertices.Count <= 1) return;
+        _contextMenuVisible = false;
+        elbow.Vertices.RemoveAt(elbow.Vertices.Count - 1);
+        elbow.Refresh();
     }
 
     private void OnDiagramPointerDown(Model? model, Blazor.Diagrams.Core.Events.PointerEventArgs args)
@@ -328,8 +380,7 @@
                 targetNodeId = (l.Target.Model as PortModel)?.Parent.Id,
                 targetPortIndex = (l.Target.Model as PortModel) is PortModel tp
                     ? tp.Parent.Ports.ToList().IndexOf(tp) : 0,
-                midX = (l as ElbowLinkModel)?.MidX,
-                vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y })
+                vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y }),
             })
         };
 
@@ -386,8 +437,14 @@
                     (PortModel)sourceNode.Ports[sourcePortIndex],
                     (PortModel)targetNode.Ports[targetPortIndex]);
 
-                if (linkEl.TryGetProperty("midX", out var midXEl) &&
-                    midXEl.ValueKind != JsonValueKind.Null)
+                // Restore vertices (new format)
+                if (linkEl.TryGetProperty("vertices", out var vertsEl))
+                {
+                    foreach (var v in vertsEl.EnumerateArray())
+                        link.Vertices.Add(new LinkVertexModel(link, new Point(v.GetProperty("x").GetDouble(), v.GetProperty("y").GetDouble())));
+                }
+                // Backward compat: old files saved midX only
+                else if (linkEl.TryGetProperty("midX", out var midXEl) && midXEl.ValueKind != JsonValueKind.Null)
                 {
                     link.MidX = midXEl.GetDouble();
                 }
@@ -518,13 +575,57 @@
             if (!portPositions.TryGetValue(sourcePort.Id, out var srcPos)) continue;
             if (!portPositions.TryGetValue(targetPort.Id, out var tgtPos)) continue;
 
-            double midX = (link as ElbowLinkModel)?.MidX is double mx
-                ? mx * scale
-                : (srcPos.x + tgtPos.x) / 2;
+            var verts = link.Vertices;
 
-            DxfLine(srcPos.x, srcPos.y, midX, srcPos.y, "CONNECTIONS");
-            DxfLine(midX, srcPos.y, midX, tgtPos.y, "CONNECTIONS");
-            DxfLine(midX, tgtPos.y, tgtPos.x, tgtPos.y, "CONNECTIONS");
+            if (verts.Count == 0)
+            {
+                // No vertices: centered elbow
+                double midX = (srcPos.x + tgtPos.x) / 2;
+                DxfLine(srcPos.x, srcPos.y, midX, srcPos.y, "CONNECTIONS");
+                DxfLine(midX, srcPos.y, midX, tgtPos.y, "CONNECTIONS");
+                DxfLine(midX, tgtPos.y, tgtPos.x, tgtPos.y, "CONNECTIONS");
+            }
+            else
+            {
+                // Vertices are in screen/port coordinate space.
+                // Convert to DXF space using source port as reference:
+                //   dxfX = (screenX - srcScreenX) * scale + srcPos.x
+                //   dxfY = -(screenY - srcScreenY) * scale + srcPos.y  (Y axis is flipped in DXF)
+                double srcScreenX = (sourcePort.Position?.X ?? 0) + (sourcePort.Size?.Width / 2 ?? 0);
+                double srcScreenY = (sourcePort.Position?.Y ?? 0) + (sourcePort.Size?.Height / 2 ?? 0);
+
+                (double x, double y) ToDxf(double sx, double sy) =>
+                    ((sx - srcScreenX) * scale + srcPos.x,
+                     -(sy - srcScreenY) * scale + srcPos.y);
+
+                if (verts.Count == 1)
+                {
+                    // Simple H-V-H elbow using vertex X
+                    var (vx, _) = ToDxf(verts[0].Position.X, verts[0].Position.Y);
+                    DxfLine(srcPos.x, srcPos.y, vx, srcPos.y, "CONNECTIONS");
+                    DxfLine(vx, srcPos.y, vx, tgtPos.y, "CONNECTIONS");
+                    DxfLine(vx, tgtPos.y, tgtPos.x, tgtPos.y, "CONNECTIONS");
+                }
+                else
+                {
+                    // Multi-vertex: H-V-H-V-...-H matching the router's path
+                    var dv = verts.Select(v => ToDxf(v.Position.X, v.Position.Y)).ToList();
+
+                    var pts = new List<(double x, double y)>();
+                    pts.Add(srcPos);
+                    pts.Add((dv[0].x, srcPos.y));
+                    for (int i = 0; i < dv.Count - 1; i++)
+                    {
+                        pts.Add((dv[i].x, dv[i + 1].y));
+                        pts.Add((dv[i + 1].x, dv[i + 1].y));
+                    }
+                    pts.Add((dv[^1].x, tgtPos.y));
+                    pts.Add(tgtPos);
+
+                    for (int i = 0; i < pts.Count - 1; i++)
+                        DxfLine(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y, "CONNECTIONS");
+                }
+            }
         }
 
         sb.AppendLine("0\nENDSEC");
@@ -535,8 +636,7 @@
 
     public class ElbowLinkModel : LinkModel
     {
-        public double? MidX { get; set; } = null;
-
+        public double? MidX { get; set; }
         public ElbowLinkModel(PortModel source, PortModel target) : base(source, target) { }
     }
 
@@ -556,13 +656,29 @@
             double tgtX = tgtPort.Position.X + (tgtPort.Size?.Width / 2 ?? 0);
             double tgtY = tgtPort.Position.Y + (tgtPort.Size?.Height / 2 ?? 0);
 
-            double midX = (link as ElbowLinkModel)?.MidX ?? (srcX + tgtX) / 2;
+            var verts = link.Vertices;
 
-            return new Point[]
+            // Single vertex: simple H-V-H elbow
+            if (verts.Count <= 1)
             {
-                new Point(midX, srcY),
-                new Point(midX, tgtY)
-            };
+                double midX = verts.Count == 1
+                    ? verts[0].Position.X
+                    : ((link as ElbowLinkModel)?.MidX ?? (srcX + tgtX) / 2);
+                return new[] { new Point(midX, srcY), new Point(midX, tgtY) };
+            }
+
+            // Multiple vertices: H-V-H-V-...-H
+            // verts[0].X = first vertical segment X (Y ignored — kept centered by SetupElbowLink)
+            // verts[i].Y (i>0) = Y of horizontal segment between vertical i-1 and vertical i
+            // verts[i].X (i>0) = X of vertical segment i
+            var pts = new List<Point> { new Point(verts[0].Position.X, srcY) };
+            for (int i = 0; i < verts.Count - 1; i++)
+            {
+                pts.Add(new Point(verts[i].Position.X, verts[i + 1].Position.Y));
+                pts.Add(new Point(verts[i + 1].Position.X, verts[i + 1].Position.Y));
+            }
+            pts.Add(new Point(verts[^1].Position.X, tgtY));
+            return pts.ToArray();
         }
     }
 

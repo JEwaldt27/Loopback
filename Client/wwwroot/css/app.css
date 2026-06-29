@@ -230,6 +230,17 @@ html, body {
     stroke-width: 2;
 }
 
+.diagram-link-vertex {
+    pointer-events: all !important;
+    cursor: ew-resize !important;
+}
+
+.diagram-link-vertex circle {
+    fill: #ffffff;
+    stroke: #e94560;
+    stroke-width: 2;
+}
+
 .diagram-port {
     width: 14px !important;
     height: 14px !important;
