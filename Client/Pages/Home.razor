@@ -1,0 +1,625 @@
+﻿@page "/"
+@inject IJSRuntime JS
+@inject HttpClient Http
+@using System.Text.Json
+
+<div class="toolbar">
+    <span class="app-title">LineFlow</span>
+    <button @onclick="NewDiagram">New</button>
+    <button @onclick="SaveDiagram">Save</button>
+    <label class="open-btn">
+        Open <InputFile OnChange="OpenDiagram" accept=".lf" />
+    </label>
+    <button @onclick="DeleteSelected">Delete Selected</button>
+    <input class="title-input" @bind="_diagramTitle" placeholder="Diagram title..." />
+    <button @onclick="ExportPdf">Export PDF</button>
+    <button @onclick="ExportDxf">Export DXF</button>
+</div>
+
+<div class="app-body" @onclick="HideContextMenu">
+    <div class="side-panel">
+        <div class="side-panel-header">Devices</div>
+
+        @foreach (var category in _devices.GroupBy(d => d.Category))
+        {
+            <div class="device-category">@category.Key</div>
+            @foreach (var device in category)
+            {
+                <div class="device-item" draggable="true"
+                     @ondragstart="() => OnDeviceDragStart(device)">
+                    <div class="device-item-model">@device.Model</div>
+                    <div class="device-item-mfr">@device.Manufacturer</div>
+                </div>
+            }
+        }
+
+        <div class="side-panel-header" style="margin-top:16px;">Add Device</div>
+        <input class="device-input" @bind="_newManufacturer" placeholder="Manufacturer..." />
+        <input class="device-input" @bind="_newModel" placeholder="Model number..." />
+        <input class="device-input" @bind="_newCategory" placeholder="Category..." />
+
+        <div class="port-list-header">Ports</div>
+        @for (int i = 0; i < _newPorts.Count; i++)
+        {
+            var idx = i;
+            <div class="port-row">
+                <input class="port-input" @bind="_newPorts[idx].Name" placeholder="Name" />
+                <select class="port-select" @bind="_newPorts[idx].Type">
+                    <option>HDMI</option>
+                    <option>SDI</option>
+                    <option>Audio</option>
+                    <option>Network</option>
+                    <option>USB</option>
+                    <option>IR</option>
+                    <option>COM</option>
+                    <option>Other</option>
+                </select>
+                <select class="port-select" @bind="_newPorts[idx].Direction">
+                    <option>In</option>
+                    <option>Out</option>
+                    <option>Universal</option>
+                </select>
+                <button class="port-remove-btn" @onclick="() => RemovePort(idx)">✕</button>
+            </div>
+        }
+        <button class="add-port-btn" @onclick="AddPort">+ Add Port</button>
+        <button class="add-device-btn" @onclick="AddDevice">+ Add Device</button>
+    </div>
+
+    <div class="canvas-area"
+         @ondragover:preventDefault="true"
+         @ondrop="OnCanvasDrop"
+         @onclick="HideContextMenu"
+         @oncontextmenu:preventDefault="true">
+        <CascadingValue Value="_diagram">
+            <DiagramCanvas />
+        </CascadingValue>
+    </div>
+
+    @if (_contextMenuVisible)
+    {
+        <div class="context-menu" style="left:@(_contextMenuX)px; top:@(_contextMenuY)px;">
+            @if (_contextTarget == "node")
+            {
+                <div class="context-menu-item" @onclick="DeleteContextNode">🗑 Delete Node</div>
+            }
+            @if (_contextTarget == "link")
+            {
+                <div class="context-menu-item" @onclick="DeleteContextLink">🗑 Delete Connection</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private BlazorDiagram _diagram = null!;
+    private List<DeviceDefinition> _devices = new();
+    private DeviceDefinition? _draggingDevice = null;
+    private string _diagramTitle = "Line Flow Diagram";
+
+    private string _newManufacturer = "";
+    private string _newModel = "";
+    private string _newCategory = "Custom";
+    private List<PortDefinition> _newPorts = new();
+
+    private bool _contextMenuVisible = false;
+    private double _contextMenuX = 0;
+    private double _contextMenuY = 0;
+    private string _contextTarget = "";
+    private NodeModel? _contextNode = null;
+    private BaseLinkModel? _contextLink = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _diagram = new BlazorDiagram();
+        _diagram.Options.Links.DefaultRouter = new ElbowRouter();
+        _diagram.Options.Links.DefaultPathGenerator = new Blazor.Diagrams.Core.PathGenerators.StraightPathGenerator();
+        _diagram.RegisterComponent<LineFlowNode, LineFlowNodeWidget>();
+        _diagram.PointerDown += OnDiagramPointerDown;
+        _diagram.Links.Added += (link) => OnLinkAdded((LinkModel)link);
+        await LoadDevices();
+    }
+
+    private void OnLinkAdded(LinkModel link)
+    {
+        link.TargetChanged += (l, oldTarget, newTarget) =>
+        {
+            if (newTarget?.Model is not PortModel targetPort) return;
+            if (l.Source.Model is not PortModel sourcePort) return;
+
+            var sourceDir = (sourcePort as LineFlowPort)?.GetDirection() ?? "Universal";
+            var targetDir = (targetPort as LineFlowPort)?.GetDirection() ?? "Universal";
+
+            bool valid =
+                (sourceDir == "In" && (targetDir == "Out" || targetDir == "Universal")) ||
+                (sourceDir == "Out" && (targetDir == "In" || targetDir == "Universal")) ||
+                (sourceDir == "Universal");
+
+            if (!valid)
+            {
+                _diagram.Links.Remove(l);
+                StateHasChanged();
+                return;
+            }
+
+            // Add midpoint vertex once target is set
+            if (l is ElbowLinkModel elbowLink && elbowLink.Vertices.Count == 0)
+            {
+                if (sourcePort.Position != null && targetPort.Position != null)
+                {
+                    double srcX = sourcePort.Position.X + (sourcePort.Size?.Width / 2 ?? 0);
+                    double tgtX = targetPort.Position.X + (targetPort.Size?.Width / 2 ?? 0);
+                    double srcY = sourcePort.Position.Y + (sourcePort.Size?.Height / 2 ?? 0);
+                    double midX = elbowLink.MidX ?? (srcX + tgtX) / 2;
+
+                    elbowLink.Vertices.Add(new LinkVertexModel(elbowLink, new Point(midX, srcY)));
+                }
+            }
+        };
+
+        if (link is ElbowLinkModel elbow)
+        {
+            elbow.Changed += (model) =>
+            {
+                if (elbow.Vertices.Count > 0)
+                {
+                    elbow.MidX = elbow.Vertices[0].Position.X;
+                }
+            };
+        }
+    }
+
+    private void OnDiagramPointerDown(Model? model, Blazor.Diagrams.Core.Events.PointerEventArgs args)
+    {
+        if (args.Button == 2)
+        {
+            if (model is NodeModel node)
+            {
+                _contextTarget = "node";
+                _contextNode = node;
+                _contextLink = null;
+                ShowContextMenu(args.ClientX, args.ClientY);
+            }
+            else if (model is BaseLinkModel link)
+            {
+                _contextTarget = "link";
+                _contextLink = link;
+                _contextNode = null;
+                ShowContextMenu(args.ClientX, args.ClientY);
+            }
+        }
+    }
+
+    private void ShowContextMenu(double x, double y)
+    {
+        _contextMenuX = x;
+        _contextMenuY = y;
+        _contextMenuVisible = true;
+        StateHasChanged();
+    }
+
+    private void HideContextMenu()
+    {
+        _contextMenuVisible = false;
+        _contextNode = null;
+        _contextLink = null;
+    }
+
+    private void DeleteContextNode()
+    {
+        if (_contextNode != null)
+            _diagram.Nodes.Remove(_contextNode);
+        _contextMenuVisible = false;
+        _contextNode = null;
+    }
+
+    private void DeleteContextLink()
+    {
+        if (_contextLink != null)
+            _diagram.Links.Remove(_contextLink);
+        _contextMenuVisible = false;
+        _contextLink = null;
+    }
+
+    private void DeleteSelected()
+    {
+        foreach (var node in _diagram.Nodes.Where(n => n.Selected).ToList())
+            _diagram.Nodes.Remove(node);
+        foreach (var link in _diagram.Links.Where(l => l.Selected).ToList())
+            _diagram.Links.Remove(link);
+    }
+
+    private async Task LoadDevices()
+    {
+        try
+        {
+            var devices = await Http.GetFromJsonAsync<List<DeviceDefinition>>("api/devices");
+            if (devices != null) _devices = devices;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Failed to load devices: " + ex.Message);
+        }
+    }
+
+    private void AddPort()
+    {
+        _newPorts.Add(new PortDefinition { Name = "", Type = "HDMI", Direction = "In" });
+    }
+
+    private void RemovePort(int index)
+    {
+        _newPorts.RemoveAt(index);
+    }
+
+    private async Task AddDevice()
+    {
+        if (string.IsNullOrWhiteSpace(_newModel)) return;
+
+        var device = new DeviceDefinition
+        {
+            Manufacturer = _newManufacturer,
+            Model = _newModel,
+            Category = _newCategory,
+            Ports = _newPorts.ToList()
+        };
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/devices", device);
+            if (response.IsSuccessStatusCode)
+            {
+                _devices.Add(device);
+                _newManufacturer = "";
+                _newModel = "";
+                _newCategory = "Custom";
+                _newPorts.Clear();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Failed to add device: " + ex.Message);
+        }
+    }
+
+    private void OnDeviceDragStart(DeviceDefinition device)
+    {
+        _draggingDevice = device;
+    }
+
+    private void OnCanvasDrop(DragEventArgs e)
+    {
+        if (_draggingDevice == null) return;
+
+        var node = _diagram.Nodes.Add(new LineFlowNode(
+            new Point(e.ClientX - 220, e.ClientY - 48),
+            _draggingDevice));
+
+        _draggingDevice = null;
+        StateHasChanged();
+    }
+
+    private void NewDiagram()
+    {
+        _diagram.Nodes.Clear();
+        _diagram.Links.Clear();
+    }
+
+    private async Task SaveDiagram()
+    {
+        var data = new
+        {
+            nodes = _diagram.Nodes.OfType<LineFlowNode>().Select(n => new
+            {
+                id = n.Id,
+                manufacturer = n.Device.Manufacturer,
+                model = n.Device.Model,
+                category = n.Device.Category,
+                ports = n.Device.Ports,
+                x = n.Position.X,
+                y = n.Position.Y
+            }),
+            links = _diagram.Links.Select(l => new
+            {
+                sourceNodeId = (l.Source.Model as PortModel)?.Parent.Id,
+                sourcePortIndex = (l.Source.Model as PortModel) is PortModel sp
+                    ? sp.Parent.Ports.ToList().IndexOf(sp) : 0,
+                targetNodeId = (l.Target.Model as PortModel)?.Parent.Id,
+                targetPortIndex = (l.Target.Model as PortModel) is PortModel tp
+                    ? tp.Parent.Ports.ToList().IndexOf(tp) : 0,
+                midX = (l as ElbowLinkModel)?.MidX,
+                vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y })
+            })
+        };
+
+        var json = JsonSerializer.Serialize(data,
+            new JsonSerializerOptions { WriteIndented = true });
+
+        await JS.InvokeVoidAsync("saveAsFile", "diagram.lf", json);
+    }
+
+    private async Task OpenDiagram(InputFileChangeEventArgs e)
+    {
+        using var stream = e.File.OpenReadStream();
+        using var reader = new System.IO.StreamReader(stream);
+        var json = await reader.ReadToEndAsync();
+        var doc = JsonDocument.Parse(json);
+
+        _diagram.Nodes.Clear();
+        _diagram.Links.Clear();
+
+        var nodeMap = new Dictionary<string, LineFlowNode>();
+
+        foreach (var nodeEl in doc.RootElement.GetProperty("nodes").EnumerateArray())
+        {
+            var id = nodeEl.GetProperty("id").GetString()!;
+            var x = nodeEl.GetProperty("x").GetDouble();
+            var y = nodeEl.GetProperty("y").GetDouble();
+
+            var device = new DeviceDefinition
+            {
+                Manufacturer = nodeEl.GetProperty("manufacturer").GetString() ?? "",
+                Model = nodeEl.GetProperty("model").GetString() ?? "",
+                Category = nodeEl.GetProperty("category").GetString() ?? "",
+                Ports = nodeEl.GetProperty("ports").Deserialize<List<PortDefinition>>() ?? new()
+            };
+
+            var node = new LineFlowNode(new Point(x, y), device);
+            _diagram.Nodes.Add(node);
+            nodeMap[id] = node;
+        }
+
+        foreach (var linkEl in doc.RootElement.GetProperty("links").EnumerateArray())
+        {
+            var sourceNodeId = linkEl.GetProperty("sourceNodeId").GetString()!;
+            var sourcePortIndex = linkEl.GetProperty("sourcePortIndex").GetInt32();
+            var targetNodeId = linkEl.GetProperty("targetNodeId").GetString()!;
+            var targetPortIndex = linkEl.GetProperty("targetPortIndex").GetInt32();
+
+            if (nodeMap.TryGetValue(sourceNodeId, out var sourceNode) &&
+                nodeMap.TryGetValue(targetNodeId, out var targetNode) &&
+                sourcePortIndex < sourceNode.Ports.Count &&
+                targetPortIndex < targetNode.Ports.Count)
+            {
+                var link = new ElbowLinkModel(
+                    (PortModel)sourceNode.Ports[sourcePortIndex],
+                    (PortModel)targetNode.Ports[targetPortIndex]);
+
+                if (linkEl.TryGetProperty("midX", out var midXEl) &&
+                    midXEl.ValueKind != JsonValueKind.Null)
+                {
+                    link.MidX = midXEl.GetDouble();
+                }
+
+                _diagram.Links.Add(link);
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ExportPdf()
+    {
+        await JS.InvokeVoidAsync("exportToPdf", _diagramTitle);
+    }
+
+    private async Task ExportDxf()
+    {
+        var sb = new System.Text.StringBuilder();
+
+        double scale = 0.3;
+
+        sb.AppendLine("0\nSECTION");
+        sb.AppendLine("2\nHEADER");
+        sb.AppendLine("9\n$ACADVER");
+        sb.AppendLine("1\nAC1015");
+        sb.AppendLine("0\nENDSEC");
+
+        sb.AppendLine("0\nSECTION");
+        sb.AppendLine("2\nTABLES");
+        sb.AppendLine("0\nTABLE");
+        sb.AppendLine("2\nLAYER");
+        sb.AppendLine("70\n2");
+        sb.AppendLine("0\nLAYER");
+        sb.AppendLine("2\nNODES");
+        sb.AppendLine("70\n0");
+        sb.AppendLine("62\n7");
+        sb.AppendLine("6\nCONTINUOUS");
+        sb.AppendLine("0\nLAYER");
+        sb.AppendLine("2\nCONNECTIONS");
+        sb.AppendLine("70\n0");
+        sb.AppendLine("62\n7");
+        sb.AppendLine("6\nCONTINUOUS");
+        sb.AppendLine("0\nENDTAB");
+        sb.AppendLine("0\nENDSEC");
+
+        sb.AppendLine("0\nSECTION");
+        sb.AppendLine("2\nENTITIES");
+
+        var portPositions = new Dictionary<string, (double x, double y)>();
+
+        void DxfLine(double x1, double y1, double x2, double y2, string layer = "NODES")
+        {
+            sb.AppendLine("0\nLINE");
+            sb.AppendLine($"8\n{layer}");
+            sb.AppendLine($"10\n{x1:F4}");
+            sb.AppendLine($"20\n{y1:F4}");
+            sb.AppendLine("30\n0.0");
+            sb.AppendLine($"11\n{x2:F4}");
+            sb.AppendLine($"21\n{y2:F4}");
+            sb.AppendLine("31\n0.0");
+        }
+
+        void DxfText(double tx, double ty, string text, double height = 2.5, string layer = "NODES", int halign = 0)
+        {
+            sb.AppendLine("0\nTEXT");
+            sb.AppendLine($"8\n{layer}");
+            sb.AppendLine($"10\n{tx:F4}");
+            sb.AppendLine($"20\n{ty:F4}");
+            sb.AppendLine("30\n0.0");
+            sb.AppendLine($"40\n{height}");
+            sb.AppendLine($"1\n{text ?? ""}");
+            sb.AppendLine($"72\n{halign}");
+            sb.AppendLine($"11\n{tx:F4}");
+            sb.AppendLine($"21\n{ty:F4}");
+            sb.AppendLine("31\n0.0");
+        }
+
+        foreach (var node in _diagram.Nodes.OfType<LineFlowNode>())
+        {
+            var leftPorts = node.Ports.OfType<LineFlowPort>()
+                .Where(p => p.Alignment == PortAlignment.Left).ToList();
+            var rightPorts = node.Ports.OfType<LineFlowPort>()
+                .Where(p => p.Alignment == PortAlignment.Right).ToList();
+
+            int maxPorts = Math.Max(leftPorts.Count, rightPorts.Count);
+            double portHeight = 16;
+            double titleHeight = 20;
+            double padding = 8;
+            double nodeHeight = titleHeight + (maxPorts * portHeight) + padding;
+            double nodeWidth = 180;
+
+            double x = node.Position.X * scale;
+            double y = -(node.Position.Y * scale);
+            double w = nodeWidth * scale;
+            double h = nodeHeight * scale;
+            double sph = portHeight * scale;
+            double sth = titleHeight * scale;
+
+            DxfLine(x, y, x + w, y);
+            DxfLine(x + w, y, x + w, y - h);
+            DxfLine(x + w, y - h, x, y - h);
+            DxfLine(x, y - h, x, y);
+            DxfLine(x, y - sth, x + w, y - sth);
+            DxfText(x + w / 2, y - sth + sth * 0.3, node.Title, 2.5, "NODES", 1);
+
+            for (int i = 0; i < leftPorts.Count; i++)
+            {
+                double py = y - sth - (i * sph) - (sph * 0.5);
+                double px = x;
+                DxfText(px + 1, py - 1, leftPorts[i].Definition.Name, 1.8, "NODES", 0);
+                portPositions[leftPorts[i].Id] = (px, py);
+            }
+
+            for (int i = 0; i < rightPorts.Count; i++)
+            {
+                double py = y - sth - (i * sph) - (sph * 0.5);
+                double px = x + w;
+                DxfText(px - 1, py - 1, rightPorts[i].Definition.Name, 1.8, "NODES", 2);
+                portPositions[rightPorts[i].Id] = (px, py);
+            }
+        }
+
+        foreach (var link in _diagram.Links)
+        {
+            if (link.Source.Model is not PortModel sourcePort) continue;
+            if (link.Target?.Model is not PortModel targetPort) continue;
+            if (!portPositions.TryGetValue(sourcePort.Id, out var srcPos)) continue;
+            if (!portPositions.TryGetValue(targetPort.Id, out var tgtPos)) continue;
+
+            double midX = (link as ElbowLinkModel)?.MidX is double mx
+                ? mx * scale
+                : (srcPos.x + tgtPos.x) / 2;
+
+            DxfLine(srcPos.x, srcPos.y, midX, srcPos.y, "CONNECTIONS");
+            DxfLine(midX, srcPos.y, midX, tgtPos.y, "CONNECTIONS");
+            DxfLine(midX, tgtPos.y, tgtPos.x, tgtPos.y, "CONNECTIONS");
+        }
+
+        sb.AppendLine("0\nENDSEC");
+        sb.AppendLine("0\nEOF");
+
+        await JS.InvokeVoidAsync("saveAsFile", "diagram.dxf", sb.ToString());
+    }
+
+    public class ElbowLinkModel : LinkModel
+    {
+        public double? MidX { get; set; } = null;
+
+        public ElbowLinkModel(PortModel source, PortModel target) : base(source, target) { }
+    }
+
+    public class ElbowRouter : Blazor.Diagrams.Core.Routers.Router
+    {
+        public override Point[] GetRoute(Blazor.Diagrams.Core.Diagram diagram, BaseLinkModel link)
+        {
+            if (link.Source.Model is not PortModel srcPort ||
+                link.Target?.Model is not PortModel tgtPort)
+                return Array.Empty<Point>();
+
+            if (srcPort.Position == null || tgtPort.Position == null)
+                return Array.Empty<Point>();
+
+            double srcX = srcPort.Position.X + (srcPort.Size?.Width / 2 ?? 0);
+            double srcY = srcPort.Position.Y + (srcPort.Size?.Height / 2 ?? 0);
+            double tgtX = tgtPort.Position.X + (tgtPort.Size?.Width / 2 ?? 0);
+            double tgtY = tgtPort.Position.Y + (tgtPort.Size?.Height / 2 ?? 0);
+
+            double midX = (link as ElbowLinkModel)?.MidX ?? (srcX + tgtX) / 2;
+
+            return new Point[]
+            {
+                new Point(midX, srcY),
+                new Point(midX, tgtY)
+            };
+        }
+    }
+
+    public class LineFlowNode : NodeModel
+    {
+        public DeviceDefinition Device { get; }
+
+        public LineFlowNode(Point position, DeviceDefinition device) : base(position)
+        {
+            Device = device;
+            Title = $"{device.Manufacturer} {device.Model}";
+
+            foreach (var port in device.Ports)
+            {
+                var alignment = port.Direction == "Out"
+                    ? PortAlignment.Right
+                    : port.Direction == "In"
+                        ? PortAlignment.Left
+                        : PortAlignment.Right;
+
+                AddPort(new LineFlowPort(this, alignment, port));
+            }
+        }
+    }
+
+    public class LineFlowPort : PortModel
+    {
+        public PortDefinition Definition { get; }
+
+        public LineFlowPort(NodeModel parent, PortAlignment alignment, PortDefinition definition)
+            : base(parent, alignment, null, null)
+        {
+            Definition = definition;
+        }
+
+        public string GetDirection() => Definition.Direction;
+    }
+
+    public class DeviceDefinition
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("manufacturer")]
+        public string Manufacturer { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("model")]
+        public string Model { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        public string Category { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("ports")]
+        public List<PortDefinition> Ports { get; set; } = new();
+    }
+
+    public class PortDefinition
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("direction")]
+        public string Direction { get; set; } = "Universal";
+    }
+}

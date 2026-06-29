@@ -1,0 +1,32 @@
+﻿@using Blazor.Diagrams.Components.Renderers
+@using Blazor.Diagrams.Core.Models
+
+<div class="lf-node">
+    <div class="lf-node-title">@Node.Title</div>
+    <div class="lf-node-body">
+        <div class="lf-ports-left">
+            @foreach (var port in Node.Ports.OfType<Home.LineFlowPort>()
+                        .Where(p => p.Alignment == PortAlignment.Left))
+            {
+                <div class="lf-port-row-left">
+                    <PortRenderer Port="port" Class="lf-port-dot" />
+                    <span class="lf-port-label-left">@port.Definition.Name</span>
+                </div>
+            }
+        </div>
+        <div class="lf-ports-right">
+            @foreach (var port in Node.Ports.OfType<Home.LineFlowPort>()
+                        .Where(p => p.Alignment == PortAlignment.Right))
+            {
+                <div class="lf-port-row-right">
+                    <span class="lf-port-label-right">@port.Definition.Name</span>
+                    <PortRenderer Port="port" Class="lf-port-dot" />
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Home.LineFlowNode Node { get; set; } = null!;
+}

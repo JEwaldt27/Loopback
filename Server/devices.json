@@ -1,0 +1,71 @@
+[
+  {
+    "manufacturer": "Crestron",
+    "model": "DM-NVX-350",
+    "category": "AV over IP",
+    "ports": [
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "In"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Out"
+      },
+      {
+        "name": "Network 1",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Network 2",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "HDMI 1 In",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI 2 In",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Audio I/O",
+        "type": "Audio",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Test",
+    "model": "One",
+    "category": "AV OVER IP",
+    "ports": [
+      {
+        "name": "Test 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Test 2",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "Test 3",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  }
+]
