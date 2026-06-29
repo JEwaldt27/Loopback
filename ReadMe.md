@@ -79,8 +79,9 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
 ### Custom Classes (all defined inside Home.razor @code block)
 - **`LineFlowNode`** — extends `NodeModel`, holds `DeviceDefinition`, creates `LineFlowPort` instances
 - **`LineFlowPort`** — extends `PortModel`, holds `PortDefinition` with name/type/direction
-- **`ElbowLinkModel`** — extends `LinkModel`; routing is driven by its `Vertices` collection (one or more draggable bend points). `MidX` is kept only as a legacy fallback for old saves with no vertices.
+- **`ElbowLinkModel`** — extends `LinkModel`; routing is driven by its `Vertices` collection (one or more draggable bend points). `MidX` is kept only as a legacy fallback for old saves with no vertices. `Color`/`SelectedColor` are set automatically from the source port's signal type via `ColorForType()`.
 - **`ElbowRouter`** — extends `Router`, generates an orthogonal H-V-H-...-H path through all of the link's vertices, in order
+- **`LegendNode`** — extends `NodeModel`, holds a list of `(Type, Color)` entries; rendered by `LegendNodeWidget.razor`. Created/updated by the "Legend" toolbar button using only the signal types present in current connections.
 - **`DeviceDefinition`** — manufacturer, model, category, list of ports
 - **`PortDefinition`** — name, type (HDMI/SDI/Audio/Network/USB/IR/COM/Other), direction (In/Out/Universal)
 
@@ -127,7 +128,6 @@ All attached to `window` object for Blazor JS interop:
 
 ## Known Issues / Work in Progress
 
-- DXF export now converts each vertex from screen/port coordinate space into DXF drawing space (anchored off the source port position, scaled, Y-flipped) and draws the same multi-segment path the live app renders. This has not yet been visually confirmed pixel-perfect against the app for connections with multiple bends — worth a side-by-side check after adding a few bends and exporting.
 - The `OnLinkAdded` flow casts a new connection's `BaseLinkModel` to `LinkModel` before promoting it to an `ElbowLinkModel` — if the library changes this internal type, this will break.
 
 ## NuGet Packages
@@ -210,14 +210,14 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Right-click context menu: delete node, delete connection, add/remove bends
 - ✅ Delete key removes selected nodes/links
 - ✅ New / Save (.lf) / Open (.lf) diagram files, with multi-vertex routing persisted and legacy single-`midX` files still loading correctly
-- ✅ Server-side device library with add custom device
-- ✅ PDF export (white background, title + date header)
-- ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers), now generating the same multi-segment path as the live app's routing instead of a single hardcoded midpoint
+- ✅ Server-side device library with add, edit, and delete devices
+- ✅ Color-coded connections and port dots by signal type (HDMI, SDI, Audio, Network, USB, IR, COM)
+- ✅ Legend node — click "Legend" to add a draggable canvas node showing only the signal types actually connected in the current diagram
+- ✅ PDF export (white background, title + date header, direct download) — resets zoom/pan before capture so connections render correctly at any zoom level
+- ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers), generating the same multi-segment path as the live app's routing
 - ✅ Zoom and pan on canvas
 
 ## Features Planned / Not Yet Implemented
 - ⬜ Connection labels (e.g. "VID-005" like reference diagram)
-- ⬜ Color coding per port/connection type
-- ⬜ Delete devices from side panel
 - ⬜ MAUI desktop wrapper
 - ⬜ Ubuntu deployment tested end-to-end

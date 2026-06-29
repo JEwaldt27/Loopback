@@ -102,6 +102,33 @@ html, body {
         border-color: #e94560;
     }
 
+.device-item-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.device-action-btn {
+    background: #0f3460;
+    border: 1px solid #1a4a8a;
+    border-radius: 3px;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 6px;
+    flex: 1;
+}
+
+    .device-action-btn:hover {
+        background: #1a4a8a;
+        color: #fff;
+    }
+
+.device-action-delete:hover {
+    background: #e94560 !important;
+    border-color: #e94560 !important;
+}
+
 .device-item-model {
     font-size: 12px;
     font-weight: 600;
@@ -226,7 +253,6 @@ html, body {
     }
 
 .diagram-link path {
-    stroke: #e94560;
     stroke-width: 2;
 }
 
@@ -236,8 +262,8 @@ html, body {
 }
 
 .diagram-link-vertex circle {
-    fill: #ffffff;
-    stroke: #e94560;
+    fill: #1a1a2e;
+    stroke: #ffffff;
     stroke-width: 2;
 }
 
@@ -331,6 +357,43 @@ html, body {
     display: block !important;
     cursor: crosshair !important;
     flex-shrink: 0;
+}
+
+.lf-legend {
+    background: #16213e;
+    border: 2px solid #e94560;
+    border-radius: 6px;
+    padding: 8px 12px;
+    min-width: 140px;
+    cursor: move;
+}
+
+.lf-legend-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #e94560;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.lf-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+.lf-legend-swatch {
+    width: 28px;
+    height: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.lf-legend-label {
+    font-size: 11px;
+    color: #fff;
 }
 
 .context-menu {

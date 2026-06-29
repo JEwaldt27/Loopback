@@ -1,0 +1,16 @@
+@using Blazor.Diagrams.Core.Models
+
+<div class="lf-legend">
+    <div class="lf-legend-title">Legend</div>
+    @foreach (var (type, color) in Node.Entries)
+    {
+        <div class="lf-legend-row">
+            <span class="lf-legend-swatch" style="background:@color;"></span>
+            <span class="lf-legend-label">@type</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Home.LegendNode Node { get; set; } = null!;
+}

@@ -47,20 +47,44 @@ public class DevicesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] DeviceDefinition device)
     {
-        var json = System.IO.File.Exists(_filePath)
-            ? await System.IO.File.ReadAllTextAsync(_filePath)
-            : "[]";
-
-        var devices = System.Text.Json.JsonSerializer.Deserialize<List<DeviceDefinition>>(json)
-            ?? new List<DeviceDefinition>();
-
+        var devices = await ReadDevices();
         devices.Add(device);
+        await WriteDevices(devices);
+        return Ok(device);
+    }
 
+    [HttpPut("{index:int}")]
+    public async Task<IActionResult> Update(int index, [FromBody] DeviceDefinition device)
+    {
+        var devices = await ReadDevices();
+        if (index < 0 || index >= devices.Count) return NotFound();
+        devices[index] = device;
+        await WriteDevices(devices);
+        return Ok(device);
+    }
+
+    [HttpDelete("{index:int}")]
+    public async Task<IActionResult> Delete(int index)
+    {
+        var devices = await ReadDevices();
+        if (index < 0 || index >= devices.Count) return NotFound();
+        devices.RemoveAt(index);
+        await WriteDevices(devices);
+        return Ok();
+    }
+
+    private async Task<List<DeviceDefinition>> ReadDevices()
+    {
+        if (!System.IO.File.Exists(_filePath)) return new();
+        var json = await System.IO.File.ReadAllTextAsync(_filePath);
+        return System.Text.Json.JsonSerializer.Deserialize<List<DeviceDefinition>>(json) ?? new();
+    }
+
+    private async Task WriteDevices(List<DeviceDefinition> devices)
+    {
         await System.IO.File.WriteAllTextAsync(_filePath,
             System.Text.Json.JsonSerializer.Serialize(devices,
                 new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-
-        return Ok(device);
     }
 }
 

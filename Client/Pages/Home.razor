@@ -12,6 +12,7 @@
     </label>
     <button @onclick="DeleteSelected">Delete Selected</button>
     <input class="title-input" @bind="_diagramTitle" placeholder="Diagram title..." />
+    <button @onclick="AddLegend">Legend</button>
     <button @onclick="ExportPdf">Export PDF</button>
     <button @onclick="ExportDxf">Export DXF</button>
 </div>
@@ -25,10 +26,17 @@
             <div class="device-category">@category.Key</div>
             @foreach (var device in category)
             {
+                var idx = _devices.IndexOf(device);
                 <div class="device-item" draggable="true"
                      @ondragstart="() => OnDeviceDragStart(device)">
                     <div class="device-item-model">@device.Model</div>
                     <div class="device-item-mfr">@device.Manufacturer</div>
+                    <div class="device-item-actions">
+                        <button class="device-action-btn" @onclick:stopPropagation="true"
+                                @onclick="() => StartEditDevice(idx)">✏</button>
+                        <button class="device-action-btn device-action-delete" @onclick:stopPropagation="true"
+                                @onclick="() => DeleteDevice(idx)">🗑</button>
+                    </div>
                 </div>
             }
         }
@@ -63,7 +71,15 @@
             </div>
         }
         <button class="add-port-btn" @onclick="AddPort">+ Add Port</button>
-        <button class="add-device-btn" @onclick="AddDevice">+ Add Device</button>
+        @if (_editingIndex >= 0)
+        {
+            <button class="add-device-btn" @onclick="SaveEditDevice">✔ Update Device</button>
+            <button class="add-device-btn" style="border-color:#888;margin-top:2px;" @onclick="CancelEditDevice">✕ Cancel</button>
+        }
+        else
+        {
+            <button class="add-device-btn" @onclick="AddDevice">+ Add Device</button>
+        }
     </div>
 
     <div class="canvas-area"
@@ -106,6 +122,7 @@
     private string _newModel = "";
     private string _newCategory = "Custom";
     private List<PortDefinition> _newPorts = new();
+    private int _editingIndex = -1;
 
     private bool _contextMenuVisible = false;
     private double _contextMenuX = 0;
@@ -120,6 +137,7 @@
         _diagram.Options.Links.DefaultRouter = new ElbowRouter();
         _diagram.Options.Links.DefaultPathGenerator = new Blazor.Diagrams.Core.PathGenerators.StraightPathGenerator();
         _diagram.RegisterComponent<LineFlowNode, LineFlowNodeWidget>();
+        _diagram.RegisterComponent<LegendNode, LegendNodeWidget>();
         _diagram.PointerDown += OnDiagramPointerDown;
         _diagram.Links.Added += (link) => OnLinkAdded((LinkModel)link);
         await LoadDevices();
@@ -173,6 +191,11 @@
 
     private void SetupElbowLink(ElbowLinkModel elbow)
     {
+        var portType = (elbow.Source.Model as LineFlowPort)?.Definition.Type ?? "Other";
+        var color = ElbowLinkModel.ColorForType(portType);
+        elbow.Color = color;
+        elbow.SelectedColor = color;
+
         bool updating = false;
         elbow.Changed += _ =>
         {
@@ -281,6 +304,35 @@
             _diagram.Links.Remove(link);
     }
 
+    private void AddLegend()
+    {
+        var usedTypes = _diagram.Links
+            .Select(l => (l.Source.Model as LineFlowPort)?.Definition.Type)
+            .Where(t => t != null)
+            .Select(t => t!)
+            .Distinct()
+            .OrderBy(t => t)
+            .ToList();
+
+        if (usedTypes.Count == 0) return;
+
+        var entries = usedTypes
+            .Select(t => (t, ElbowLinkModel.ColorForType(t)))
+            .ToList();
+
+        // Update existing legend if present, otherwise create one
+        var existing = _diagram.Nodes.OfType<LegendNode>().FirstOrDefault();
+        if (existing != null)
+        {
+            existing.Entries = entries;
+            existing.Refresh();
+            return;
+        }
+
+        var legend = new LegendNode(new Point(20, 20)) { Entries = entries };
+        _diagram.Nodes.Add(legend);
+    }
+
     private async Task LoadDevices()
     {
         try
@@ -332,6 +384,72 @@
         catch (Exception ex)
         {
             Console.WriteLine("Failed to add device: " + ex.Message);
+        }
+    }
+
+    private void StartEditDevice(int index)
+    {
+        var d = _devices[index];
+        _editingIndex = index;
+        _newManufacturer = d.Manufacturer;
+        _newModel = d.Model;
+        _newCategory = d.Category;
+        _newPorts = d.Ports.Select(p => new PortDefinition { Name = p.Name, Type = p.Type, Direction = p.Direction }).ToList();
+        StateHasChanged();
+    }
+
+    private async Task SaveEditDevice()
+    {
+        if (string.IsNullOrWhiteSpace(_newModel) || _editingIndex < 0) return;
+
+        var device = new DeviceDefinition
+        {
+            Manufacturer = _newManufacturer,
+            Model = _newModel,
+            Category = _newCategory,
+            Ports = _newPorts.ToList()
+        };
+
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/devices/{_editingIndex}", device);
+            if (response.IsSuccessStatusCode)
+            {
+                _devices[_editingIndex] = device;
+                CancelEditDevice();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Failed to update device: " + ex.Message);
+        }
+    }
+
+    private void CancelEditDevice()
+    {
+        _editingIndex = -1;
+        _newManufacturer = "";
+        _newModel = "";
+        _newCategory = "Custom";
+        _newPorts.Clear();
+        StateHasChanged();
+    }
+
+    private async Task DeleteDevice(int index)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/devices/{index}");
+            if (response.IsSuccessStatusCode)
+            {
+                _devices.RemoveAt(index);
+                if (_editingIndex == index) CancelEditDevice();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Failed to delete device: " + ex.Message);
         }
     }
 
@@ -458,7 +576,20 @@
 
     private async Task ExportPdf()
     {
+        // Save current pan/zoom, reset to default so export renders at 1:1
+        var savedZoom = _diagram.Zoom;
+        var savedPan = _diagram.Pan;
+
+        _diagram.SetZoom(1.0);
+        _diagram.UpdatePan(-savedPan.X, -savedPan.Y);
+
+        await Task.Delay(150); // let diagram re-render before print
+
         await JS.InvokeVoidAsync("exportToPdf", _diagramTitle);
+
+        // Restore
+        _diagram.SetZoom(savedZoom);
+        _diagram.UpdatePan(savedPan.X, savedPan.Y);
     }
 
     private async Task ExportDxf()
@@ -634,10 +765,28 @@
         await JS.InvokeVoidAsync("saveAsFile", "diagram.dxf", sb.ToString());
     }
 
+    public class LegendNode : NodeModel
+    {
+        public List<(string Type, string Color)> Entries { get; set; } = new();
+        public LegendNode(Point position) : base(position) { }
+    }
+
     public class ElbowLinkModel : LinkModel
     {
         public double? MidX { get; set; }
         public ElbowLinkModel(PortModel source, PortModel target) : base(source, target) { }
+
+        public static string ColorForType(string type) => type switch
+        {
+            "HDMI"    => "#4fc3f7",
+            "SDI"     => "#81c784",
+            "Audio"   => "#ffb74d",
+            "Network" => "#ce93d8",
+            "USB"     => "#f48fb1",
+            "IR"      => "#80cbc4",
+            "COM"     => "#fff176",
+            _         => "#e94560",
+        };
     }
 
     public class ElbowRouter : Blazor.Diagrams.Core.Routers.Router

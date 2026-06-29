@@ -8,8 +8,9 @@
             @foreach (var port in Node.Ports.OfType<Home.LineFlowPort>()
                         .Where(p => p.Alignment == PortAlignment.Left))
             {
+                var dotColor = Home.ElbowLinkModel.ColorForType(port.Definition.Type);
                 <div class="lf-port-row-left">
-                    <PortRenderer Port="port" Class="lf-port-dot" />
+                    <PortRenderer Port="port" Class="lf-port-dot" Style="@($"background:{dotColor} !important;")" />
                     <span class="lf-port-label-left">@port.Definition.Name</span>
                 </div>
             }
@@ -18,9 +19,10 @@
             @foreach (var port in Node.Ports.OfType<Home.LineFlowPort>()
                         .Where(p => p.Alignment == PortAlignment.Right))
             {
+                var dotColor = Home.ElbowLinkModel.ColorForType(port.Definition.Type);
                 <div class="lf-port-row-right">
                     <span class="lf-port-label-right">@port.Definition.Name</span>
-                    <PortRenderer Port="port" Class="lf-port-dot" />
+                    <PortRenderer Port="port" Class="lf-port-dot" Style="@($"background:{dotColor} !important;")" />
                 </div>
             }
         </div>
