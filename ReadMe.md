@@ -218,8 +218,6 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 ## Features Planned / Not Yet Implemented
 - ⬜ Connection labels (e.g. "VID-005" like reference diagram)
 - ⬜ Color coding per port/connection type
-- ⬜ Rename nodes on canvas
 - ⬜ Delete devices from side panel
-- ⬜ Visual confirmation that DXF export lines match the app pixel-for-pixel on multi-bend connections
 - ⬜ MAUI desktop wrapper
 - ⬜ Ubuntu deployment tested end-to-end
