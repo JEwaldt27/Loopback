@@ -1,0 +1,203 @@
+[
+  {
+    "manufacturer": "Crestron",
+    "model": "DM-NVX-350",
+    "category": "AV over IP",
+    "ports": [
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "In"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Out"
+      },
+      {
+        "name": "Network 1",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Network 2",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "HDMI 1 In",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI 2 In",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Audio I/O",
+        "type": "Audio",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Generic",
+    "model": "Display",
+    "category": "Generic",
+    "ports": [
+      {
+        "name": "HDMI 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI 3",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Power",
+        "type": "Other",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Generic",
+    "model": "24 Port Switch",
+    "category": "GENERIC",
+    "ports": [
+      {
+        "name": "Port 1",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 2",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 3",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 4",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 5",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 6",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 7",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 8",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 9",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 10",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 11",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 12",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 13",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 14",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 15",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 16",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 17",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 18",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 19",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 20",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 21",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 22",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 23",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 24",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  }
+]

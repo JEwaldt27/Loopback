@@ -1,0 +1,146 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Server/1.0.0": {
+        "dependencies": {
+          "Client": "1.0.0",
+          "Microsoft.AspNetCore.Components.WebAssembly.Server": "10.0.9"
+        },
+        "runtime": {
+          "Server.dll": {}
+        }
+      },
+      "Microsoft.AspNetCore.Components.WebAssembly/10.0.9": {
+        "dependencies": {
+          "Microsoft.JSInterop.WebAssembly": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.Components.WebAssembly.dll": {
+            "assemblyVersion": "10.0.9.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Components.WebAssembly.Server/10.0.9": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.WebAssembly": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.Components.WebAssembly.Server.dll": {
+            "assemblyVersion": "10.0.9.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.JSInterop.WebAssembly/10.0.9": {
+        "runtime": {
+          "lib/net10.0/Microsoft.JSInterop.WebAssembly.dll": {
+            "assemblyVersion": "10.0.9.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "SvgPathProperties/1.1.2": {
+        "runtime": {
+          "lib/netstandard2.0/SvgPathProperties.dll": {
+            "assemblyVersion": "1.1.2.0",
+            "fileVersion": "1.1.2.0"
+          }
+        }
+      },
+      "Z.Blazor.Diagrams/3.0.4.1": {
+        "dependencies": {
+          "Z.Blazor.Diagrams.Core": "3.0.4.1"
+        },
+        "runtime": {
+          "lib/net10.0/Blazor.Diagrams.dll": {
+            "assemblyVersion": "3.0.4.1",
+            "fileVersion": "3.0.4.1"
+          }
+        }
+      },
+      "Z.Blazor.Diagrams.Core/3.0.4.1": {
+        "dependencies": {
+          "SvgPathProperties": "1.1.2"
+        },
+        "runtime": {
+          "lib/net10.0/Blazor.Diagrams.Core.dll": {
+            "assemblyVersion": "3.0.4.1",
+            "fileVersion": "3.0.4.1"
+          }
+        }
+      },
+      "Client/1.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.Components.WebAssembly": "10.0.9",
+          "Z.Blazor.Diagrams": "3.0.4.1"
+        },
+        "runtime": {
+          "Client.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Server/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.AspNetCore.Components.WebAssembly/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-tBv68AsZ3r6z2QdV2m3cSSKUCbvEscN8REpHxcUs22vlR6UjTz6IKdInKNREkJ/3G1AQrBKrRTdrfrHVffE8Iw==",
+      "path": "microsoft.aspnetcore.components.webassembly/10.0.9",
+      "hashPath": "microsoft.aspnetcore.components.webassembly.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Components.WebAssembly.Server/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ZTtYvBILwGxhIiXi1L03ETBBOgMmizStu7dO/YblK6rPTa27wpEgYKp5Z9bUfr+wsFvHIDWd/ZMGb9on41f6yw==",
+      "path": "microsoft.aspnetcore.components.webassembly.server/10.0.9",
+      "hashPath": "microsoft.aspnetcore.components.webassembly.server.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.JSInterop.WebAssembly/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-4G0A7GuQrtCAes8PuJPTDUcy+lCrxHWjr8ZlkDOa4h8a2Txj1XdhbXKLnld2vMY5EyZNC5jZXxa1xTD/AOCUlw==",
+      "path": "microsoft.jsinterop.webassembly/10.0.9",
+      "hashPath": "microsoft.jsinterop.webassembly.10.0.9.nupkg.sha512"
+    },
+    "SvgPathProperties/1.1.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-oqCX5+CxcLfC1lC6gfzOSM+WOmfwn4V7yzMHQfofi+QmYoY+Hq5oye6BgnqhHC+3BSsiadLSOnfYxpcv/enkcw==",
+      "path": "svgpathproperties/1.1.2",
+      "hashPath": "svgpathproperties.1.1.2.nupkg.sha512"
+    },
+    "Z.Blazor.Diagrams/3.0.4.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-A+Muday/GzA5p6adV5LgHsuOAC8uuOXX+1p0jo1Hde7cDEBM/CkYftTm1PaxiGLUf2YK8o+bls2A7dreC9pCyQ==",
+      "path": "z.blazor.diagrams/3.0.4.1",
+      "hashPath": "z.blazor.diagrams.3.0.4.1.nupkg.sha512"
+    },
+    "Z.Blazor.Diagrams.Core/3.0.4.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-CLBLNVgHcpCTXUZ1KTQptfIao82jrlVg1c1xnZFCF8+3WNZgRBszRrNFcPtAT8KsUiE+4+iA1eydbWdplOpq2w==",
+      "path": "z.blazor.diagrams.core/3.0.4.1",
+      "hashPath": "z.blazor.diagrams.core.3.0.4.1.nupkg.sha512"
+    },
+    "Client/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
