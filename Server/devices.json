@@ -199,5 +199,84 @@
         "direction": "Universal"
       }
     ]
+  },
+  {
+    "manufacturer": "Vaddio",
+    "model": "RoboSHOT 12E HDBT",
+    "category": "Cameras",
+    "ports": [
+      {
+        "name": "OneLINK",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "HDMI",
+        "type": "HDMI",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Vaddio",
+    "model": "OneLINK Bridge",
+    "category": "Cameras",
+    "ports": [
+      {
+        "name": "48V DC",
+        "type": "Other",
+        "direction": "In"
+      },
+      {
+        "name": "OneLINK",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "HDMI",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "HD-SDI",
+        "type": "SDI",
+        "direction": "Out"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "RS232",
+        "type": "COM",
+        "direction": "Out"
+      },
+      {
+        "name": "Line Out 1",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Line Out 2",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Mic In 1",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Mic In 2",
+        "type": "Audio",
+        "direction": "In"
+      }
+    ]
   }
 ]
