@@ -1,0 +1,17 @@
+@using Blazor.Diagrams.Core.Models
+
+<svg class="lf-line-svg" width="@(Math.Max(Node.Size?.Width ?? 150, 1))" height="@(Math.Max(Node.Size?.Height ?? 1, 1))">
+    <line x1="@Node.Start.X" y1="@Node.Start.Y" x2="@Node.End.X" y2="@Node.End.Y" stroke="@Node.StrokeColor" stroke-width="2" />
+    @if (Node.Selected)
+    {
+        <circle class="lf-line-handle" cx="@Node.Start.X" cy="@Node.Start.Y" r="6"
+                @onmousedown:stopPropagation="true" @onmousedown="e => Page.StartResize(Node, Home.ResizeHandle.LineStart, e)" />
+        <circle class="lf-line-handle" cx="@Node.End.X" cy="@Node.End.Y" r="6"
+                @onmousedown:stopPropagation="true" @onmousedown="e => Page.StartResize(Node, Home.ResizeHandle.LineEnd, e)" />
+    }
+</svg>
+
+@code {
+    [Parameter] public Home.LineNode Node { get; set; } = null!;
+    [CascadingParameter] public Home Page { get; set; } = null!;
+}

@@ -1,0 +1,42 @@
+@using Blazor.Diagrams.Core.Models
+
+<div class="lf-text-node" @ondblclick:stopPropagation="true" @onmousedown:stopPropagation="@Node.Editing" @ondblclick="() => Node.Editing = true">
+    @if (Node.Editing)
+    {
+        <input class="lf-text-input" id="@($"text-node-{Node.Id}")" name="@($"text-node-{Node.Id}")"
+               style="font-size:@(Node.FontSize)px;color:@Node.Color;"
+               @bind="Node.Text" @bind:event="oninput"
+               @onblur="() => Node.Editing = false"
+               @onkeydown="OnKeyDown" autofocus />
+    }
+    else
+    {
+        <span class="lf-text-content" style="font-size:@(Node.FontSize)px;color:@Node.Color;">@Node.Text</span>
+    }
+
+    @if (Node.Selected && !Node.Editing)
+    {
+        <div class="lf-text-style-row" @onmousedown:stopPropagation="true" @onclick:stopPropagation="true">
+            <select class="lf-text-size-select" id="@($"text-node-size-{Node.Id}")" name="@($"text-node-size-{Node.Id}")" @bind="Node.FontSize">
+                <option value="12">12</option>
+                <option value="14">14</option>
+                <option value="16">16</option>
+                <option value="20">20</option>
+                <option value="24">24</option>
+                <option value="32">32</option>
+                <option value="48">48</option>
+            </select>
+            <input type="color" class="lf-text-color-input" id="@($"text-node-color-{Node.Id}")" name="@($"text-node-color-{Node.Id}")" @bind="Node.Color" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Home.TextNode Node { get; set; } = null!;
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Escape")
+            Node.Editing = false;
+    }
+}

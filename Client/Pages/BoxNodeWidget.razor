@@ -1,0 +1,20 @@
+@using Blazor.Diagrams.Core.Models
+
+<div class="lf-box" style="width:@(Node.Size?.Width ?? 160)px;height:@(Node.Size?.Height ?? 100)px;border-color:@Node.BorderColor;">
+    @if (Node.Selected)
+    {
+        <div class="lf-resize-handle lf-resize-tl" @onmousedown:stopPropagation="true"
+             @onmousedown="e => Page.StartResize(Node, Home.ResizeHandle.TopLeft, e)"></div>
+        <div class="lf-resize-handle lf-resize-tr" @onmousedown:stopPropagation="true"
+             @onmousedown="e => Page.StartResize(Node, Home.ResizeHandle.TopRight, e)"></div>
+        <div class="lf-resize-handle lf-resize-bl" @onmousedown:stopPropagation="true"
+             @onmousedown="e => Page.StartResize(Node, Home.ResizeHandle.BottomLeft, e)"></div>
+        <div class="lf-resize-handle lf-resize-br" @onmousedown:stopPropagation="true"
+             @onmousedown="e => Page.StartResize(Node, Home.ResizeHandle.BottomRight, e)"></div>
+    }
+</div>
+
+@code {
+    [Parameter] public Home.BoxNode Node { get; set; } = null!;
+    [CascadingParameter] public Home Page { get; set; } = null!;
+}

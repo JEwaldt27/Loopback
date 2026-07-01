@@ -84,6 +84,9 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
 - **`LegendNode`** — extends `NodeModel`, holds a list of `(Type, Color)` entries; rendered by `LegendNodeWidget.razor`. Created/updated by the "Legend" toolbar button using only the signal types present in current connections.
 - **`DeviceDefinition`** — manufacturer, model, category, list of ports
 - **`PortDefinition`** — name, type (HDMI/SDI/Audio/Network/USB/IR/COM/Other), direction (In/Out/Universal)
+- **`BoxNode`** — extends `NodeModel`, resizable rectangle with a border color and no fill; rendered by `BoxNodeWidget.razor`, corner handles drag-resize via `Home.StartResize`
+- **`LineNode`** — extends `NodeModel`, freeform 2-point line (`Start`/`End`) not attached to any port; rendered by `LineNodeWidget.razor`, endpoint handles drag via `Home.StartResize`
+- **`TextNode`** — extends `NodeModel`, editable text label with `FontSize`/`Color`; rendered by `TextNodeWidget.razor`, double-click to edit, style row appears when selected
 
 ### Connection Rules
 - Input → Output ✅
@@ -167,13 +170,15 @@ dotnet publish Server -c Release -o ./publish
 # Copy to server
 scp -r ./publish user@your-server-ip:/home/user/lineflowapp
 
-# On Ubuntu server
+# On Ubuntu server — bind to all interfaces so it's reachable from other machines on the LAN
 cd /home/user/lineflowapp
-dotnet LineFlowApp.Server.dll
+ASPNETCORE_URLS=http://0.0.0.0:5052 dotnet Server.dll
 
 # Or as a systemd service:
 sudo nano /etc/systemd/system/lineflow.service
 ```
+
+By default Kestrel only binds to `localhost`, which is unreachable from other machines — `ASPNETCORE_URLS` (or the `--urls` flag) must explicitly bind `0.0.0.0` for LAN access. Also open the port in the firewall if `ufw` is active: `sudo ufw allow 5052/tcp`.
 
 Systemd service file:
 ```ini
@@ -184,6 +189,7 @@ After=network.target
 [Service]
 WorkingDirectory=/home/user/lineflowapp
 ExecStart=/usr/bin/dotnet Server.dll
+Environment=ASPNETCORE_URLS=http://0.0.0.0:5052
 Restart=always
 User=www-data
 
@@ -195,6 +201,8 @@ WantedBy=multi-user.target
 sudo systemctl enable lineflow
 sudo systemctl start lineflow
 ```
+
+Then from your Windows machine, browse to `http://<linux-server-ip>:5052`.
 
 ## Install .NET 10 on Ubuntu
 ```bash
@@ -216,6 +224,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ PDF export (white background, title + date header, direct download) — resets zoom/pan before capture so connections render correctly at any zoom level
 - ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers), generating the same multi-segment path as the live app's routing
 - ✅ Zoom and pan on canvas
+- ✅ Freeform annotations — Box (resizable rectangle, no fill), Line (2-point freeform line with draggable endpoints, not attached to ports), and Text (click-to-place, editable, with font size/color controls); all three are selectable/deletable, saved in `.lf` files, and included in PDF and DXF exports (DXF `ANNOTATIONS` layer)
 
 ## Features Planned / Not Yet Implemented
 - ⬜ Connection labels (e.g. "VID-005" like reference diagram)

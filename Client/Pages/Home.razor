@@ -5,17 +5,53 @@
 
 <div class="toolbar">
     <span class="app-title">LineFlow</span>
-    <button @onclick="NewDiagram">New</button>
-    <button @onclick="SaveDiagram">Save</button>
-    <label class="open-btn">
-        Open <InputFile OnChange="OpenDiagram" accept=".lf" />
-    </label>
+
+    <div class="lf-menu-root">
+        <button class="lf-menu-btn @(_openMenu == "file" ? "lf-menu-btn-active" : "")" @onclick='() => ToggleMenu("file")'>File</button>
+        @if (_openMenu == "file")
+        {
+            <div class="lf-dropdown-menu">
+                <div class="lf-dropdown-item" @onclick="() => { NewDiagram(); CloseMenus(); }">🆕 New</div>
+                <div class="lf-dropdown-item" @onclick="async () => { await SaveDiagram(); CloseMenus(); }">💾 Save</div>
+                <label class="lf-dropdown-item">
+                    📂 Open <InputFile id="open-file-input" name="open-file-input" OnChange="async e => { await OpenDiagram(e); CloseMenus(); }" accept=".lf" />
+                </label>
+            </div>
+        }
+    </div>
+
+    <div class="lf-menu-root">
+        <button class="lf-menu-btn @(_openMenu == "tools" ? "lf-menu-btn-active" : "")" @onclick='() => ToggleMenu("tools")'>Tools</button>
+        @if (_openMenu == "tools")
+        {
+            <div class="lf-dropdown-menu">
+                <div class="lf-dropdown-item" @onclick="() => { AddLegend(); CloseMenus(); }">🏷 Legend</div>
+                <div class="lf-dropdown-item @(_placementMode == "box" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("box"); CloseMenus(); }'>▭ Box</div>
+                <div class="lf-dropdown-item @(_placementMode == "line" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("line"); CloseMenus(); }'>╱ Line</div>
+                <div class="lf-dropdown-item @(_placementMode == "text" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("text"); CloseMenus(); }'>T Text</div>
+            </div>
+        }
+    </div>
+
+    <div class="lf-menu-root">
+        <button class="lf-menu-btn @(_openMenu == "export" ? "lf-menu-btn-active" : "")" @onclick='() => ToggleMenu("export")'>Export</button>
+        @if (_openMenu == "export")
+        {
+            <div class="lf-dropdown-menu">
+                <div class="lf-dropdown-item" @onclick="async () => { await ExportPdf(); CloseMenus(); }">📄 Export PDF</div>
+                <div class="lf-dropdown-item" @onclick="async () => { await ExportDxf(); CloseMenus(); }">📐 Export DXF</div>
+            </div>
+        }
+    </div>
+
     <button @onclick="DeleteSelected">Delete Selected</button>
-    <input class="title-input" @bind="_diagramTitle" placeholder="Diagram title..." />
-    <button @onclick="AddLegend">Legend</button>
-    <button @onclick="ExportPdf">Export PDF</button>
-    <button @onclick="ExportDxf">Export DXF</button>
+    <input class="title-input" id="diagram-title" name="diagram-title" @bind="_diagramTitle" placeholder="Diagram title..." />
 </div>
+
+@if (_openMenu != null)
+{
+    <div class="lf-menu-overlay" @onclick="CloseMenus"></div>
+}
 
 <div class="app-body" @onclick="HideContextMenu">
     <div class="side-panel">
@@ -42,17 +78,17 @@
         }
 
         <div class="side-panel-header" style="margin-top:16px;">Add Device</div>
-        <input class="device-input" @bind="_newManufacturer" placeholder="Manufacturer..." />
-        <input class="device-input" @bind="_newModel" placeholder="Model number..." />
-        <input class="device-input" @bind="_newCategory" placeholder="Category..." />
+        <input class="device-input" id="new-device-manufacturer" name="new-device-manufacturer" @bind="_newManufacturer" placeholder="Manufacturer..." />
+        <input class="device-input" id="new-device-model" name="new-device-model" @bind="_newModel" placeholder="Model number..." />
+        <input class="device-input" id="new-device-category" name="new-device-category" @bind="_newCategory" placeholder="Category..." />
 
         <div class="port-list-header">Ports</div>
         @for (int i = 0; i < _newPorts.Count; i++)
         {
             var idx = i;
             <div class="port-row">
-                <input class="port-input" @bind="_newPorts[idx].Name" placeholder="Name" />
-                <select class="port-select" @bind="_newPorts[idx].Type">
+                <input class="port-input" id="@($"port-name-{idx}")" name="@($"port-name-{idx}")" @bind="_newPorts[idx].Name" placeholder="Name" />
+                <select class="port-select" id="@($"port-type-{idx}")" name="@($"port-type-{idx}")" @bind="_newPorts[idx].Type">
                     <option>HDMI</option>
                     <option>SDI</option>
                     <option>Audio</option>
@@ -62,7 +98,7 @@
                     <option>COM</option>
                     <option>Other</option>
                 </select>
-                <select class="port-select" @bind="_newPorts[idx].Direction">
+                <select class="port-select" id="@($"port-direction-{idx}")" name="@($"port-direction-{idx}")" @bind="_newPorts[idx].Direction">
                     <option>In</option>
                     <option>Out</option>
                     <option>Universal</option>
@@ -82,13 +118,17 @@
         }
     </div>
 
-    <div class="canvas-area"
+    <div class="canvas-area @(_placementMode != "" ? "canvas-placing" : "")"
          @ondragover:preventDefault="true"
          @ondrop="OnCanvasDrop"
-         @onclick="HideContextMenu"
+         @onclick="OnCanvasClick"
+         @onmousemove="OnCanvasMouseMove"
+         @onmouseup="OnCanvasMouseUp"
          @oncontextmenu:preventDefault="true">
-        <CascadingValue Value="_diagram">
-            <DiagramCanvas />
+        <CascadingValue Value="this" IsFixed="true">
+            <CascadingValue Value="_diagram">
+                <DiagramCanvas />
+            </CascadingValue>
         </CascadingValue>
     </div>
 
@@ -131,6 +171,18 @@
     private NodeModel? _contextNode = null;
     private BaseLinkModel? _contextLink = null;
 
+    private string _placementMode = ""; // "", "box", "line", "text"
+    private string? _openMenu = null; // null, "file", "tools", "export"
+    private NodeModel? _resizingNode = null;
+    private ResizeHandle _resizeHandleKind = ResizeHandle.TopLeft;
+    private Point _resizeStartMouse = new(0, 0);
+    private Point _resizeStartPos = new(0, 0);
+    private Blazor.Diagrams.Core.Geometry.Size _resizeStartSize = new(0, 0);
+    private Point _resizeStartLineStart = new(0, 0);
+    private Point _resizeStartLineEnd = new(0, 0);
+
+    public enum ResizeHandle { TopLeft, TopRight, BottomLeft, BottomRight, LineStart, LineEnd }
+
     protected override async Task OnInitializedAsync()
     {
         _diagram = new BlazorDiagram();
@@ -138,6 +190,9 @@
         _diagram.Options.Links.DefaultPathGenerator = new Blazor.Diagrams.Core.PathGenerators.StraightPathGenerator();
         _diagram.RegisterComponent<LineFlowNode, LineFlowNodeWidget>();
         _diagram.RegisterComponent<LegendNode, LegendNodeWidget>();
+        _diagram.RegisterComponent<BoxNode, BoxNodeWidget>();
+        _diagram.RegisterComponent<LineNode, LineNodeWidget>();
+        _diagram.RegisterComponent<TextNode, TextNodeWidget>();
         _diagram.PointerDown += OnDiagramPointerDown;
         _diagram.Links.Added += (link) => OnLinkAdded((LinkModel)link);
         await LoadDevices();
@@ -333,6 +388,127 @@
         _diagram.Nodes.Add(legend);
     }
 
+    private void TogglePlacement(string mode)
+    {
+        _placementMode = _placementMode == mode ? "" : mode;
+    }
+
+    private void ToggleMenu(string name)
+    {
+        _openMenu = _openMenu == name ? null : name;
+    }
+
+    private void CloseMenus()
+    {
+        _openMenu = null;
+    }
+
+    private void OnCanvasClick(MouseEventArgs e)
+    {
+        HideContextMenu();
+
+        if (_placementMode == "")
+            return;
+
+        var point = new Point(e.ClientX - 220, e.ClientY - 48);
+
+        switch (_placementMode)
+        {
+            case "box":
+                _diagram.Nodes.Add(new BoxNode(point));
+                break;
+            case "line":
+                _diagram.Nodes.Add(new LineNode(point));
+                break;
+            case "text":
+                _diagram.Nodes.Add(new TextNode(point) { Editing = true });
+                break;
+        }
+
+        _placementMode = "";
+    }
+
+    public void StartResize(NodeModel node, ResizeHandle handle, MouseEventArgs e)
+    {
+        _resizingNode = node;
+        _resizeHandleKind = handle;
+        _resizeStartMouse = new Point(e.ClientX, e.ClientY);
+        _resizeStartPos = node.Position;
+        _resizeStartSize = node.Size ?? new Blazor.Diagrams.Core.Geometry.Size(160, 100);
+
+        if (node is LineNode line)
+        {
+            _resizeStartLineStart = line.Start;
+            _resizeStartLineEnd = line.End;
+        }
+    }
+
+    private void OnCanvasMouseMove(MouseEventArgs e)
+    {
+        if (_resizingNode == null) return;
+
+        double zoom = _diagram.Zoom == 0 ? 1 : _diagram.Zoom;
+        double dx = (e.ClientX - _resizeStartMouse.X) / zoom;
+        double dy = (e.ClientY - _resizeStartMouse.Y) / zoom;
+
+        if (_resizingNode is LineNode line)
+        {
+            var fixedAbs = _resizeHandleKind == ResizeHandle.LineStart
+                ? new Point(_resizeStartPos.X + _resizeStartLineEnd.X, _resizeStartPos.Y + _resizeStartLineEnd.Y)
+                : new Point(_resizeStartPos.X + _resizeStartLineStart.X, _resizeStartPos.Y + _resizeStartLineStart.Y);
+            var movingAbs = _resizeHandleKind == ResizeHandle.LineStart
+                ? new Point(_resizeStartPos.X + _resizeStartLineStart.X + dx, _resizeStartPos.Y + _resizeStartLineStart.Y + dy)
+                : new Point(_resizeStartPos.X + _resizeStartLineEnd.X + dx, _resizeStartPos.Y + _resizeStartLineEnd.Y + dy);
+
+            double minX = Math.Min(fixedAbs.X, movingAbs.X);
+            double minY = Math.Min(fixedAbs.Y, movingAbs.Y);
+            double maxX = Math.Max(fixedAbs.X, movingAbs.X);
+            double maxY = Math.Max(fixedAbs.Y, movingAbs.Y);
+
+            line.SetPosition(minX, minY);
+            line.Size = new Blazor.Diagrams.Core.Geometry.Size(Math.Max(maxX - minX, 1), Math.Max(maxY - minY, 1));
+
+            if (_resizeHandleKind == ResizeHandle.LineStart)
+            {
+                line.Start = new Point(movingAbs.X - minX, movingAbs.Y - minY);
+                line.End = new Point(fixedAbs.X - minX, fixedAbs.Y - minY);
+            }
+            else
+            {
+                line.End = new Point(movingAbs.X - minX, movingAbs.Y - minY);
+                line.Start = new Point(fixedAbs.X - minX, fixedAbs.Y - minY);
+            }
+            line.Refresh();
+            return;
+        }
+
+        if (_resizingNode is BoxNode box)
+        {
+            double newX = _resizeStartPos.X, newY = _resizeStartPos.Y;
+            double newW = _resizeStartSize.Width, newH = _resizeStartSize.Height;
+
+            switch (_resizeHandleKind)
+            {
+                case ResizeHandle.TopLeft: newX += dx; newY += dy; newW -= dx; newH -= dy; break;
+                case ResizeHandle.TopRight: newY += dy; newW += dx; newH -= dy; break;
+                case ResizeHandle.BottomLeft: newX += dx; newW -= dx; newH += dy; break;
+                case ResizeHandle.BottomRight: newW += dx; newH += dy; break;
+            }
+
+            if (newW < 30) { if (_resizeHandleKind is ResizeHandle.TopLeft or ResizeHandle.BottomLeft) newX = _resizeStartPos.X + _resizeStartSize.Width - 30; newW = 30; }
+            if (newH < 24) { if (_resizeHandleKind is ResizeHandle.TopLeft or ResizeHandle.TopRight) newY = _resizeStartPos.Y + _resizeStartSize.Height - 24; newH = 24; }
+
+            box.SetPosition(newX, newY);
+            box.Size = new Blazor.Diagrams.Core.Geometry.Size(newW, newH);
+            box.Refresh();
+        }
+    }
+
+    private void OnCanvasMouseUp(MouseEventArgs e)
+    {
+        _resizingNode = null;
+    }
+
     private async Task LoadDevices()
     {
         try
@@ -499,6 +675,32 @@
                 targetPortIndex = (l.Target.Model as PortModel) is PortModel tp
                     ? tp.Parent.Ports.ToList().IndexOf(tp) : 0,
                 vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y }),
+            }),
+            boxes = _diagram.Nodes.OfType<BoxNode>().Select(b => new
+            {
+                x = b.Position.X,
+                y = b.Position.Y,
+                width = b.Size?.Width ?? 160,
+                height = b.Size?.Height ?? 100,
+                borderColor = b.BorderColor
+            }),
+            lines = _diagram.Nodes.OfType<LineNode>().Select(l => new
+            {
+                x = l.Position.X,
+                y = l.Position.Y,
+                startX = l.Start.X,
+                startY = l.Start.Y,
+                endX = l.End.X,
+                endY = l.End.Y,
+                strokeColor = l.StrokeColor
+            }),
+            texts = _diagram.Nodes.OfType<TextNode>().Select(t => new
+            {
+                x = t.Position.X,
+                y = t.Position.Y,
+                text = t.Text,
+                fontSize = t.FontSize,
+                color = t.Color
             })
         };
 
@@ -571,6 +773,50 @@
             }
         }
 
+        if (doc.RootElement.TryGetProperty("boxes", out var boxesEl))
+        {
+            foreach (var b in boxesEl.EnumerateArray())
+            {
+                var box = new BoxNode(new Point(b.GetProperty("x").GetDouble(), b.GetProperty("y").GetDouble()))
+                {
+                    Size = new Blazor.Diagrams.Core.Geometry.Size(b.GetProperty("width").GetDouble(), b.GetProperty("height").GetDouble()),
+                    BorderColor = b.TryGetProperty("borderColor", out var bc) ? bc.GetString() ?? "#e94560" : "#e94560"
+                };
+                _diagram.Nodes.Add(box);
+            }
+        }
+
+        if (doc.RootElement.TryGetProperty("lines", out var linesEl))
+        {
+            foreach (var l in linesEl.EnumerateArray())
+            {
+                var line = new LineNode(new Point(l.GetProperty("x").GetDouble(), l.GetProperty("y").GetDouble()))
+                {
+                    Start = new Point(l.GetProperty("startX").GetDouble(), l.GetProperty("startY").GetDouble()),
+                    End = new Point(l.GetProperty("endX").GetDouble(), l.GetProperty("endY").GetDouble()),
+                    StrokeColor = l.TryGetProperty("strokeColor", out var sc) ? sc.GetString() ?? "#333333" : "#333333"
+                };
+                line.Size = new Blazor.Diagrams.Core.Geometry.Size(
+                    Math.Max(Math.Abs(line.End.X - line.Start.X), 1),
+                    Math.Max(Math.Abs(line.End.Y - line.Start.Y), 1));
+                _diagram.Nodes.Add(line);
+            }
+        }
+
+        if (doc.RootElement.TryGetProperty("texts", out var textsEl))
+        {
+            foreach (var t in textsEl.EnumerateArray())
+            {
+                var text = new TextNode(new Point(t.GetProperty("x").GetDouble(), t.GetProperty("y").GetDouble()))
+                {
+                    Text = t.GetProperty("text").GetString() ?? "Text",
+                    FontSize = t.TryGetProperty("fontSize", out var fs) ? fs.GetInt32() : 16,
+                    Color = t.TryGetProperty("color", out var c) ? c.GetString() ?? "#222222" : "#222222"
+                };
+                _diagram.Nodes.Add(text);
+            }
+        }
+
         StateHasChanged();
     }
 
@@ -616,6 +862,11 @@
         sb.AppendLine("6\nCONTINUOUS");
         sb.AppendLine("0\nLAYER");
         sb.AppendLine("2\nCONNECTIONS");
+        sb.AppendLine("70\n0");
+        sb.AppendLine("62\n7");
+        sb.AppendLine("6\nCONTINUOUS");
+        sb.AppendLine("0\nLAYER");
+        sb.AppendLine("2\nANNOTATIONS");
         sb.AppendLine("70\n0");
         sb.AppendLine("62\n7");
         sb.AppendLine("6\nCONTINUOUS");
@@ -759,6 +1010,37 @@
             }
         }
 
+        foreach (var box in _diagram.Nodes.OfType<BoxNode>())
+        {
+            double x = box.Position.X * scale;
+            double y = -(box.Position.Y * scale);
+            double w = (box.Size?.Width ?? 160) * scale;
+            double h = (box.Size?.Height ?? 100) * scale;
+
+            DxfLine(x, y, x + w, y, "ANNOTATIONS");
+            DxfLine(x + w, y, x + w, y - h, "ANNOTATIONS");
+            DxfLine(x + w, y - h, x, y - h, "ANNOTATIONS");
+            DxfLine(x, y - h, x, y, "ANNOTATIONS");
+        }
+
+        foreach (var line in _diagram.Nodes.OfType<LineNode>())
+        {
+            double x1 = (line.Position.X + line.Start.X) * scale;
+            double y1 = -((line.Position.Y + line.Start.Y) * scale);
+            double x2 = (line.Position.X + line.End.X) * scale;
+            double y2 = -((line.Position.Y + line.End.Y) * scale);
+
+            DxfLine(x1, y1, x2, y2, "ANNOTATIONS");
+        }
+
+        foreach (var text in _diagram.Nodes.OfType<TextNode>())
+        {
+            double x = text.Position.X * scale;
+            double y = -(text.Position.Y * scale);
+
+            DxfText(x, y, text.Text, Math.Max(text.FontSize * scale, 1.0), "ANNOTATIONS", 0);
+        }
+
         sb.AppendLine("0\nENDSEC");
         sb.AppendLine("0\nEOF");
 
@@ -769,6 +1051,37 @@
     {
         public List<(string Type, string Color)> Entries { get; set; } = new();
         public LegendNode(Point position) : base(position) { }
+    }
+
+    public class BoxNode : NodeModel
+    {
+        public string BorderColor { get; set; } = "#e94560";
+        public BoxNode(Point position) : base(position)
+        {
+            Size = new Blazor.Diagrams.Core.Geometry.Size(160, 100);
+        }
+    }
+
+    public class LineNode : NodeModel
+    {
+        public Point Start { get; set; } = new Point(0, 0);
+        public Point End { get; set; } = new Point(150, 0);
+        public string StrokeColor { get; set; } = "#333333";
+
+        public LineNode(Point position) : base(position)
+        {
+            Size = new Blazor.Diagrams.Core.Geometry.Size(150, 1);
+        }
+    }
+
+    public class TextNode : NodeModel
+    {
+        public string Text { get; set; } = "Text";
+        public int FontSize { get; set; } = 16;
+        public string Color { get; set; } = "#222222";
+        public bool Editing { get; set; } = false;
+
+        public TextNode(Point position) : base(position) { }
     }
 
     public class ElbowLinkModel : LinkModel

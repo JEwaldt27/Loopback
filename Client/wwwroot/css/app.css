@@ -49,6 +49,79 @@ html, body {
         background: #e94560;
     }
 
+.tool-btn-active {
+    background: #e94560 !important;
+    border-color: #fff !important;
+}
+
+.lf-menu-root {
+    position: relative;
+}
+
+.lf-menu-btn {
+    background: #0f3460;
+    color: #fff;
+    border: 1px solid #e94560;
+    border-radius: 4px;
+    padding: 6px 16px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+    .lf-menu-btn:hover {
+        background: #e94560;
+    }
+
+.lf-menu-btn-active {
+    background: #e94560 !important;
+    border-color: #fff !important;
+}
+
+.lf-dropdown-menu {
+    display: block;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: #16213e;
+    border: 1px solid #e94560;
+    border-radius: 6px;
+    padding: 4px 0;
+    z-index: 1000;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.lf-dropdown-item {
+    display: block;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #fff;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+    .lf-dropdown-item:hover {
+        background: #e94560;
+    }
+
+    .lf-dropdown-item input[type="file"] {
+        display: none;
+    }
+
+.lf-dropdown-item-active {
+    background: #e94560;
+}
+
+.lf-menu-overlay {
+    position: fixed;
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    background: transparent;
+}
+
     .open-btn input {
         display: none;
     }
@@ -237,6 +310,10 @@ html, body {
     flex: 1;
     overflow: hidden;
     background: #f0f0f0;
+}
+
+.canvas-placing {
+    cursor: crosshair;
 }
 
 .diagram-canvas {
@@ -431,3 +508,87 @@ html, body {
     .title-input::placeholder {
         color: #888;
     }
+
+.lf-box {
+    box-sizing: border-box;
+    border: 2px solid #e94560;
+    background: transparent;
+    cursor: move;
+    position: relative;
+}
+
+.lf-resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #1a1a2e;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    z-index: 2;
+}
+
+.lf-resize-tl { top: -6px; left: -6px; cursor: nwse-resize; }
+.lf-resize-tr { top: -6px; right: -6px; cursor: nesw-resize; }
+.lf-resize-bl { bottom: -6px; left: -6px; cursor: nesw-resize; }
+.lf-resize-br { bottom: -6px; right: -6px; cursor: nwse-resize; }
+
+.lf-line-svg {
+    display: block;
+    overflow: visible;
+    cursor: move;
+}
+
+.lf-line-handle {
+    fill: #1a1a2e;
+    stroke: #ffffff;
+    stroke-width: 2;
+    cursor: crosshair;
+}
+
+.lf-text-node {
+    cursor: move;
+    white-space: nowrap;
+    min-width: 20px;
+    min-height: 20px;
+}
+
+.lf-text-content {
+    white-space: pre;
+    user-select: none;
+}
+
+.lf-text-input {
+    background: #fff;
+    border: 1px dashed #e94560;
+    color: inherit;
+    font-family: inherit;
+    padding: 0 2px;
+}
+
+.lf-text-style-row {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    padding: 3px;
+    width: max-content;
+}
+
+.lf-text-size-select {
+    background: #0f3460;
+    border: 1px solid #1a4a8a;
+    border-radius: 3px;
+    color: #fff;
+    font-size: 11px;
+}
+
+.lf-text-color-input {
+    width: 22px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
