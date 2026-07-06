@@ -1,0 +1,132 @@
+@page "/users"
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div class="toolbar">
+    <span class="app-title">LineFlow</span>
+    <a class="lf-users-back" href="/">&larr; Back to diagram</a>
+</div>
+
+<div class="lf-users-page">
+    <h2>Manage Users</h2>
+
+    @if (_loading)
+    {
+        <p class="lf-users-muted">Loading...</p>
+    }
+    else if (!_isAdmin)
+    {
+        <p class="lf-users-muted">You must be an administrator to view this page.</p>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="lf-users-error">@_error</div>
+        }
+
+        <table class="lf-users-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in _users)
+                {
+                    <tr>
+                        <td>@u.Username</td>
+                        <td>@u.Role</td>
+                        <td>
+                            <button class="device-action-btn device-action-delete" @onclick="() => DeleteUser(u.Username)">Remove</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <h3>Add User</h3>
+        <div class="lf-users-form">
+            <input class="device-input" placeholder="Username" id="new-user-username" name="new-user-username" @bind="_newUsername" />
+            <input class="device-input" type="password" placeholder="Password (min 8 characters)" id="new-user-password" name="new-user-password" @bind="_newPassword" />
+            <select class="device-input" id="new-user-role" name="new-user-role" @bind="_newRole">
+                <option value="User">User</option>
+                <option value="Admin">Admin</option>
+            </select>
+            <button class="add-device-btn" @onclick="AddUser">Add User</button>
+        </div>
+    }
+</div>
+
+@code {
+    private record UserInfo(string Username, string Role);
+    private record AuthStatus(bool HasUsers, bool IsAuthenticated, string? Username, string? Role);
+    private record ErrorBody(string? Error);
+
+    private List<UserInfo> _users = new();
+    private bool _loading = true;
+    private bool _isAdmin = false;
+    private string _error = "";
+
+    private string _newUsername = "";
+    private string _newPassword = "";
+    private string _newRole = "User";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var status = await Http.GetFromJsonAsync<AuthStatus>("api/auth/status");
+            _isAdmin = status != null && string.Equals(status.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+            if (_isAdmin)
+            {
+                await LoadUsers();
+            }
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        var users = await Http.GetFromJsonAsync<List<UserInfo>>("api/users");
+        _users = users ?? new();
+    }
+
+    private async Task AddUser()
+    {
+        _error = "";
+        var res = await Http.PostAsJsonAsync("api/users", new { username = _newUsername, password = _newPassword, role = _newRole });
+        if (res.IsSuccessStatusCode)
+        {
+            _newUsername = "";
+            _newPassword = "";
+            _newRole = "User";
+            await LoadUsers();
+        }
+        else
+        {
+            var body = await res.Content.ReadFromJsonAsync<ErrorBody>();
+            _error = body?.Error ?? "Could not add user.";
+        }
+    }
+
+    private async Task DeleteUser(string username)
+    {
+        _error = "";
+        var res = await Http.DeleteAsync($"api/users/{Uri.EscapeDataString(username)}");
+        if (res.IsSuccessStatusCode)
+        {
+            await LoadUsers();
+        }
+        else
+        {
+            var body = await res.Content.ReadFromJsonAsync<ErrorBody>();
+            _error = body?.Error ?? "Could not remove user.";
+        }
+    }
+}

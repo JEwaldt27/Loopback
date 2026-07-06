@@ -1,6 +1,7 @@
 ﻿@page "/"
 @inject IJSRuntime JS
 @inject HttpClient Http
+@inject NavigationManager Nav
 @using System.Text.Json
 
 <div class="toolbar">
@@ -46,6 +47,21 @@
 
     <button @onclick="DeleteSelected">Delete Selected</button>
     <input class="title-input" id="diagram-title" name="diagram-title" @bind="_diagramTitle" placeholder="Diagram title..." />
+
+    <div class="lf-menu-root" style="margin-left:auto;">
+        <button class="lf-menu-btn @(_openMenu == "account" ? "lf-menu-btn-active" : "")" @onclick='() => ToggleMenu("account")'>👤 @_currentUsername</button>
+        @if (_openMenu == "account")
+        {
+            <div class="lf-dropdown-menu">
+                <div class="lf-account-menu-user">@_currentUsername (@_currentRole)</div>
+                @if (_currentRole == "Admin")
+                {
+                    <div class="lf-dropdown-item" @onclick='() => { CloseMenus(); Nav.NavigateTo("/users"); }'>👥 Manage Users</div>
+                }
+                <div class="lf-dropdown-item" @onclick="async () => { await Logout(); CloseMenus(); }">🚪 Logout</div>
+            </div>
+        }
+    </div>
 </div>
 
 @if (_openMenu != null)
@@ -172,7 +188,11 @@
     private BaseLinkModel? _contextLink = null;
 
     private string _placementMode = ""; // "", "box", "line", "text"
-    private string? _openMenu = null; // null, "file", "tools", "export"
+    private string? _openMenu = null; // null, "file", "tools", "export", "account"
+    private string _currentUsername = "";
+    private string _currentRole = "";
+
+    private record AuthStatus(bool HasUsers, bool IsAuthenticated, string? Username, string? Role);
     private NodeModel? _resizingNode = null;
     private ResizeHandle _resizeHandleKind = ResizeHandle.TopLeft;
     private Point _resizeStartMouse = new(0, 0);
@@ -196,6 +216,27 @@
         _diagram.PointerDown += OnDiagramPointerDown;
         _diagram.Links.Added += (link) => OnLinkAdded((LinkModel)link);
         await LoadDevices();
+        await LoadAuthStatus();
+    }
+
+    private async Task LoadAuthStatus()
+    {
+        try
+        {
+            var status = await Http.GetFromJsonAsync<AuthStatus>("api/auth/status");
+            _currentUsername = status?.Username ?? "";
+            _currentRole = status?.Role ?? "";
+        }
+        catch
+        {
+            // If this fails the auth gate will redirect to /login on the next request anyway.
+        }
+    }
+
+    private async Task Logout()
+    {
+        await Http.PostAsync("api/auth/logout", null);
+        Nav.NavigateTo("/login", forceLoad: true);
     }
 
     private void OnLinkAdded(LinkModel link)

@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # Publish output (regenerate via `dotnet publish`)
 LineFlowServer/
+
+# User account store (contains password hashes) - not for source control
+Server/users.json
