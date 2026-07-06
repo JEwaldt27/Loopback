@@ -69,6 +69,20 @@
     <div class="lf-menu-overlay" @onclick="CloseMenus"></div>
 }
 
+@if (!string.IsNullOrEmpty(_createdBy) || !string.IsNullOrEmpty(_modifiedBy))
+{
+    <div class="lf-file-meta">
+        @if (!string.IsNullOrEmpty(_createdBy))
+        {
+            <span>Created by <strong>@_createdBy</strong>@(_createdAt is { } ca ? $" on {ca.ToLocalTime():MMM d, yyyy h:mm tt}" : "")</span>
+        }
+        @if (!string.IsNullOrEmpty(_modifiedBy))
+        {
+            <span> &middot; Last modified by <strong>@_modifiedBy</strong>@(_modifiedAt is { } ma ? $" on {ma.ToLocalTime():MMM d, yyyy h:mm tt}" : "")</span>
+        }
+    </div>
+}
+
 <div class="app-body" @onclick="HideContextMenu">
     <div class="side-panel">
         <div class="side-panel-header">Devices</div>
@@ -191,6 +205,10 @@
     private string? _openMenu = null; // null, "file", "tools", "export", "account"
     private string _currentUsername = "";
     private string _currentRole = "";
+    private string _createdBy = "";
+    private DateTimeOffset? _createdAt = null;
+    private string _modifiedBy = "";
+    private DateTimeOffset? _modifiedAt = null;
 
     private record AuthStatus(bool HasUsers, bool IsAuthenticated, string? Username, string? Role);
     private NodeModel? _resizingNode = null;
@@ -691,12 +709,32 @@
     {
         _diagram.Nodes.Clear();
         _diagram.Links.Clear();
+        _createdBy = "";
+        _createdAt = null;
+        _modifiedBy = "";
+        _modifiedAt = null;
     }
 
     private async Task SaveDiagram()
     {
+        var now = DateTimeOffset.UtcNow;
+        if (string.IsNullOrEmpty(_createdBy))
+        {
+            _createdBy = _currentUsername;
+            _createdAt = now;
+        }
+        _modifiedBy = _currentUsername;
+        _modifiedAt = now;
+
         var data = new
         {
+            meta = new
+            {
+                createdBy = _createdBy,
+                createdAt = _createdAt,
+                modifiedBy = _modifiedBy,
+                modifiedAt = _modifiedAt
+            },
             nodes = _diagram.Nodes.OfType<LineFlowNode>().Select(n => new
             {
                 id = n.Id,
@@ -760,6 +798,22 @@
 
         _diagram.Nodes.Clear();
         _diagram.Links.Clear();
+
+        if (doc.RootElement.TryGetProperty("meta", out var metaEl))
+        {
+            _createdBy = metaEl.TryGetProperty("createdBy", out var cb) ? cb.GetString() ?? "" : "";
+            _createdAt = metaEl.TryGetProperty("createdAt", out var ca) && ca.ValueKind != JsonValueKind.Null ? ca.GetDateTimeOffset() : null;
+            _modifiedBy = metaEl.TryGetProperty("modifiedBy", out var mb) ? mb.GetString() ?? "" : "";
+            _modifiedAt = metaEl.TryGetProperty("modifiedAt", out var ma) && ma.ValueKind != JsonValueKind.Null ? ma.GetDateTimeOffset() : null;
+        }
+        else
+        {
+            // Older file saved before file metadata was tracked.
+            _createdBy = "";
+            _createdAt = null;
+            _modifiedBy = "";
+            _modifiedAt = null;
+        }
 
         var nodeMap = new Dictionary<string, LineFlowNode>();
 
