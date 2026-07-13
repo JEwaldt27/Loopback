@@ -306,5 +306,3 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 
 ## Features Planned / Not Yet Implemented
 - ⬜ MAUI desktop wrapper
-- ⬜ Cloudflare Tunnel setup for public internet access from a home-hosted server (auth system above was built specifically to make this safe)
-- ⬜ Ubuntu deployment tested end-to-end with the new auth system
