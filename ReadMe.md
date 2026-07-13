@@ -1,6 +1,6 @@
 # Loopback
 
-*(In-app product name. The underlying code, project folders, and file names still say "LineFlow" — see Project Structure below — and haven't been renamed yet.)*
+*(In-app product name. The underlying code, project folders, and file names still say "LineFlow" — see Project Structure below — and haven't been renamed yet. The browser tab title, toolbar title, login page, and `Client/wwwroot/favicon.png` — a coral "LB" monogram on navy — all say Loopback.)*
 
 ## What This Project Is
 Loopback (codebase name: LineFlow) is a web-based AV/IT signal flow diagram application built with Blazor WebAssembly (.NET 10) and ASP.NET Core. It allows users to create, save, and open line flow diagrams (like those used in AV system design) with drag-and-drop devices, labeled ports, and smart elbow-routed connections.
@@ -95,6 +95,8 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
 - Loaded via `GET /api/devices`
 - New devices added via `POST /api/devices`
 - Default device: Crestron DM-NVX-350 with 8 ports
+- **Add/Edit Device UI**: adding or editing a device opens a centered modal dialog (`_deviceModalOpen` in `Home.razor`) over a dimmed backdrop, rather than an inline form in the side panel. Clicking the ✕, or clicking the backdrop outside the modal, cancels without saving. The Category field has no default value — it shows a `"Category..."` placeholder like Manufacturer and Model, so leaving it blank saves an empty category (shows as a blank group header when sorted by Type) rather than a misleading pre-filled `"Custom"`.
+- **Sorting**: the side panel has a "Sort by" control (`_deviceSortMode`, `GroupedDevices` computed property) toggling between grouping by Type (category) or Manufacturer. Grouping is case-insensitive (`StringComparer.OrdinalIgnoreCase`) so inconsistently-cased category/manufacturer values (e.g. `"Generic"` vs `"GENERIC"`) still merge into one group instead of splitting.
 
 ### Authentication & User Management
 The whole app sits behind a login gate — added so it can be safely exposed to the internet (e.g. via a Cloudflare Tunnel) while still letting individual users' access be revoked (e.g. when someone leaves the job) without touching anyone else's account.
@@ -170,10 +172,15 @@ All attached to `window` object for Blazor JS interop:
 - `.lf-port-dot` — the port circle rendered by `PortRenderer`
 - `.diagram-node` — has `overflow: visible !important` so port dots show outside node bounds
 - `.context-menu` — right-click menu
+- `.lf-modal` / `.lf-modal-overlay` — centered popup dialog + dimmed backdrop pattern (used by Add/Edit Device)
+- `.lf-file-meta` — the "Created by / Last modified by" info bar under the toolbar
 
 ## Known Issues / Work in Progress
 
 - The `OnLinkAdded` flow casts a new connection's `BaseLinkModel` to `LinkModel` before promoting it to an `ElbowLinkModel` — if the library changes this internal type, this will break.
+
+### Fixed: error banner permanently visible
+The `#blazor-error-ui` div in `index.html` (Blazor's built-in "An unhandled error has occurred" banner) had no CSS anywhere styling it — the standard Blazor template hides it by default (`display: none`) and only reveals it when a real unhandled exception fires. Without that rule, it just used the browser default (`display: block`) and was visible on every page load regardless of whether anything was actually wrong, with nothing logged to the console since no exception ever occurred. Fixed by adding the standard hidden-by-default rule (themed to the dark palette) to `Client/wwwroot/css/app.css`.
 
 ### Fixed: Release publish fingerprint placeholder bug
 A Release `dotnet publish` used to ship an `index.html` containing a literal, unresolved `#[.{fingerprint}]` placeholder in the script tag instead of the real hashed filename, breaking the app on first load (worked fine in `dotnet run`/Debug, broke only in published Release output). Fixed by removing `<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>` from `Client/Client.csproj` and hardcoding the plain `_framework/blazor.webassembly.js` script reference (no fingerprinting) in `Client/wwwroot/index.html`. Verify after any future publish by checking that `publish/wwwroot/index.html` doesn't contain `#[` anywhere.
@@ -265,7 +272,8 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Right-click context menu: delete node, delete connection, add/remove bends
 - ✅ Delete key removes selected nodes/links
 - ✅ New / Save (.lf) / Open (.lf) diagram files, with multi-vertex routing persisted and legacy single-`midX` files still loading correctly
-- ✅ Server-side device library with add, edit, and delete devices
+- ✅ Server-side device library with add, edit, and delete devices, via a centered modal dialog (not inline in the side panel)
+- ✅ Device list sorting by Type or Manufacturer, case-insensitive grouping
 - ✅ Color-coded connections and port dots by signal type (HDMI, SDI, Audio, Network, USB, IR, COM)
 - ✅ Legend node — click "Legend" to add a draggable canvas node showing only the signal types actually connected in the current diagram
 - ✅ PDF export (white background, title + date header, direct download) — resets zoom/pan before capture so connections render correctly at any zoom level
