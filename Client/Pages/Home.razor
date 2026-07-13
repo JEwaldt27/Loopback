@@ -87,10 +87,18 @@
     <div class="side-panel">
         <div class="side-panel-header">Devices</div>
 
-        @foreach (var category in _devices.GroupBy(d => d.Category))
+        <div class="lf-sort-row">
+            <span class="lf-sort-label">Sort by</span>
+            <select class="device-input lf-sort-select" id="device-sort-mode" name="device-sort-mode" @bind="_deviceSortMode">
+                <option value="category">Type</option>
+                <option value="manufacturer">Manufacturer</option>
+            </select>
+        </div>
+
+        @foreach (var group in GroupedDevices)
         {
-            <div class="device-category">@category.Key</div>
-            @foreach (var device in category)
+            <div class="device-category">@group.Key</div>
+            @foreach (var device in group)
             {
                 var idx = _devices.IndexOf(device);
                 <div class="device-item" draggable="true"
@@ -203,6 +211,15 @@
 
     private string _placementMode = ""; // "", "box", "line", "text"
     private string? _openMenu = null; // null, "file", "tools", "export", "account"
+    private string _deviceSortMode = "category"; // "category" or "manufacturer"
+
+    private IEnumerable<IGrouping<string, DeviceDefinition>> GroupedDevices =>
+        _deviceSortMode == "manufacturer"
+            ? _devices.OrderBy(d => d.Manufacturer, StringComparer.OrdinalIgnoreCase).ThenBy(d => d.Model)
+                .GroupBy(d => d.Manufacturer, StringComparer.OrdinalIgnoreCase)
+            : _devices.OrderBy(d => d.Category, StringComparer.OrdinalIgnoreCase).ThenBy(d => d.Model)
+                .GroupBy(d => d.Category, StringComparer.OrdinalIgnoreCase);
+
     private string _currentUsername = "";
     private string _currentRole = "";
     private string _createdBy = "";

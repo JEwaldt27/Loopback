@@ -152,6 +152,23 @@ html, body {
     padding: 8px 4px 4px;
 }
 
+.lf-sort-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px 6px;
+}
+
+.lf-sort-label {
+    font-size: 11px;
+    color: #888;
+    flex-shrink: 0;
+}
+
+.lf-sort-select {
+    margin-bottom: 0;
+}
+
 .device-category {
     font-size: 10px;
     color: #888;
