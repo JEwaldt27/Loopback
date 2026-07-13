@@ -432,6 +432,18 @@ html, body {
     stroke-width: 2;
 }
 
+.lf-connection-label {
+    background: #16213e;
+    border: 1px solid #e94560;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    color: #fff;
+    white-space: nowrap;
+    cursor: move;
+    transform: translate(-50%, -50%);
+}
+
 .diagram-port {
     width: 14px !important;
     height: 14px !important;

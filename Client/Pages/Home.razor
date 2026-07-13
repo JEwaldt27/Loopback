@@ -146,6 +146,7 @@
                 {
                     <div class="context-menu-item" @onclick="RemoveLastBend">➖ Remove Last Bend</div>
                 }
+                <div class="context-menu-item" @onclick="OpenLabelModal">🏷 @(!string.IsNullOrEmpty((_contextLink as ElbowLinkModel)?.LabelText) ? "Edit Label" : "Add Label")</div>
                 <div class="context-menu-item" @onclick="DeleteContextLink">🗑 Delete Connection</div>
             }
         </div>
@@ -203,6 +204,23 @@
     </div>
 }
 
+@if (_labelModalOpen)
+{
+    <div class="lf-modal-overlay" @onclick="CloseLabelModal"></div>
+    <div class="lf-modal" style="width:260px;" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>Connection Label</span>
+            <button class="lf-modal-close" @onclick="CloseLabelModal">✕</button>
+        </div>
+        <input class="device-input" id="connection-label-input" name="connection-label-input" @bind="_labelText" placeholder="e.g. VID-005" autofocus />
+        <button class="add-device-btn" @onclick="SaveLabel">✔ Save</button>
+        @if (!string.IsNullOrEmpty(_labelTargetLink?.LabelText))
+        {
+            <button class="add-device-btn" style="border-color:#888;margin-top:2px;" @onclick="RemoveLabel">🗑 Remove Label</button>
+        }
+    </div>
+}
+
 @code {
     private BlazorDiagram _diagram = null!;
     private List<DeviceDefinition> _devices = new();
@@ -222,6 +240,10 @@
     private string _contextTarget = "";
     private NodeModel? _contextNode = null;
     private BaseLinkModel? _contextLink = null;
+
+    private bool _labelModalOpen = false;
+    private ElbowLinkModel? _labelTargetLink = null;
+    private string _labelText = "";
 
     private string _placementMode = ""; // "", "box", "line", "text"
     private string? _openMenu = null; // null, "file", "tools", "export", "account"
@@ -262,8 +284,22 @@
         _diagram.RegisterComponent<BoxNode, BoxNodeWidget>();
         _diagram.RegisterComponent<LineNode, LineNodeWidget>();
         _diagram.RegisterComponent<TextNode, TextNodeWidget>();
+        _diagram.RegisterComponent<ConnectionLabelNode, ConnectionLabelWidget>();
         _diagram.PointerDown += OnDiagramPointerDown;
         _diagram.Links.Added += (link) => OnLinkAdded((LinkModel)link);
+        _diagram.Links.Removed += (link) =>
+        {
+            if (link is ElbowLinkModel elbow && elbow.LabelNode != null)
+                _diagram.Nodes.Remove(elbow.LabelNode);
+        };
+        _diagram.Nodes.Removed += (node) =>
+        {
+            if (node is ConnectionLabelNode cln && cln.OwnerLink != null)
+            {
+                cln.OwnerLink.LabelText = null;
+                cln.OwnerLink.LabelNode = null;
+            }
+        };
         await LoadDevices();
         await LoadAuthStatus();
     }
@@ -387,6 +423,105 @@
         _contextMenuVisible = false;
         elbow.Vertices.RemoveAt(elbow.Vertices.Count - 1);
         elbow.Refresh();
+    }
+
+    private void OpenLabelModal()
+    {
+        if (_contextLink is not ElbowLinkModel elbow) return;
+        _contextMenuVisible = false;
+        _labelTargetLink = elbow;
+        _labelText = elbow.LabelText ?? "";
+        _labelModalOpen = true;
+    }
+
+    private void SaveLabel()
+    {
+        if (_labelTargetLink is ElbowLinkModel elbow)
+        {
+            var text = _labelText.Trim();
+            if (string.IsNullOrEmpty(text))
+            {
+                RemoveLabelNode(elbow);
+            }
+            else
+            {
+                elbow.LabelText = text;
+                if (elbow.LabelNode == null)
+                {
+                    var node = new ConnectionLabelNode(ComputeLinkMidpoint(elbow)) { Text = text, OwnerLink = elbow };
+                    elbow.LabelNode = node;
+                    _diagram.Nodes.Add(node);
+                }
+                else
+                {
+                    elbow.LabelNode.Text = text;
+                    elbow.LabelNode.Refresh();
+                }
+            }
+        }
+        CloseLabelModal();
+    }
+
+    private void RemoveLabel()
+    {
+        if (_labelTargetLink is ElbowLinkModel elbow)
+            RemoveLabelNode(elbow);
+        CloseLabelModal();
+    }
+
+    private void RemoveLabelNode(ElbowLinkModel elbow)
+    {
+        elbow.LabelText = null;
+        if (elbow.LabelNode != null)
+        {
+            _diagram.Nodes.Remove(elbow.LabelNode);
+            elbow.LabelNode = null;
+        }
+    }
+
+    private void CloseLabelModal()
+    {
+        _labelModalOpen = false;
+        _labelTargetLink = null;
+        _labelText = "";
+    }
+
+    // Best-effort midpoint of the link's current route, for placing a freshly-created label.
+    // Falls back to the node midpoint if port positions aren't measured yet (e.g. right after
+    // a bulk file load, before the first render pass).
+    private Point ComputeLinkMidpoint(ElbowLinkModel elbow)
+    {
+        var route = new ElbowRouter().GetRoute(_diagram, elbow);
+        double totalLength = 0;
+        for (int i = 0; i < route.Length - 1; i++)
+            totalLength += Math.Sqrt(Math.Pow(route[i + 1].X - route[i].X, 2) + Math.Pow(route[i + 1].Y - route[i].Y, 2));
+
+        // A zero-length "route" means the ports haven't been measured by the browser yet
+        // (freshly created PortModel.Position defaults to (0,0) rather than null) — fall
+        // through to the node-midpoint estimate below instead of anchoring on (0,0).
+        if (route.Length >= 2 && totalLength > 0.01)
+        {
+            double target = totalLength / 2;
+            double covered = 0;
+            for (int i = 0; i < route.Length - 1; i++)
+            {
+                double segLen = Math.Sqrt(Math.Pow(route[i + 1].X - route[i].X, 2) + Math.Pow(route[i + 1].Y - route[i].Y, 2));
+                if (segLen <= 0) continue;
+                if (covered + segLen >= target)
+                {
+                    double t = (target - covered) / segLen;
+                    return new Point(route[i].X + (route[i + 1].X - route[i].X) * t, route[i].Y + (route[i + 1].Y - route[i].Y) * t);
+                }
+                covered += segLen;
+            }
+            return route[^1];
+        }
+
+        var srcNode = (elbow.Source.Model as PortModel)?.Parent;
+        var tgtNode = (elbow.Target?.Model as PortModel)?.Parent;
+        if (srcNode != null && tgtNode != null)
+            return new Point((srcNode.Position.X + tgtNode.Position.X) / 2, (srcNode.Position.Y + tgtNode.Position.Y) / 2);
+        return new Point(0, 0);
     }
 
     private void OnDiagramPointerDown(Model? model, Blazor.Diagrams.Core.Events.PointerEventArgs args)
@@ -794,6 +929,9 @@
                 targetPortIndex = (l.Target.Model as PortModel) is PortModel tp
                     ? tp.Parent.Ports.ToList().IndexOf(tp) : 0,
                 vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y }),
+                label = (l as ElbowLinkModel)?.LabelText ?? "",
+                labelX = (l as ElbowLinkModel)?.LabelNode?.Position.X,
+                labelY = (l as ElbowLinkModel)?.LabelNode?.Position.Y
             }),
             boxes = _diagram.Nodes.OfType<BoxNode>().Select(b => new
             {
@@ -905,6 +1043,22 @@
                 }
 
                 _diagram.Links.Add(link);
+
+                if (linkEl.TryGetProperty("label", out var labelEl) && labelEl.ValueKind == JsonValueKind.String)
+                {
+                    var labelText = labelEl.GetString();
+                    if (!string.IsNullOrEmpty(labelText))
+                    {
+                        link.LabelText = labelText;
+                        var labelPos = linkEl.TryGetProperty("labelX", out var lxEl) && lxEl.ValueKind != JsonValueKind.Null &&
+                                        linkEl.TryGetProperty("labelY", out var lyEl) && lyEl.ValueKind != JsonValueKind.Null
+                            ? new Point(lxEl.GetDouble(), lyEl.GetDouble())
+                            : ComputeLinkMidpoint(link);
+                        var labelNode = new ConnectionLabelNode(labelPos) { Text = labelText, OwnerLink = link };
+                        link.LabelNode = labelNode;
+                        _diagram.Nodes.Add(labelNode);
+                    }
+                }
             }
         }
 
@@ -1040,6 +1194,28 @@
             sb.AppendLine("31\n0.0");
         }
 
+        (double x, double y) PolylineMidpoint(List<(double x, double y)> pts)
+        {
+            double total = 0;
+            for (int i = 0; i < pts.Count - 1; i++)
+                total += Math.Sqrt(Math.Pow(pts[i + 1].x - pts[i].x, 2) + Math.Pow(pts[i + 1].y - pts[i].y, 2));
+
+            double target = total / 2;
+            double covered = 0;
+            for (int i = 0; i < pts.Count - 1; i++)
+            {
+                double segLen = Math.Sqrt(Math.Pow(pts[i + 1].x - pts[i].x, 2) + Math.Pow(pts[i + 1].y - pts[i].y, 2));
+                if (segLen <= 0) continue;
+                if (covered + segLen >= target)
+                {
+                    double t = (target - covered) / segLen;
+                    return (pts[i].x + (pts[i + 1].x - pts[i].x) * t, pts[i].y + (pts[i + 1].y - pts[i].y) * t);
+                }
+                covered += segLen;
+            }
+            return pts[^1];
+        }
+
         foreach (var node in _diagram.Nodes.OfType<LineFlowNode>())
         {
             var leftPorts = node.Ports.OfType<LineFlowPort>()
@@ -1093,55 +1269,57 @@
             if (!portPositions.TryGetValue(targetPort.Id, out var tgtPos)) continue;
 
             var verts = link.Vertices;
+            List<(double x, double y)> pts;
+
+            // Vertices/label positions are in screen/port coordinate space.
+            // Convert to DXF space using source port as reference:
+            //   dxfX = (screenX - srcScreenX) * scale + srcPos.x
+            //   dxfY = -(screenY - srcScreenY) * scale + srcPos.y  (Y axis is flipped in DXF)
+            double srcScreenX = (sourcePort.Position?.X ?? 0) + (sourcePort.Size?.Width / 2 ?? 0);
+            double srcScreenY = (sourcePort.Position?.Y ?? 0) + (sourcePort.Size?.Height / 2 ?? 0);
+
+            (double x, double y) ToDxf(double sx, double sy) =>
+                ((sx - srcScreenX) * scale + srcPos.x,
+                 -(sy - srcScreenY) * scale + srcPos.y);
 
             if (verts.Count == 0)
             {
                 // No vertices: centered elbow
                 double midX = (srcPos.x + tgtPos.x) / 2;
-                DxfLine(srcPos.x, srcPos.y, midX, srcPos.y, "CONNECTIONS");
-                DxfLine(midX, srcPos.y, midX, tgtPos.y, "CONNECTIONS");
-                DxfLine(midX, tgtPos.y, tgtPos.x, tgtPos.y, "CONNECTIONS");
+                pts = new List<(double x, double y)> { srcPos, (midX, srcPos.y), (midX, tgtPos.y), tgtPos };
+            }
+            else if (verts.Count == 1)
+            {
+                // Simple H-V-H elbow using vertex X
+                var (vx, _) = ToDxf(verts[0].Position.X, verts[0].Position.Y);
+                pts = new List<(double x, double y)> { srcPos, (vx, srcPos.y), (vx, tgtPos.y), tgtPos };
             }
             else
             {
-                // Vertices are in screen/port coordinate space.
-                // Convert to DXF space using source port as reference:
-                //   dxfX = (screenX - srcScreenX) * scale + srcPos.x
-                //   dxfY = -(screenY - srcScreenY) * scale + srcPos.y  (Y axis is flipped in DXF)
-                double srcScreenX = (sourcePort.Position?.X ?? 0) + (sourcePort.Size?.Width / 2 ?? 0);
-                double srcScreenY = (sourcePort.Position?.Y ?? 0) + (sourcePort.Size?.Height / 2 ?? 0);
+                // Multi-vertex: H-V-H-V-...-H matching the router's path
+                var dv = verts.Select(v => ToDxf(v.Position.X, v.Position.Y)).ToList();
 
-                (double x, double y) ToDxf(double sx, double sy) =>
-                    ((sx - srcScreenX) * scale + srcPos.x,
-                     -(sy - srcScreenY) * scale + srcPos.y);
-
-                if (verts.Count == 1)
+                pts = new List<(double x, double y)>();
+                pts.Add(srcPos);
+                pts.Add((dv[0].x, srcPos.y));
+                for (int i = 0; i < dv.Count - 1; i++)
                 {
-                    // Simple H-V-H elbow using vertex X
-                    var (vx, _) = ToDxf(verts[0].Position.X, verts[0].Position.Y);
-                    DxfLine(srcPos.x, srcPos.y, vx, srcPos.y, "CONNECTIONS");
-                    DxfLine(vx, srcPos.y, vx, tgtPos.y, "CONNECTIONS");
-                    DxfLine(vx, tgtPos.y, tgtPos.x, tgtPos.y, "CONNECTIONS");
+                    pts.Add((dv[i].x, dv[i + 1].y));
+                    pts.Add((dv[i + 1].x, dv[i + 1].y));
                 }
-                else
-                {
-                    // Multi-vertex: H-V-H-V-...-H matching the router's path
-                    var dv = verts.Select(v => ToDxf(v.Position.X, v.Position.Y)).ToList();
+                pts.Add((dv[^1].x, tgtPos.y));
+                pts.Add(tgtPos);
+            }
 
-                    var pts = new List<(double x, double y)>();
-                    pts.Add(srcPos);
-                    pts.Add((dv[0].x, srcPos.y));
-                    for (int i = 0; i < dv.Count - 1; i++)
-                    {
-                        pts.Add((dv[i].x, dv[i + 1].y));
-                        pts.Add((dv[i + 1].x, dv[i + 1].y));
-                    }
-                    pts.Add((dv[^1].x, tgtPos.y));
-                    pts.Add(tgtPos);
+            for (int i = 0; i < pts.Count - 1; i++)
+                DxfLine(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y, "CONNECTIONS");
 
-                    for (int i = 0; i < pts.Count - 1; i++)
-                        DxfLine(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y, "CONNECTIONS");
-                }
+            if (link is ElbowLinkModel elbowLink && !string.IsNullOrEmpty(elbowLink.LabelText))
+            {
+                var labelPos = elbowLink.LabelNode != null
+                    ? ToDxf(elbowLink.LabelNode.Position.X, elbowLink.LabelNode.Position.Y)
+                    : PolylineMidpoint(pts);
+                DxfText(labelPos.x, labelPos.y, elbowLink.LabelText, 2.0, "CONNECTIONS", 1);
             }
         }
 
@@ -1222,6 +1400,8 @@
     public class ElbowLinkModel : LinkModel
     {
         public double? MidX { get; set; }
+        public string? LabelText { get; set; }
+        public ConnectionLabelNode? LabelNode { get; set; }
         public ElbowLinkModel(PortModel source, PortModel target) : base(source, target) { }
 
         public static string ColorForType(string type) => type switch
@@ -1235,6 +1415,17 @@
             "COM"     => "#fff176",
             _         => "#e94560",
         };
+    }
+
+    // Plain HTML node (not an SVG foreignObject) so it renders correctly in html2canvas-based
+    // PDF export, unlike the diagramming library's built-in link labels. Positioned at the
+    // link's midpoint when created; the user can drag it independently afterward, same as
+    // TextNode/BoxNode/LineNode annotations.
+    public class ConnectionLabelNode : NodeModel
+    {
+        public string Text { get; set; } = "";
+        public ElbowLinkModel? OwnerLink { get; set; }
+        public ConnectionLabelNode(Point position) : base(position) { }
     }
 
     public class ElbowRouter : Blazor.Diagrams.Core.Routers.Router
