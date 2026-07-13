@@ -137,6 +137,52 @@ html, body {
     background: #e94560;
 }
 
+.lf-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1100;
+}
+
+.lf-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #16213e;
+    border: 1px solid #e94560;
+    border-radius: 8px;
+    padding: 16px;
+    width: 320px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 1101;
+}
+
+.lf-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e94560;
+}
+
+.lf-modal-close {
+    background: none;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+}
+
+    .lf-modal-close:hover {
+        color: #fff;
+    }
+
 .lf-menu-overlay {
     position: fixed;
     top: 48px;
