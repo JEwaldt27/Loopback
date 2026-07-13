@@ -306,3 +306,6 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 
 ## Features Planned / Not Yet Implemented
 - ⬜ MAUI desktop wrapper
+
+## License
+[PolyForm Noncommercial 1.0.0](LICENSE) — free to use, modify, and share for any noncommercial purpose. Commercial use requires separate permission from the copyright holder. Note this is a "source-available" license, not an OSI-approved open source license — the Open Source Definition explicitly prohibits restricting commercial use, which is exactly the restriction this project needs.
