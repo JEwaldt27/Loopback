@@ -13,7 +13,7 @@ public static class LoginPage
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>LineFlow &mdash; Sign in</title>
+<title>Loopback &mdash; Sign in</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -92,7 +92,7 @@ public static class LoginPage
 <body>
   <div class="card">
     <h1 id="title">Sign in</h1>
-    <p class="sub" id="subtitle">Enter your LineFlow credentials.</p>
+    <p class="sub" id="subtitle">Enter your Loopback credentials.</p>
     <form id="form">
       <label for="username">Username</label>
       <input id="username" name="username" autocomplete="username" required autofocus />

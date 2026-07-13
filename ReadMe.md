@@ -1,7 +1,9 @@
-# LineFlow
+# Loopback
+
+*(In-app product name. The underlying code, project folders, and file names still say "LineFlow" — see Project Structure below — and haven't been renamed yet.)*
 
 ## What This Project Is
-LineFlow is a web-based AV/IT signal flow diagram application built with Blazor WebAssembly (.NET 10) and ASP.NET Core. It allows users to create, save, and open line flow diagrams (like those used in AV system design) with drag-and-drop devices, labeled ports, and smart elbow-routed connections.
+Loopback (codebase name: LineFlow) is a web-based AV/IT signal flow diagram application built with Blazor WebAssembly (.NET 10) and ASP.NET Core. It allows users to create, save, and open line flow diagrams (like those used in AV system design) with drag-and-drop devices, labeled ports, and smart elbow-routed connections.
 
 ## Project Structure
 ```
