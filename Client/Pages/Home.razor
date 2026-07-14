@@ -101,8 +101,9 @@
             @foreach (var device in group)
             {
                 var idx = _devices.IndexOf(device);
-                <div class="device-item" draggable="true"
-                     @ondragstart="() => OnDeviceDragStart(device)">
+                <div class="device-item @(_placementMode == "device" && _placingDevice == device ? "device-item-active" : "")" draggable="true"
+                     @ondragstart="() => OnDeviceDragStart(device)"
+                     @onclick="() => ToggleDevicePlacement(device)">
                     <div class="device-item-model">@device.Model</div>
                     <div class="device-item-mfr">@device.Manufacturer</div>
                     <div class="device-item-actions">
@@ -245,7 +246,8 @@
     private ElbowLinkModel? _labelTargetLink = null;
     private string _labelText = "";
 
-    private string _placementMode = ""; // "", "box", "line", "text"
+    private string _placementMode = ""; // "", "box", "line", "text", "device"
+    private DeviceDefinition? _placingDevice = null;
     private string? _openMenu = null; // null, "file", "tools", "export", "account"
     private string _deviceSortMode = "category"; // "category" or "manufacturer"
 
@@ -616,6 +618,21 @@
     private void TogglePlacement(string mode)
     {
         _placementMode = _placementMode == mode ? "" : mode;
+        _placingDevice = null;
+    }
+
+    private void ToggleDevicePlacement(DeviceDefinition device)
+    {
+        if (_placementMode == "device" && _placingDevice == device)
+        {
+            _placementMode = "";
+            _placingDevice = null;
+        }
+        else
+        {
+            _placementMode = "device";
+            _placingDevice = device;
+        }
     }
 
     private void ToggleMenu(string name)
@@ -648,9 +665,14 @@
             case "text":
                 _diagram.Nodes.Add(new TextNode(point) { Editing = true });
                 break;
+            case "device":
+                if (_placingDevice != null)
+                    _diagram.Nodes.Add(new LineFlowNode(point, _placingDevice));
+                break;
         }
 
         _placementMode = "";
+        _placingDevice = null;
     }
 
     public void StartResize(NodeModel node, ResizeHandle handle, MouseEventArgs e)

@@ -108,6 +108,12 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
 - **Add/Edit Device UI**: adding or editing a device opens a centered modal dialog (`_deviceModalOpen` in `Home.razor`) over a dimmed backdrop, rather than an inline form in the side panel. Clicking the ✕, or clicking the backdrop outside the modal, cancels without saving. The Category field has no default value — it shows a `"Category..."` placeholder like Manufacturer and Model, so leaving it blank saves an empty category (shows as a blank group header when sorted by Type) rather than a misleading pre-filled `"Custom"`.
 - **Sorting**: the side panel has a "Sort by" control (`_deviceSortMode`, `GroupedDevices` computed property) toggling between grouping by Type (category) or Manufacturer. Grouping is case-insensitive (`StringComparer.OrdinalIgnoreCase`) so inconsistently-cased category/manufacturer values (e.g. `"Generic"` vs `"GENERIC"`) still merge into one group instead of splitting.
 
+### Placing Devices
+Two ways to get a device from the side panel onto the canvas — both work everywhere:
+
+- **Drag-and-drop**: drag a `.device-item` onto `.canvas-area` (`OnDeviceDragStart` / `OnCanvasDrop`). Doesn't work in the desktop app (see Desktop Wrapper below) due to a WebView2 platform bug, but works fine in any regular browser.
+- **Click-to-place**: click a device in the side panel to arm it (highlighted coral, same visual treatment as an active Box/Line/Text toolbar button), then click the canvas to place it there — click the same device again to cancel. Reuses the existing annotation placement machinery: `_placementMode` gains a `"device"` value alongside `"box"`/`"line"`/`"text"`, and `_placingDevice` tracks which one; `ToggleDevicePlacement`/`OnCanvasClick` mirror the pattern `TogglePlacement` already uses for annotations. Added specifically so the desktop app has a working placement method, but it's available in the browser too.
+
 ### Authentication & User Management
 The whole app sits behind a login gate — added so it can be safely exposed to the internet (e.g. via a Cloudflare Tunnel) while still letting individual users' access be revoked (e.g. when someone leaves the job) without touching anyone else's account.
 
@@ -295,9 +301,11 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - **Reload** button next to Settings just re-sets `WebView.Source` to the saved URL — useful if the server was temporarily unreachable or restarted.
 - App icon reuses `Client/wwwroot/favicon.png` (the Loopback "LB" monogram); `ApplicationTitle`/`AppShell` title are both set to "Loopback".
 - Run/debug: `dotnet build Desktop -t:Run -f net10.0-windows10.0.19041.0` (or open the `.slnx` in an IDE and set `Desktop` as the startup project).
+- **Distributable build**: `dotnet publish Desktop -f net10.0-windows10.0.19041.0 -c Release -r win-x64 --self-contained` → outputs to `Desktop/bin/Release/net10.0-windows10.0.19041.0/win-x64/publish/`. Self-contained bundles the .NET runtime (~230MB, no install needed on the target machine); drop `--self-contained` for a much smaller framework-dependent build that requires the .NET 10 desktop runtime already installed.
+- **Known platform bug — HTML5 drag-and-drop doesn't work inside the desktop app.** This is a confirmed, unresolved bug in WinUI's WebView2 hosting (not Loopback's code): `dragover` doesn't fire reliably when WebView2 is embedded in a WinUI/MAUI window, even though the exact same page works fine in a real browser or in WPF's WebView2 hosting ([dotnet/maui#9983](https://github.com/dotnet/maui/issues/9983), [microsoft-ui-xaml#10576](https://github.com/microsoft/microsoft-ui-xaml/issues/10576)). Worked around by adding **click-to-place** for devices (see Placing Devices below) as a platform-independent alternative — drag-and-drop still works fine in a regular browser tab.
 
 ## Features Implemented
-- ✅ Drag-and-drop device nodes from side panel onto canvas
+- ✅ Drag-and-drop device nodes from side panel onto canvas, plus a click-to-place alternative (click a device, then click the canvas) that also works in the desktop app, where drag-and-drop is blocked by a WebView2 platform bug
 - ✅ Labeled ports on left (inputs) and right (outputs/universal) edges
 - ✅ Elbow-routed connections with a draggable, vertically-centered handle on the first segment
 - ✅ Multi-bend connection routing — add/remove additional bend points via right-click ("➕ Add Bend" / "➖ Remove Last Bend") to route around blocking nodes
