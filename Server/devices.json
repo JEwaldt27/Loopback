@@ -278,5 +278,961 @@
         "direction": "In"
       }
     ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "DM-NVX-352",
+    "category": "AV over IP",
+    "ports": [
+      {
+        "name": "HDMI In",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Audio I/O",
+        "type": "Audio",
+        "direction": "Universal"
+      },
+      {
+        "name": "IR",
+        "type": "IR",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Extron",
+    "model": "DTP CrossPoint 84",
+    "category": "Switcher",
+    "ports": [
+      {
+        "name": "Input 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Input 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Input 3",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Input 4",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Output 1",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 2",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "Ethernet",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "RS-232",
+        "type": "COM",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Atlona",
+    "model": "AT-OME-EX-KIT",
+    "category": "Extender",
+    "ports": [
+      {
+        "name": "HDMI In",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "HDBaseT",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "IR",
+        "type": "IR",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "QSC",
+    "model": "Core 110f",
+    "category": "Audio DSP",
+    "ports": [
+      {
+        "name": "Analog In 1",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Analog In 2",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Analog Out 1",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Analog Out 2",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Biamp",
+    "model": "TesiraFORTE AI",
+    "category": "Audio DSP",
+    "ports": [
+      {
+        "name": "Mic/Line In 1",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Mic/Line In 2",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Line Out 1",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Line Out 2",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "AVB Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "RS-232",
+        "type": "COM",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Shure",
+    "model": "MXA920",
+    "category": "Microphone",
+    "ports": [
+      {
+        "name": "Audio Out",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Network/PoE",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "ClearOne",
+    "model": "CONVERGE Pro 2",
+    "category": "Audio DSP",
+    "ports": [
+      {
+        "name": "Mic In 1",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Mic In 2",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Line Out",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "RS-232",
+        "type": "COM",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Kramer",
+    "model": "VP-773",
+    "category": "Scaler",
+    "ports": [
+      {
+        "name": "HDMI In 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "SDI In",
+        "type": "SDI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "SDI Out",
+        "type": "SDI",
+        "direction": "Out"
+      },
+      {
+        "name": "RS-232",
+        "type": "COM",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "NETGEAR",
+    "model": "M4250-26G4F-PoE+",
+    "category": "Network Switch",
+    "ports": [
+      {
+        "name": "Port 1",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 2",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 3",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 4",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP+ Uplink",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Cisco",
+    "model": "Catalyst 9200L",
+    "category": "Network Switch",
+    "ports": [
+      {
+        "name": "Port 1",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 2",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 3",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 4",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Console",
+        "type": "COM",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Poly",
+    "model": "Studio X50",
+    "category": "Conferencing",
+    "ports": [
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Audio Out",
+        "type": "Audio",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Logitech",
+    "model": "Rally Bar",
+    "category": "Conferencing",
+    "ports": [
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "AMX",
+    "model": "N2400 Series",
+    "category": "Control Processor",
+    "ports": [
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "IR 1",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "IR 2",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "RS-232 1",
+        "type": "COM",
+        "direction": "Out"
+      },
+      {
+        "name": "RS-232 2",
+        "type": "COM",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay",
+        "type": "Other",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "CP4N",
+    "category": "Control Processor",
+    "ports": [
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "IR",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "RS-232",
+        "type": "COM",
+        "direction": "Out"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Extron",
+    "model": "IPL T S3",
+    "category": "Control Processor",
+    "ports": [
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "IR/Serial 1",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "IR/Serial 2",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay",
+        "type": "Other",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Yamaha",
+    "model": "MTX5-D",
+    "category": "Audio Matrix",
+    "ports": [
+      {
+        "name": "Mic/Line In 1",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Mic/Line In 2",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Line Out 1",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Line Out 2",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "BSS",
+    "model": "Soundweb London BLU-806DA",
+    "category": "Audio DSP",
+    "ports": [
+      {
+        "name": "Analog In 1",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Analog In 2",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Analog Out 1",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Analog Out 2",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "BLU Link",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Just Add Power",
+    "model": "3G Ultra HD Transmitter",
+    "category": "AV over IP",
+    "ports": [
+      {
+        "name": "HDMI In",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "IR In",
+        "type": "IR",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Just Add Power",
+    "model": "3G Ultra HD Receiver",
+    "category": "AV over IP",
+    "ports": [
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "IR Out",
+        "type": "IR",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Barco",
+    "model": "ClickShare CX-50",
+    "category": "Wireless Presentation",
+    "ports": [
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Epson",
+    "model": "PowerLite Pro L730U",
+    "category": "Projector",
+    "ports": [
+      {
+        "name": "HDMI In 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "RS-232",
+        "type": "COM",
+        "direction": "In"
+      },
+      {
+        "name": "Power",
+        "type": "Other",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Samsung",
+    "model": "QM85R",
+    "category": "Display",
+    "ports": [
+      {
+        "name": "HDMI In 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "RS-232",
+        "type": "COM",
+        "direction": "In"
+      },
+      {
+        "name": "Power",
+        "type": "Other",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "LG",
+    "model": "55UH5F-H",
+    "category": "Display",
+    "ports": [
+      {
+        "name": "HDMI In 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Power",
+        "type": "Other",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Sony",
+    "model": "BRAVIA FW-85BZ40H",
+    "category": "Display",
+    "ports": [
+      {
+        "name": "HDMI In 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 3",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "RS-232",
+        "type": "COM",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Kramer",
+    "model": "TP-580",
+    "category": "Extender",
+    "ports": [
+      {
+        "name": "HDMI In",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDBaseT Out",
+        "type": "Network",
+        "direction": "Out"
+      },
+      {
+        "name": "IR",
+        "type": "IR",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Atlona",
+    "model": "AT-UHD-CBAR-150",
+    "category": "Cameras",
+    "ports": [
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Audio Out",
+        "type": "Audio",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "QSC",
+    "model": "AcousticDesign AD-S52",
+    "category": "Speaker",
+    "ports": [
+      {
+        "name": "Audio In",
+        "type": "Audio",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Denon Professional",
+    "model": "DN-500AV",
+    "category": "AV Receiver",
+    "ports": [
+      {
+        "name": "HDMI In 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "Audio Out",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crown",
+    "model": "CDi 2000",
+    "category": "Amplifier",
+    "ports": [
+      {
+        "name": "Audio In 1",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Audio In 2",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Speaker Out 1",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Speaker Out 2",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Extron",
+    "model": "MediaLink Controller MLC 226 IP",
+    "category": "Control Processor",
+    "ports": [
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "RS-232 1",
+        "type": "COM",
+        "direction": "Out"
+      },
+      {
+        "name": "RS-232 2",
+        "type": "COM",
+        "direction": "Out"
+      },
+      {
+        "name": "IR",
+        "type": "IR",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "UC-ENGINE",
+    "category": "Conferencing",
+    "ports": [
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "USB 1",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB 2",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Biamp",
+    "model": "Vocia MS-1",
+    "category": "Audio Paging",
+    "ports": [
+      {
+        "name": "Mic In",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Line Out",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Middle Atlantic",
+    "model": "RLNK-P920R",
+    "category": "Power",
+    "ports": [
+      {
+        "name": "Network",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Outlet Bank A",
+        "type": "Other",
+        "direction": "Out"
+      },
+      {
+        "name": "Outlet Bank B",
+        "type": "Other",
+        "direction": "Out"
+      }
+    ]
   }
 ]
