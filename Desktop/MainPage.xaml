@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Desktop.MainPage"
+             BackgroundColor="#1a1a2e">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" BackgroundColor="#16213e" Padding="12,8">
+            <Label Grid.Column="0"
+                   Text="Loopback"
+                   TextColor="#e94560"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center" />
+            <HorizontalStackLayout Grid.Column="1" Spacing="8">
+                <Button x:Name="SettingsButton"
+                        Text="Settings"
+                        Clicked="OnSettingsClicked"
+                        BackgroundColor="#0f3460"
+                        TextColor="White"
+                        BorderColor="#e94560"
+                        BorderWidth="1"
+                        CornerRadius="4"
+                        Padding="12,4" />
+                <Button x:Name="ReloadButton"
+                        Text="Reload"
+                        Clicked="OnReloadClicked"
+                        BackgroundColor="#0f3460"
+                        TextColor="White"
+                        BorderColor="#e94560"
+                        BorderWidth="1"
+                        CornerRadius="4"
+                        Padding="12,4" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <WebView Grid.Row="1" x:Name="ServerWebView" />
+
+    </Grid>
+
+</ContentPage>

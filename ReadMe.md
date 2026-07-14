@@ -37,6 +37,10 @@ LineFlowAppHosted/
     ├── devices.json                ← Device library (auto-created if missing, tracked in git)
     ├── users.json                  ← User accounts + password hashes (auto-created, gitignored)
     └── Program.cs                  ← Server setup, cookie auth, auth gate middleware, serves Blazor WASM
+Desktop/                             ← .NET MAUI Windows desktop shell (see Desktop Wrapper below)
+├── MainPage.xaml(.cs)               ← Top bar (Settings/Reload) + WebView pointed at the server
+├── SettingsPage.xaml(.cs)           ← Server URL entry, persisted via Preferences
+└── Desktop.csproj                  ← Windows-only target (net10.0-windows10.0.19041.0)
 ```
 
 ## Tech Stack
@@ -283,6 +287,15 @@ Then from your Windows machine, browse to `http://<linux-server-ip>:5052`.
 sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 ```
 
+## Desktop Wrapper (MAUI)
+`Desktop/` is a thin native Windows shell around the hosted app — a window with a `WebView` pointed at wherever your Loopback server is running, not a from-scratch reimplementation. It does **not** host the Blazor components in-process (that would be a true "Blazor Hybrid" app, requiring `Client`'s pages to move into a shared Razor Class Library); it just needs the server to be reachable.
+
+- **Windows-only target** (`net10.0-windows10.0.19041.0`) — the default MAUI template also multi-targets Android/iOS/MacCatalyst, which was trimmed since only a Windows desktop shell was needed. Requires the MAUI workload: `dotnet workload install maui`.
+- **Configurable server address**: no hardcoded URL. On first launch (or whenever no address is saved), `SettingsPage` pops up automatically asking for a full URL (e.g. `http://192.168.1.200:5052`), validated via `Uri.TryCreate` and persisted with MAUI's `Preferences` API (`SettingsPage.PrefKeyServerUrl`) — a simple per-user key/value store on the machine, no config file to manage. A **Settings** button in `MainPage`'s top bar reopens it anytime to point at a different server (e.g. switching between a LAN IP and a Cloudflare Tunnel URL later).
+- **Reload** button next to Settings just re-sets `WebView.Source` to the saved URL — useful if the server was temporarily unreachable or restarted.
+- App icon reuses `Client/wwwroot/favicon.png` (the Loopback "LB" monogram); `ApplicationTitle`/`AppShell` title are both set to "Loopback".
+- Run/debug: `dotnet build Desktop -t:Run -f net10.0-windows10.0.19041.0` (or open the `.slnx` in an IDE and set `Desktop` as the startup project).
+
 ## Features Implemented
 - ✅ Drag-and-drop device nodes from side panel onto canvas
 - ✅ Labeled ports on left (inputs) and right (outputs/universal) edges
@@ -303,9 +316,10 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Per-user authentication — cookie-based login gating the entire app, first-run admin setup, Admin/User roles, in-app "Manage Users" page, account menu with Logout (see Authentication & User Management above)
 - ✅ File authorship tracking — `.lf` files record who created and who last modified them, and when, shown in an info bar under the toolbar
 - ✅ Connection labels — right-click a connection to add/edit a text label (e.g. "VID-005"); draggable, saved in `.lf` files, included in DXF export, and PDF-export-safe (see Connection Labels above for why that needed a custom rendering path)
+- ✅ Windows desktop wrapper (`Desktop/`, .NET MAUI) — native window shell with a configurable server address (Settings page, persisted via `Preferences`), not tied to a hardcoded URL (see Desktop Wrapper above)
 
 ## Features Planned / Not Yet Implemented
-- ⬜ MAUI desktop wrapper
+*(none currently — see [Connection Labels](#connection-labels) and [Desktop Wrapper (MAUI)](#desktop-wrapper-maui) above for the two most recently completed items)*
 
 ## License
 [PolyForm Noncommercial 1.0.0](LICENSE) — free to use, modify, and share for any noncommercial purpose. Commercial use requires separate permission from the copyright holder. Note this is a "source-available" license, not an OSI-approved open source license — the Open Source Definition explicitly prohibits restricting commercial use, which is exactly the restriction this project needs.

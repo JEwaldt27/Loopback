@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Desktop.SettingsPage"
+             BackgroundColor="#1a1a2e"
+             Title="Loopback Settings">
+
+    <VerticalStackLayout Padding="24" Spacing="14" VerticalOptions="Center">
+
+        <Label Text="Server address"
+               TextColor="#e94560"
+               FontSize="18"
+               FontAttributes="Bold" />
+
+        <Label Text="Enter the full URL of the Loopback server, including http:// or https:// and the port."
+               TextColor="#ccc"
+               FontSize="12" />
+
+        <Entry x:Name="ServerUrlEntry"
+               Placeholder="http://192.168.1.200:5052"
+               PlaceholderColor="#888"
+               TextColor="White"
+               BackgroundColor="#0f3460" />
+
+        <Label x:Name="ErrorLabel"
+               TextColor="#ff8fa3"
+               FontSize="12"
+               IsVisible="False" />
+
+        <HorizontalStackLayout Spacing="10" Margin="0,10,0,0">
+            <Button Text="Save &amp; Connect"
+                    Clicked="OnSaveClicked"
+                    BackgroundColor="#e94560"
+                    TextColor="White"
+                    CornerRadius="4" />
+            <Button x:Name="CancelButton"
+                    Text="Cancel"
+                    Clicked="OnCancelClicked"
+                    BackgroundColor="#0f3460"
+                    TextColor="White"
+                    BorderColor="#e94560"
+                    BorderWidth="1"
+                    CornerRadius="4" />
+        </HorizontalStackLayout>
+
+    </VerticalStackLayout>
+
+</ContentPage>
