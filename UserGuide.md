@@ -49,6 +49,7 @@ Once signed in, you'll see three main areas:
   - **File** → 🆕 New, 💾 Save, 📂 Open
   - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text
   - **Export** → 📄 Export PDF, 📐 Export DXF
+  - **↩ Undo / ↪ Redo** — step backward/forward through your changes (also **Ctrl+Z** / **Ctrl+Y** when the canvas has focus). Covers everything: placing and deleting devices, connections, bends, labels, moves, resizes, and text edits. Up to 50 steps.
   - **Delete Selected** — removes whatever is currently selected on the canvas
   - **Diagram title box** — the name used in the PDF export header
   - **👤 account menu** — your username, Manage Users (admins only), and Logout
@@ -251,8 +252,11 @@ That's normal — the whole app is gated behind login. If you see the admin-crea
 **"My username or password isn't working"**
 Ask your admin to check your account on the Manage Users page. If the password is lost, the admin's simplest fix is to remove the account and re-create it with a new password.
 
+**"I deleted something by accident"**
+Press **Ctrl+Z** (with the canvas focused) or click **↩ Undo** in the toolbar. Deleting a device also removes its connections and their labels — one undo brings all of it back together.
+
 **"I opened a file and my old work disappeared"**
-Opening a file replaces the canvas. The previous diagram is only recoverable if it was saved to a `.lf` file first.
+Opening a file replaces the canvas — but as of the undo feature, **Undo** brings the previous diagram right back. It's still only permanently safe if it was saved to a `.lf` file.
 
 **"A connection won't attach"**
 Check the directions — Input-to-Input and Output-to-Output are blocked by design. If both ports genuinely should connect, edit the device and set one port's direction to **Universal**.

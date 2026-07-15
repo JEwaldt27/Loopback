@@ -45,6 +45,8 @@
         }
     </div>
 
+    <button @onclick="Undo" disabled="@(!CanUndo)" title="Undo (Ctrl+Z)">↩ Undo</button>
+    <button @onclick="Redo" disabled="@(!CanRedo)" title="Redo (Ctrl+Y)">↪ Redo</button>
     <button @onclick="DeleteSelected">Delete Selected</button>
     <input class="title-input" id="diagram-title" name="diagram-title" @bind="_diagramTitle" placeholder="Diagram title..." />
 
@@ -249,6 +251,14 @@
     private string _placementMode = ""; // "", "box", "line", "text", "device"
     private DeviceDefinition? _placingDevice = null;
     private string? _openMenu = null; // null, "file", "tools", "export", "account"
+
+    private readonly List<string> _undoStack = new();
+    private readonly List<string> _redoStack = new();
+    private const int MaxUndoDepth = 50;
+    private string? _pendingPointerSnapshot = null;
+    private bool _restoringState = false;
+    private bool CanUndo => _undoStack.Count > 0;
+    private bool CanRedo => _redoStack.Count > 0;
     private string _deviceSortMode = "category"; // "category" or "manufacturer"
 
     private IEnumerable<IGrouping<string, DeviceDefinition>> GroupedDevices =>
@@ -302,6 +312,22 @@
                 cln.OwnerLink.LabelNode = null;
             }
         };
+
+        var shortcuts = _diagram.GetBehavior<Blazor.Diagrams.Core.Behaviors.KeyboardShortcutsBehavior>();
+        if (shortcuts != null)
+        {
+            // Wrap the library's default Delete so it lands on the undo stack first
+            shortcuts.SetShortcut("Delete", ctrl: false, shift: false, alt: false, async d =>
+            {
+                if (_diagram.Nodes.Any(n => n.Selected) || _diagram.Links.Any(l => l.Selected))
+                    PushUndoSnapshot();
+                await Blazor.Diagrams.Core.Behaviors.KeyboardShortcutsDefaults.DeleteSelection(d);
+                await InvokeAsync(StateHasChanged);
+            });
+            shortcuts.SetShortcut("z", ctrl: true, shift: false, alt: false, _ => { Undo(); return ValueTask.CompletedTask; });
+            shortcuts.SetShortcut("y", ctrl: true, shift: false, alt: false, _ => { Redo(); return ValueTask.CompletedTask; });
+        }
+
         await LoadDevices();
         await LoadAuthStatus();
     }
@@ -352,6 +378,7 @@
                 _diagram.Links.Remove(l);
                 if (!valid) { StateHasChanged(); return; }
 
+                PushUndoSnapshot();
                 var elbow = new ElbowLinkModel(sourcePort, targetPort);
                 _diagram.Links.Add(elbow); // fires OnLinkAdded → SetupElbowLink
 
@@ -403,6 +430,8 @@
         _contextMenuVisible = false;
         if (elbow.Target?.Model is not PortModel tgtPort || tgtPort.Position == null) return;
 
+        PushUndoSnapshot();
+
         double tgtX = tgtPort.Position.X + (tgtPort.Size?.Width / 2 ?? 0);
         double tgtY = tgtPort.Position.Y + (tgtPort.Size?.Height / 2 ?? 0);
 
@@ -423,6 +452,7 @@
     {
         if (_contextLink is not ElbowLinkModel elbow || elbow.Vertices.Count <= 1) return;
         _contextMenuVisible = false;
+        PushUndoSnapshot();
         elbow.Vertices.RemoveAt(elbow.Vertices.Count - 1);
         elbow.Refresh();
     }
@@ -441,6 +471,8 @@
         if (_labelTargetLink is ElbowLinkModel elbow)
         {
             var text = _labelText.Trim();
+            if (text != (elbow.LabelText ?? ""))
+                PushUndoSnapshot();
             if (string.IsNullOrEmpty(text))
             {
                 RemoveLabelNode(elbow);
@@ -467,7 +499,11 @@
     private void RemoveLabel()
     {
         if (_labelTargetLink is ElbowLinkModel elbow)
+        {
+            if (!string.IsNullOrEmpty(elbow.LabelText))
+                PushUndoSnapshot();
             RemoveLabelNode(elbow);
+        }
         CloseLabelModal();
     }
 
@@ -526,8 +562,69 @@
         return new Point(0, 0);
     }
 
+    private void PushUndoSnapshot() => PushUndoSnapshot(SerializeDiagramState());
+
+    private void PushUndoSnapshot(string snapshot)
+    {
+        if (_restoringState) return;
+        _undoStack.Add(snapshot);
+        if (_undoStack.Count > MaxUndoDepth) _undoStack.RemoveAt(0);
+        _redoStack.Clear();
+    }
+
+    private void Undo()
+    {
+        if (_undoStack.Count == 0) return;
+        var snapshot = _undoStack[^1];
+        _undoStack.RemoveAt(_undoStack.Count - 1);
+        _redoStack.Add(SerializeDiagramState());
+        RestoreDiagramState(snapshot);
+    }
+
+    private void Redo()
+    {
+        if (_redoStack.Count == 0) return;
+        var snapshot = _redoStack[^1];
+        _redoStack.RemoveAt(_redoStack.Count - 1);
+        _undoStack.Add(SerializeDiagramState());
+        RestoreDiagramState(snapshot);
+    }
+
+    private void RestoreDiagramState(string json)
+    {
+        _restoringState = true;
+        try
+        {
+            _pendingPointerSnapshot = null;
+            LoadDiagramJson(json);
+        }
+        finally { _restoringState = false; }
+        InvokeAsync(StateHasChanged);
+    }
+
+    // Drag-style edits (node moves, bend drags, resizes, text edits) capture a snapshot
+    // when the gesture starts and commit it as an undo step only if the diagram actually
+    // changed by the time the gesture ends.
+    public void CapturePointerSnapshot()
+    {
+        if (_restoringState) return;
+        _pendingPointerSnapshot = SerializeDiagramState();
+    }
+
+    public void CommitPointerSnapshot()
+    {
+        if (_pendingPointerSnapshot == null) return;
+        var pending = _pendingPointerSnapshot;
+        _pendingPointerSnapshot = null;
+        if (SerializeDiagramState() != pending)
+            PushUndoSnapshot(pending);
+    }
+
     private void OnDiagramPointerDown(Model? model, Blazor.Diagrams.Core.Events.PointerEventArgs args)
     {
+        if (args.Button == 0 && model is NodeModel or BaseLinkModel or LinkVertexModel)
+            CapturePointerSnapshot();
+
         if (args.Button == 2)
         {
             if (model is NodeModel node)
@@ -565,7 +662,10 @@
     private void DeleteContextNode()
     {
         if (_contextNode != null)
+        {
+            PushUndoSnapshot();
             _diagram.Nodes.Remove(_contextNode);
+        }
         _contextMenuVisible = false;
         _contextNode = null;
     }
@@ -573,13 +673,18 @@
     private void DeleteContextLink()
     {
         if (_contextLink != null)
+        {
+            PushUndoSnapshot();
             _diagram.Links.Remove(_contextLink);
+        }
         _contextMenuVisible = false;
         _contextLink = null;
     }
 
     private void DeleteSelected()
     {
+        if (!_diagram.Nodes.Any(n => n.Selected) && !_diagram.Links.Any(l => l.Selected)) return;
+        PushUndoSnapshot();
         foreach (var node in _diagram.Nodes.Where(n => n.Selected).ToList())
             _diagram.Nodes.Remove(node);
         foreach (var link in _diagram.Links.Where(l => l.Selected).ToList())
@@ -598,6 +703,7 @@
 
         if (usedTypes.Count == 0) return;
 
+        PushUndoSnapshot();
         var entries = usedTypes
             .Select(t => (t, ElbowLinkModel.ColorForType(t)))
             .ToList();
@@ -652,6 +758,7 @@
         if (_placementMode == "")
             return;
 
+        PushUndoSnapshot();
         var point = new Point(e.ClientX - 220, e.ClientY - 48);
 
         switch (_placementMode)
@@ -677,6 +784,7 @@
 
     public void StartResize(NodeModel node, ResizeHandle handle, MouseEventArgs e)
     {
+        CapturePointerSnapshot();
         _resizingNode = node;
         _resizeHandleKind = handle;
         _resizeStartMouse = new Point(e.ClientX, e.ClientY);
@@ -754,6 +862,7 @@
     private void OnCanvasMouseUp(MouseEventArgs e)
     {
         _resizingNode = null;
+        CommitPointerSnapshot();
     }
 
     private async Task LoadDevices()
@@ -894,6 +1003,7 @@
     {
         if (_draggingDevice == null) return;
 
+        PushUndoSnapshot();
         var node = _diagram.Nodes.Add(new LineFlowNode(
             new Point(e.ClientX - 220, e.ClientY - 48),
             _draggingDevice));
@@ -904,6 +1014,8 @@
 
     private void NewDiagram()
     {
+        if (_diagram.Nodes.Count > 0 || _diagram.Links.Count > 0)
+            PushUndoSnapshot();
         _diagram.Nodes.Clear();
         _diagram.Links.Clear();
         _createdBy = "";
@@ -911,6 +1023,77 @@
         _modifiedBy = "";
         _modifiedAt = null;
     }
+
+    // Shared serializer for both .lf file saves and undo/redo snapshots. Meta is only
+    // added by SaveDiagram — snapshots deliberately exclude it so undo never rewrites
+    // the created-by/modified-by info bar.
+    private Dictionary<string, object?> BuildDiagramData()
+    {
+        return new Dictionary<string, object?>
+        {
+            ["nodes"] = _diagram.Nodes.OfType<LineFlowNode>().Select(n => new
+            {
+                id = n.Id,
+                manufacturer = n.Device.Manufacturer,
+                model = n.Device.Model,
+                category = n.Device.Category,
+                ports = n.Device.Ports,
+                x = n.Position.X,
+                y = n.Position.Y
+            }).ToList<object>(),
+            // Skip links still being dragged (target not attached to a port yet)
+            ["links"] = _diagram.Links
+                .Where(l => l.Source.Model is PortModel && l.Target?.Model is PortModel)
+                .Select(l => new
+            {
+                sourceNodeId = (l.Source.Model as PortModel)?.Parent.Id,
+                sourcePortIndex = (l.Source.Model as PortModel) is PortModel sp
+                    ? sp.Parent.Ports.ToList().IndexOf(sp) : 0,
+                targetNodeId = (l.Target!.Model as PortModel)?.Parent.Id,
+                targetPortIndex = (l.Target.Model as PortModel) is PortModel tp
+                    ? tp.Parent.Ports.ToList().IndexOf(tp) : 0,
+                vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y }),
+                label = (l as ElbowLinkModel)?.LabelText ?? "",
+                labelX = (l as ElbowLinkModel)?.LabelNode?.Position.X,
+                labelY = (l as ElbowLinkModel)?.LabelNode?.Position.Y
+            }).ToList<object>(),
+            ["boxes"] = _diagram.Nodes.OfType<BoxNode>().Select(b => new
+            {
+                x = b.Position.X,
+                y = b.Position.Y,
+                width = b.Size?.Width ?? 160,
+                height = b.Size?.Height ?? 100,
+                borderColor = b.BorderColor
+            }).ToList<object>(),
+            ["lines"] = _diagram.Nodes.OfType<LineNode>().Select(l => new
+            {
+                x = l.Position.X,
+                y = l.Position.Y,
+                startX = l.Start.X,
+                startY = l.Start.Y,
+                endX = l.End.X,
+                endY = l.End.Y,
+                strokeColor = l.StrokeColor
+            }).ToList<object>(),
+            ["texts"] = _diagram.Nodes.OfType<TextNode>().Select(t => new
+            {
+                x = t.Position.X,
+                y = t.Position.Y,
+                text = t.Text,
+                fontSize = t.FontSize,
+                color = t.Color
+            }).ToList<object>(),
+            ["legend"] = _diagram.Nodes.OfType<LegendNode>().Select(g => new
+            {
+                x = g.Position.X,
+                y = g.Position.Y,
+                entries = g.Entries.Select(en => new { type = en.Type, color = en.Color }).ToList()
+            }).FirstOrDefault()
+        };
+    }
+
+    private string SerializeDiagramState()
+        => JsonSerializer.Serialize(BuildDiagramData());
 
     private async Task SaveDiagram()
     {
@@ -923,64 +1106,13 @@
         _modifiedBy = _currentUsername;
         _modifiedAt = now;
 
-        var data = new
+        var data = BuildDiagramData();
+        data["meta"] = new
         {
-            meta = new
-            {
-                createdBy = _createdBy,
-                createdAt = _createdAt,
-                modifiedBy = _modifiedBy,
-                modifiedAt = _modifiedAt
-            },
-            nodes = _diagram.Nodes.OfType<LineFlowNode>().Select(n => new
-            {
-                id = n.Id,
-                manufacturer = n.Device.Manufacturer,
-                model = n.Device.Model,
-                category = n.Device.Category,
-                ports = n.Device.Ports,
-                x = n.Position.X,
-                y = n.Position.Y
-            }),
-            links = _diagram.Links.Select(l => new
-            {
-                sourceNodeId = (l.Source.Model as PortModel)?.Parent.Id,
-                sourcePortIndex = (l.Source.Model as PortModel) is PortModel sp
-                    ? sp.Parent.Ports.ToList().IndexOf(sp) : 0,
-                targetNodeId = (l.Target.Model as PortModel)?.Parent.Id,
-                targetPortIndex = (l.Target.Model as PortModel) is PortModel tp
-                    ? tp.Parent.Ports.ToList().IndexOf(tp) : 0,
-                vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y }),
-                label = (l as ElbowLinkModel)?.LabelText ?? "",
-                labelX = (l as ElbowLinkModel)?.LabelNode?.Position.X,
-                labelY = (l as ElbowLinkModel)?.LabelNode?.Position.Y
-            }),
-            boxes = _diagram.Nodes.OfType<BoxNode>().Select(b => new
-            {
-                x = b.Position.X,
-                y = b.Position.Y,
-                width = b.Size?.Width ?? 160,
-                height = b.Size?.Height ?? 100,
-                borderColor = b.BorderColor
-            }),
-            lines = _diagram.Nodes.OfType<LineNode>().Select(l => new
-            {
-                x = l.Position.X,
-                y = l.Position.Y,
-                startX = l.Start.X,
-                startY = l.Start.Y,
-                endX = l.End.X,
-                endY = l.End.Y,
-                strokeColor = l.StrokeColor
-            }),
-            texts = _diagram.Nodes.OfType<TextNode>().Select(t => new
-            {
-                x = t.Position.X,
-                y = t.Position.Y,
-                text = t.Text,
-                fontSize = t.FontSize,
-                color = t.Color
-            })
+            createdBy = _createdBy,
+            createdAt = _createdAt,
+            modifiedBy = _modifiedBy,
+            modifiedAt = _modifiedAt
         };
 
         var json = JsonSerializer.Serialize(data,
@@ -994,25 +1126,34 @@
         using var stream = e.File.OpenReadStream();
         using var reader = new System.IO.StreamReader(stream);
         var json = await reader.ReadToEndAsync();
+
+        if (_diagram.Nodes.Count > 0 || _diagram.Links.Count > 0)
+            PushUndoSnapshot();
+
+        // Older files saved before metadata tracking simply leave these reset.
+        _createdBy = "";
+        _createdAt = null;
+        _modifiedBy = "";
+        _modifiedAt = null;
+
+        LoadDiagramJson(json);
+    }
+
+    // Rebuilds the entire canvas from serialized diagram JSON. Used by both file open
+    // and undo/redo restore (snapshots have no meta property, so meta is left alone).
+    private void LoadDiagramJson(string json)
+    {
         var doc = JsonDocument.Parse(json);
 
         _diagram.Nodes.Clear();
         _diagram.Links.Clear();
 
-        if (doc.RootElement.TryGetProperty("meta", out var metaEl))
+        if (doc.RootElement.TryGetProperty("meta", out var metaEl) && metaEl.ValueKind == JsonValueKind.Object)
         {
             _createdBy = metaEl.TryGetProperty("createdBy", out var cb) ? cb.GetString() ?? "" : "";
             _createdAt = metaEl.TryGetProperty("createdAt", out var ca) && ca.ValueKind != JsonValueKind.Null ? ca.GetDateTimeOffset() : null;
             _modifiedBy = metaEl.TryGetProperty("modifiedBy", out var mb) ? mb.GetString() ?? "" : "";
             _modifiedAt = metaEl.TryGetProperty("modifiedAt", out var ma) && ma.ValueKind != JsonValueKind.Null ? ma.GetDateTimeOffset() : null;
-        }
-        else
-        {
-            // Older file saved before file metadata was tracked.
-            _createdBy = "";
-            _createdAt = null;
-            _modifiedBy = "";
-            _modifiedAt = null;
         }
 
         var nodeMap = new Dictionary<string, LineFlowNode>();
@@ -1126,6 +1267,17 @@
                 };
                 _diagram.Nodes.Add(text);
             }
+        }
+
+        if (doc.RootElement.TryGetProperty("legend", out var legendEl) && legendEl.ValueKind == JsonValueKind.Object)
+        {
+            var legend = new LegendNode(new Point(legendEl.GetProperty("x").GetDouble(), legendEl.GetProperty("y").GetDouble()));
+            if (legendEl.TryGetProperty("entries", out var entriesEl))
+            {
+                foreach (var en in entriesEl.EnumerateArray())
+                    legend.Entries.Add((en.GetProperty("type").GetString() ?? "", en.GetProperty("color").GetString() ?? "#e94560"));
+            }
+            _diagram.Nodes.Add(legend);
         }
 
         StateHasChanged();

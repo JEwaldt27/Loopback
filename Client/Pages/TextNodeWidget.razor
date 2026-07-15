@@ -1,12 +1,12 @@
 @using Blazor.Diagrams.Core.Models
 
-<div class="lf-text-node" @ondblclick:stopPropagation="true" @onmousedown:stopPropagation="@Node.Editing" @ondblclick="() => Node.Editing = true">
+<div class="lf-text-node" @ondblclick:stopPropagation="true" @onmousedown:stopPropagation="@Node.Editing" @ondblclick="BeginEdit">
     @if (Node.Editing)
     {
         <input class="lf-text-input" id="@($"text-node-{Node.Id}")" name="@($"text-node-{Node.Id}")"
                style="font-size:@(Node.FontSize)px;color:@Node.Color;"
                @bind="Node.Text" @bind:event="oninput"
-               @onblur="() => Node.Editing = false"
+               @onblur="EndEdit"
                @onkeydown="OnKeyDown" autofocus />
     }
     else
@@ -17,7 +17,7 @@
     @if (Node.Selected && !Node.Editing)
     {
         <div class="lf-text-style-row" @onmousedown:stopPropagation="true" @onclick:stopPropagation="true">
-            <select class="lf-text-size-select" id="@($"text-node-size-{Node.Id}")" name="@($"text-node-size-{Node.Id}")" @bind="Node.FontSize">
+            <select class="lf-text-size-select" id="@($"text-node-size-{Node.Id}")" name="@($"text-node-size-{Node.Id}")" @bind="FontSizeProxy">
                 <option value="12">12</option>
                 <option value="14">14</option>
                 <option value="16">16</option>
@@ -26,17 +26,56 @@
                 <option value="32">32</option>
                 <option value="48">48</option>
             </select>
-            <input type="color" class="lf-text-color-input" id="@($"text-node-color-{Node.Id}")" name="@($"text-node-color-{Node.Id}")" @bind="Node.Color" />
+            <input type="color" class="lf-text-color-input" id="@($"text-node-color-{Node.Id}")" name="@($"text-node-color-{Node.Id}")" @bind="ColorProxy" />
         </div>
     }
 </div>
 
 @code {
     [Parameter] public Home.TextNode Node { get; set; } = null!;
+    [CascadingParameter] public Home Page { get; set; } = null!;
+
+    private void BeginEdit()
+    {
+        Page?.CapturePointerSnapshot();
+        Node.Editing = true;
+    }
+
+    private void EndEdit()
+    {
+        Node.Editing = false;
+        Page?.CommitPointerSnapshot();
+    }
 
     private void OnKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" || e.Key == "Escape")
-            Node.Editing = false;
+            EndEdit();
+    }
+
+    // Snapshot-wrapping proxies so font size / color changes land on the undo stack.
+    // The setter runs before the model changes, so the capture sees the old state.
+    private int FontSizeProxy
+    {
+        get => Node.FontSize;
+        set
+        {
+            if (value == Node.FontSize) return;
+            Page?.CapturePointerSnapshot();
+            Node.FontSize = value;
+            Page?.CommitPointerSnapshot();
+        }
+    }
+
+    private string ColorProxy
+    {
+        get => Node.Color;
+        set
+        {
+            if (value == Node.Color) return;
+            Page?.CapturePointerSnapshot();
+            Node.Color = value;
+            Page?.CommitPointerSnapshot();
+        }
     }
 }

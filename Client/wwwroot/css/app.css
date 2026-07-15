@@ -74,6 +74,15 @@ html, body {
         background: #e94560;
     }
 
+    .toolbar button:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+
+        .toolbar button:disabled:hover {
+            background: #0f3460;
+        }
+
 .tool-btn-active {
     background: #e94560 !important;
     border-color: #fff !important;

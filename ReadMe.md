@@ -183,8 +183,19 @@ Right-click a connection → **🏷 Add Label** / **Edit Label** opens a small m
 - Persisted in `.lf` files as `label`, `labelX`, `labelY` on each link (see File Format below) so a manually-repositioned label survives save/reload exactly where it was left.
 - Included in DXF export as a centered `TEXT` entity on the `CONNECTIONS` layer, positioned at the label node's actual (possibly user-dragged) position — not recomputed — for consistency with what's on screen.
 
+### Undo/Redo
+Snapshot-based, not command-based: every mutation pushes a full serialized-diagram JSON snapshot (via `SerializeDiagramState()`, which shares `BuildDiagramData()` with `.lf` saves) onto `_undoStack` (capped at 50); undo/redo restore by rebuilding the whole canvas through `LoadDiagramJson()` — the same code path as file open, so restore fidelity is guaranteed to match save/open fidelity. Snapshots exclude the `meta` block so undo never rewrites the created-by/modified-by info bar.
+
+- **Discrete operations** (place device/annotation, draw connection, add/remove bend, label changes, deletes, New, Open, legend) call `PushUndoSnapshot()` *before* mutating.
+- **Drag-style edits** (node moves, bend-handle drags, box resizes, line-endpoint drags, text edits, text font/color changes) use a capture/commit pair: `CapturePointerSnapshot()` stores state when the gesture starts (diagram `PointerDown` on a model, `StartResize`, text-edit begin), and `CommitPointerSnapshot()` (canvas `mouseup`, text-edit end) pushes it **only if the serialized state actually changed** — so plain clicks and selections never pollute the stack.
+- **Delete key**: the library's default Delete shortcut is re-registered with a wrapper that snapshots first, then calls `KeyboardShortcutsDefaults.DeleteSelection`.
+- **Shortcuts**: Ctrl+Z / Ctrl+Y, registered on the library's `KeyboardShortcutsBehavior` — they only fire when the diagram canvas has focus, so they don't hijack text-field undo in inputs. Toolbar ↩/↪ buttons mirror them, disabled when their stack is empty.
+- `_restoringState` guards restore so the `Links.Added`/`Nodes.Removed` handlers and snapshot pushes don't re-fire mid-rebuild.
+
 ### Backward Compatibility
 Files saved before multi-bend support only stored a single `midX` value (no `vertices` array). On open, if `vertices` is missing/empty, the loader falls back to `ElbowLinkModel.MidX`, which `ElbowRouter` still understands as a single-bend midpoint.
+
+Legends are saved in `.lf` files as a top-level `legend` property (`{x, y, entries: [{type, color}]}`) as of the undo/redo work — files saved before that simply have no `legend` property and open fine (the legend just isn't restored; click Legend to recreate it).
 
 ### Port Alignment
 - Direction "In" → `PortAlignment.Left`
@@ -327,9 +338,18 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ File authorship tracking — `.lf` files record who created and who last modified them, and when, shown in an info bar under the toolbar
 - ✅ Connection labels — right-click a connection to add/edit a text label (e.g. "VID-005"); draggable, saved in `.lf` files, included in DXF export, and PDF-export-safe (see Connection Labels above for why that needed a custom rendering path)
 - ✅ Windows desktop wrapper (`Desktop/`, .NET MAUI) — native window shell with a configurable server address (Settings page, persisted via `Preferences`), not tied to a hardcoded URL (see Desktop Wrapper above)
+- ✅ Undo/redo — Ctrl+Z / Ctrl+Y (canvas focused) or toolbar ↩/↪ buttons; covers placements, connections, bends, labels, moves, resizes, text edits, deletes, New, and Open (see Undo/Redo above)
+- ✅ Legend persistence — legends are now saved in `.lf` files and restored on open
 
 ## Features Planned / Not Yet Implemented
-*(none currently — see [Connection Labels](#connection-labels) and [Desktop Wrapper (MAUI)](#desktop-wrapper-maui) above for the two most recently completed items)*
+- ⬜ Server-side diagram storage — a shared "Diagrams" browser backed by the server (same JSON-file pattern as devices/users), so `.lf` files aren't scattered across individual machines; authorship metadata already exists to surface per file
+- ⬜ Unsaved-changes protection — browser warning before closing a tab with unsaved work, and/or periodic autosave drafts
+- ⬜ Cable schedule export — CSV/Excel table of every connection (source device + port → destination device + port, signal type, label) for building pull sheets and cable-run lists
+- ⬜ Auto-numbered connection labels — "Add Label" pre-fills the next number per signal type (VID-001, VID-002, AUD-001, …)
+- ⬜ Copy/paste or duplicate nodes on the canvas
+- ⬜ Self-service password change (account menu) and admin password reset — currently a forgotten password means delete-and-recreate the account
+- ⬜ Duplicate device in the library (new devices are often one port different from an existing one)
+- ⬜ Docker image published to GitHub Container Registry for one-command self-hosting (needs volume-mount planning for `devices.json`/`users.json`)
 
 ## License
 [PolyForm Noncommercial 1.0.0](LICENSE) — free to use, modify, and share for any noncommercial purpose. Commercial use requires separate permission from the copyright holder. Note this is a "source-available" license, not an OSI-approved open source license — the Open Source Definition explicitly prohibits restricting commercial use, which is exactly the restriction this project needs.
