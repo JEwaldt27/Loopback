@@ -65,6 +65,7 @@
                 {
                     <div class="lf-dropdown-item" @onclick='() => { CloseMenus(); Nav.NavigateTo("/users"); }'>👥 Manage Users</div>
                 }
+                <div class="lf-dropdown-item" @onclick="() => { OpenChangePassword(); CloseMenus(); }">🔑 Change Password</div>
                 <div class="lf-dropdown-item" @onclick="async () => { await Logout(); CloseMenus(); }">🚪 Logout</div>
             </div>
         }
@@ -230,6 +231,29 @@
     </div>
 }
 
+@if (_passwordModalOpen)
+{
+    <div class="lf-modal-overlay" @onclick="CloseChangePassword"></div>
+    <div class="lf-modal" style="width:280px;" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>Change Password</span>
+            <button class="lf-modal-close" @onclick="CloseChangePassword">✕</button>
+        </div>
+        <input type="password" class="device-input" id="current-password" name="current-password" @bind="_pwCurrent" placeholder="Current password" autocomplete="current-password" autofocus />
+        <input type="password" class="device-input" id="new-password" name="new-password" @bind="_pwNew" placeholder="New password (min 8 characters)" autocomplete="new-password" />
+        <input type="password" class="device-input" id="confirm-password" name="confirm-password" @bind="_pwConfirm" placeholder="Confirm new password" autocomplete="new-password" />
+        @if (!string.IsNullOrEmpty(_pwError))
+        {
+            <div class="lf-users-error">@_pwError</div>
+        }
+        @if (!string.IsNullOrEmpty(_pwSuccess))
+        {
+            <div class="lf-pw-success">@_pwSuccess</div>
+        }
+        <button class="add-device-btn" @onclick="SubmitChangePassword" disabled="@_pwBusy">✔ Update Password</button>
+    </div>
+}
+
 @code {
     private BlazorDiagram _diagram = null!;
     private List<DeviceDefinition> _devices = new();
@@ -253,6 +277,14 @@
     private bool _labelModalOpen = false;
     private ElbowLinkModel? _labelTargetLink = null;
     private string _labelText = "";
+
+    private bool _passwordModalOpen = false;
+    private string _pwCurrent = "";
+    private string _pwNew = "";
+    private string _pwConfirm = "";
+    private string _pwError = "";
+    private string _pwSuccess = "";
+    private bool _pwBusy = false;
 
     private string _placementMode = ""; // "", "box", "line", "text", "device"
     private DeviceDefinition? _placingDevice = null;
@@ -362,6 +394,62 @@
         await Http.PostAsync("api/auth/logout", null);
         Nav.NavigateTo("/login", forceLoad: true);
     }
+
+    private void OpenChangePassword()
+    {
+        _pwCurrent = _pwNew = _pwConfirm = _pwError = _pwSuccess = "";
+        _pwBusy = false;
+        _passwordModalOpen = true;
+    }
+
+    private void CloseChangePassword()
+    {
+        _passwordModalOpen = false;
+    }
+
+    private async Task SubmitChangePassword()
+    {
+        _pwError = "";
+        _pwSuccess = "";
+
+        if (_pwNew.Length < 8)
+        {
+            _pwError = "New password must be at least 8 characters.";
+            return;
+        }
+        if (_pwNew != _pwConfirm)
+        {
+            _pwError = "New passwords do not match.";
+            return;
+        }
+
+        _pwBusy = true;
+        try
+        {
+            var res = await Http.PostAsJsonAsync("api/auth/change-password",
+                new { currentPassword = _pwCurrent, newPassword = _pwNew });
+            if (res.IsSuccessStatusCode)
+            {
+                _pwSuccess = "Password updated.";
+                _pwCurrent = _pwNew = _pwConfirm = "";
+            }
+            else
+            {
+                var body = await res.Content.ReadFromJsonAsync<ErrorBody>();
+                _pwError = body?.Error ?? "Could not change password.";
+            }
+        }
+        catch
+        {
+            _pwError = "Could not reach the server. Please try again.";
+        }
+        finally
+        {
+            _pwBusy = false;
+        }
+    }
+
+    private record ErrorBody(string? Error);
 
     private void OnLinkAdded(LinkModel link)
     {

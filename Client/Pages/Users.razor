@@ -24,6 +24,10 @@
         {
             <div class="lf-users-error">@_error</div>
         }
+        @if (!string.IsNullOrEmpty(_success))
+        {
+            <div class="lf-pw-success">@_success</div>
+        }
 
         <table class="lf-users-table">
             <thead>
@@ -39,13 +43,26 @@
                     <tr>
                         <td>@u.Username</td>
                         <td>@u.Role</td>
-                        <td>
+                        <td style="white-space:nowrap;">
+                            <button class="device-action-btn" @onclick="() => StartReset(u.Username)">Reset Password</button>
                             <button class="device-action-btn device-action-delete" @onclick="() => DeleteUser(u.Username)">Remove</button>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+
+        @if (_resetTarget != null)
+        {
+            <div class="lf-users-form" style="margin-top:12px;">
+                <div class="lf-users-muted">Set a new password for <strong style="color:#fff;">@_resetTarget</strong></div>
+                <input class="device-input" type="password" placeholder="New password (min 8 characters)" @bind="_resetPassword" autocomplete="new-password" />
+                <div style="display:flex; gap:8px;">
+                    <button class="add-device-btn" @onclick="SaveReset">Set Password</button>
+                    <button class="add-device-btn" style="border-color:#888;" @onclick="CancelReset">Cancel</button>
+                </div>
+            </div>
+        }
 
         <h3>Add User</h3>
         <div class="lf-users-form">
@@ -69,10 +86,14 @@
     private bool _loading = true;
     private bool _isAdmin = false;
     private string _error = "";
+    private string _success = "";
 
     private string _newUsername = "";
     private string _newPassword = "";
     private string _newRole = "User";
+
+    private string? _resetTarget = null;
+    private string _resetPassword = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -100,6 +121,7 @@
     private async Task AddUser()
     {
         _error = "";
+        _success = "";
         var res = await Http.PostAsJsonAsync("api/users", new { username = _newUsername, password = _newPassword, role = _newRole });
         if (res.IsSuccessStatusCode)
         {
@@ -115,9 +137,51 @@
         }
     }
 
+    private void StartReset(string username)
+    {
+        _resetTarget = username;
+        _resetPassword = "";
+        _error = "";
+        _success = "";
+    }
+
+    private void CancelReset()
+    {
+        _resetTarget = null;
+        _resetPassword = "";
+    }
+
+    private async Task SaveReset()
+    {
+        _error = "";
+        _success = "";
+        if (_resetTarget == null) return;
+        if (_resetPassword.Length < 8)
+        {
+            _error = "Password must be at least 8 characters.";
+            return;
+        }
+
+        var target = _resetTarget;
+        var res = await Http.PutAsJsonAsync($"api/users/{Uri.EscapeDataString(target)}/password",
+            new { newPassword = _resetPassword });
+        if (res.IsSuccessStatusCode)
+        {
+            _success = $"Password reset for {target}.";
+            _resetTarget = null;
+            _resetPassword = "";
+        }
+        else
+        {
+            var body = await res.Content.ReadFromJsonAsync<ErrorBody>();
+            _error = body?.Error ?? "Could not reset password.";
+        }
+    }
+
     private async Task DeleteUser(string username)
     {
         _error = "";
+        _success = "";
         var res = await Http.DeleteAsync($"api/users/{Uri.EscapeDataString(username)}");
         if (res.IsSuccessStatusCode)
         {

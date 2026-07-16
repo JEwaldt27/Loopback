@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Server.Services;
@@ -65,6 +66,27 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Ok();
+    }
+
+    public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+
+    // Any signed-in user can change their OWN password by proving the current one.
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+    {
+        var username = User.Identity?.Name;
+        if (string.IsNullOrEmpty(username)) return Unauthorized();
+
+        var user = await _store.FindAsync(username);
+        if (user == null) return Unauthorized();
+
+        if (_store.VerifyPassword(user, req.CurrentPassword ?? "") == PasswordVerificationResult.Failed)
+            return BadRequest(new { error = "Current password is incorrect." });
+
+        var (success, error) = await _store.SetPasswordAsync(username, req.NewPassword ?? "");
+        if (!success) return BadRequest(new { error });
         return Ok();
     }
 

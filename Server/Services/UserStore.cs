@@ -62,6 +62,29 @@ public class UserStore
         finally { _lock.Release(); }
     }
 
+    // Sets a new password for an existing user (used by self-service change and admin reset).
+    // Does not verify the old password — callers that require that (self-service) check it first.
+    public async Task<(bool Success, string Error)> SetPasswordAsync(string username, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(newPassword))
+            return (false, "Password is required.");
+        if (newPassword.Length < 8)
+            return (false, "Password must be at least 8 characters.");
+
+        await _lock.WaitAsync();
+        try
+        {
+            var users = await ReadAsync();
+            var user = users.FirstOrDefault(u => string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase));
+            if (user == null) return (false, "User not found.");
+
+            user.PasswordHash = _hasher.HashPassword(user, newPassword);
+            await WriteAsync(users);
+            return (true, "");
+        }
+        finally { _lock.Release(); }
+    }
+
     public async Task<bool> DeleteAsync(string username)
     {
         await _lock.WaitAsync();

@@ -757,6 +757,16 @@ html, body {
     margin-bottom: 12px;
 }
 
+.lf-pw-success {
+    background: rgba(129, 199, 132, 0.15);
+    border: 1px solid #81c784;
+    border-radius: 6px;
+    color: #a5d6a7;
+    font-size: 13px;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+}
+
 .lf-users-table {
     width: 100%;
     border-collapse: collapse;

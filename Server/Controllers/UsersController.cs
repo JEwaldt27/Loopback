@@ -34,6 +34,17 @@ public class UsersController : ControllerBase
         return Ok();
     }
 
+    public record ResetPasswordRequest(string NewPassword);
+
+    // Admin resets another user's password without needing the old one (for forgotten passwords).
+    [HttpPut("{username}/password")]
+    public async Task<IActionResult> ResetPassword(string username, [FromBody] ResetPasswordRequest req)
+    {
+        var (success, error) = await _store.SetPasswordAsync(username, req.NewPassword ?? "");
+        if (!success) return BadRequest(new { error });
+        return Ok();
+    }
+
     [HttpDelete("{username}")]
     public async Task<IActionResult> Delete(string username)
     {

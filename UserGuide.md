@@ -37,6 +37,9 @@ Enter your username and password on the sign-in screen. Your session lasts 30 da
 ### Logging out
 Click the **👤 account button** at the top-right of the toolbar, then **🚪 Logout**.
 
+### Changing your password
+Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#11-managing-users-admins)).
+
 > **Don't have an account?** Accounts are created by an administrator — there is no self-signup. Ask your admin to add you (see [Managing Users](#11-managing-users-admins)).
 
 ---
@@ -238,7 +241,8 @@ It downloads as `cable-schedule.csv` and opens directly in Excel or Google Sheet
 
 Only accounts with the **Admin** role see this. Open the **👤 account menu → 👥 Manage Users**.
 
-- **Add a user**: enter a username, a password (min 8 characters), pick a role, and click **Add User**. Give them the credentials — they can sign in immediately. There's no email verification or reset flow; you set their password for them.
+- **Add a user**: enter a username, a password (min 8 characters), pick a role, and click **Add User**. Give them the credentials — they can sign in immediately. There's no email verification; you set their password for them.
+- **Reset a password**: click **Reset Password** next to a user, type a new password (min 8 characters), and click **Set Password**. Use this when someone forgets their password — you don't need to know their old one. Tell them the new password; they can change it themselves afterward.
 - **Roles**:
   - **User** — full access to the diagram tool and device library.
   - **Admin** — everything a User can do, plus this Manage Users page.
@@ -275,7 +279,7 @@ Dragging devices from the panel onto the canvas **does not work in the desktop a
 That's normal — the whole app is gated behind login. If you see the admin-creation screen, the server is brand new and no accounts exist yet.
 
 **"My username or password isn't working"**
-Ask your admin to check your account on the Manage Users page. If the password is lost, the admin's simplest fix is to remove the account and re-create it with a new password.
+Ask your admin to check your account on the Manage Users page. If you've forgotten your password, the admin can reset it for you with **Reset Password** — no need to delete and re-create your account.
 
 **"I deleted something by accident"**
 Press **Ctrl+Z** (with the canvas focused) or click **↩ Undo** in the toolbar. Deleting a device also removes its connections and their labels — one undo brings all of it back together.

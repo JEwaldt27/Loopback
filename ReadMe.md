@@ -125,8 +125,9 @@ The whole app sits behind a login gate — added so it can be safely exposed to 
 - **First-run setup**: if `users.json` has no accounts yet, hitting the site shows a "Create admin account" screen instead of a normal login form. The first account created becomes the Admin.
 - **Whole-app gate**: custom middleware in `Server/Program.cs` blocks every request — including the WASM framework files themselves — except `/login` and `/api/auth/*`, unless the request carries a valid auth cookie. Unauthenticated browser requests get redirected to `/login`; unauthenticated `/api/*` requests get a 401.
 - **Login page** (`Server/LoginPage.cs`) is a small self-contained inline HTML/CSS/JS page served via a minimal API endpoint (`GET /login`) — there's no `Server/wwwroot`, so a static file wasn't worth adding. It calls `/api/auth/status` on load to decide whether to show setup mode or a normal login form.
-- **Manage Users page** (`Client/Pages/Users.razor`, route `/users`) — a real Blazor page, admin-only (both server-enforced via `[Authorize(Roles = "Admin")]` on `UsersController` and gated client-side by checking `/api/auth/status`). Lists accounts, adds new ones with a chosen role, and removes accounts (blocked from deleting your own account or the last remaining Admin).
-- **Account menu** — top-right of the toolbar in `Home.razor`, shows the current username, a "Manage Users" link for Admins, and Logout.
+- **Manage Users page** (`Client/Pages/Users.razor`, route `/users`) — a real Blazor page, admin-only (both server-enforced via `[Authorize(Roles = "Admin")]` on `UsersController` and gated client-side by checking `/api/auth/status`). Lists accounts, adds new ones with a chosen role, removes accounts (blocked from deleting your own account or the last remaining Admin), and **resets any user's password** (an inline panel per row — for forgotten passwords, so you no longer have to delete-and-recreate the account).
+- **Password management**: any signed-in user can change **their own** password from the account menu (**🔑 Change Password** → modal requiring the current password), and admins can reset **anyone's** from the Manage Users page. Both enforce the 8-character minimum; self-service verifies the current password first, admin reset does not (that's the point of a reset).
+- **Account menu** — top-right of the toolbar in `Home.razor`, shows the current username, a "Manage Users" link for Admins, Change Password, and Logout.
 
 **Endpoints:**
 | Endpoint | Method | Auth | Purpose |
@@ -135,8 +136,10 @@ The whole app sits behind a login gate — added so it can be safely exposed to 
 | `/api/auth/setup` | POST | none (only works once, before any users exist) | Create the first (Admin) account and sign in |
 | `/api/auth/login` | POST | none | Sign in with username/password |
 | `/api/auth/logout` | POST | any | Clear the auth cookie |
+| `/api/auth/change-password` | POST | signed-in | Change your own password (verifies current password) |
 | `/api/users` | GET/POST | Admin | List / create accounts |
 | `/api/users/{username}` | DELETE | Admin | Remove an account |
+| `/api/users/{username}/password` | PUT | Admin | Reset another user's password (no current password needed) |
 
 ### Custom Classes (all defined inside Home.razor @code block)
 - **`LineFlowNode`** — extends `NodeModel`, holds `DeviceDefinition`, creates `LineFlowPort` instances
@@ -357,6 +360,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Zoom and pan on canvas
 - ✅ Freeform annotations — Box (resizable rectangle, no fill), Line (2-point freeform line with draggable endpoints, not attached to ports), and Text (click-to-place, editable, with font size/color controls); all three are selectable/deletable, saved in `.lf` files, and included in PDF and DXF exports (DXF `ANNOTATIONS` layer)
 - ✅ Per-user authentication — cookie-based login gating the entire app, first-run admin setup, Admin/User roles, in-app "Manage Users" page, account menu with Logout (see Authentication & User Management above)
+- ✅ Password management — self-service "Change Password" for any user (verifies current password) and admin password reset per user on the Manage Users page
 - ✅ File authorship tracking — `.lf` files record who created and who last modified them, and when, shown in an info bar under the toolbar
 - ✅ Connection labels — right-click a connection to add/edit a text label (e.g. "VID-005"); draggable, saved in `.lf` files, included in DXF export, and PDF-export-safe (see Connection Labels above for why that needed a custom rendering path)
 - ✅ Windows desktop wrapper (`Desktop/`, .NET MAUI) — native window shell with a configurable server address (Settings page, persisted via `Preferences`), not tied to a hardcoded URL (see Desktop Wrapper above)
@@ -366,10 +370,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Copy/paste & duplicate — Ctrl+C / Ctrl+V or right-click → Duplicate; copies selected nodes plus the connections (and labels) between them (see Copy / Paste above)
 
 ## Features Planned / Not Yet Implemented
-- ⬜ Server-side diagram storage — a shared "Diagrams" browser backed by the server (same JSON-file pattern as devices/users), so `.lf` files aren't scattered across individual machines; authorship metadata already exists to surface per file
-- ⬜ Autosave drafts — periodically stash the working diagram (e.g. to localStorage) so an accidental close/crash can be recovered, complementing the unsaved-changes warning that's already in place
 - ⬜ Auto-numbered connection labels — "Add Label" pre-fills the next number per signal type (VID-001, VID-002, AUD-001, …)
-- ⬜ Self-service password change (account menu) and admin password reset — currently a forgotten password means delete-and-recreate the account
 - ⬜ Duplicate device in the library (new devices are often one port different from an existing one)
 - ⬜ Docker image published to GitHub Container Registry for one-command self-hosting (needs volume-mount planning for `devices.json`/`users.json`)
 
