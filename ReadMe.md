@@ -192,6 +192,17 @@ Snapshot-based, not command-based: every mutation pushes a full serialized-diagr
 - **Shortcuts**: Ctrl+Z / Ctrl+Y, registered on the library's `KeyboardShortcutsBehavior` — they only fire when the diagram canvas has focus, so they don't hijack text-field undo in inputs. Toolbar ↩/↪ buttons mirror them, disabled when their stack is empty.
 - `_restoringState` guards restore so the `Links.Added`/`Nodes.Removed` handlers and snapshot pushes don't re-fire mid-rebuild.
 
+### Copy / Paste (Duplicate)
+In-app clipboard for duplicating nodes. Ctrl+C copies the selected nodes, Ctrl+V pastes; right-click a node → **⧉ Duplicate** does copy+paste in one step.
+
+- **Copyable**: device nodes (`LineFlowNode`) and box/line/text annotations. The legend and connection-label nodes are intentionally excluded.
+- **Connections come along**: a connection is copied only when **both** its endpoints are among the copied devices, so duplicating a connected group brings the wiring (and each connection's bends + label) with it. On paste, device nodes get fresh ids and the copied links are re-created against the new nodes via an old-id → new-node map.
+- **Serialization is shared with save/undo**: `CopySelection()` reuses the same per-item `NodeToJson`/`LinkToJson`/`BoxToJson`/`LineToJson`/`TextToJson` helpers that `BuildDiagramData()` uses, so a copied node round-trips identically to a saved one. The clipboard is a JSON string held in `_clipboardJson` (in-memory, session-only — not the OS clipboard, so it doesn't cross tabs).
+- **Paste offset**: pasted items are shifted by `30 × _pasteSequence` px from the originals; the sequence increments per paste (reset on copy) so repeated pastes step diagonally instead of stacking exactly. Vertices and label positions shift by the same offset to keep each connection's shape relative to its moved nodes.
+- **Pasted items are re-selected** (`UnselectAll` then `SelectModel(node, false)` per pasted node) so you can immediately drag the copy.
+- **Undoable**: paste calls `PushUndoSnapshot()` before adding, so a single Ctrl+Z removes the whole pasted group (nodes + connections + labels) at once and marks the diagram dirty. Copy itself doesn't touch the diagram, so it never marks dirty.
+- **Duplicate context item**: `DuplicateContextNode` duplicates the current selection; if you right-click a node that isn't part of the selection, it acts on just that node.
+
 ### Unsaved-Changes Warning
 Warns before the browser tab closes with unsaved work, using the browser's native `beforeunload` prompt (its text can't be customized — Chrome/Edge/Firefox show their own generic "Leave site? / Changes you made may not be saved" dialog).
 
@@ -351,13 +362,13 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Undo/redo — Ctrl+Z / Ctrl+Y (canvas focused) or toolbar ↩/↪ buttons; covers placements, connections, bends, labels, moves, resizes, text edits, deletes, New, and Open (see Undo/Redo above)
 - ✅ Legend persistence — legends are now saved in `.lf` files and restored on open
 - ✅ Unsaved-changes warning — browser prompt before closing the tab with unsaved work, plus an amber "● Unsaved" toolbar badge (see Unsaved-Changes Warning above)
+- ✅ Copy/paste & duplicate — Ctrl+C / Ctrl+V or right-click → Duplicate; copies selected nodes plus the connections (and labels) between them (see Copy / Paste above)
 
 ## Features Planned / Not Yet Implemented
 - ⬜ Server-side diagram storage — a shared "Diagrams" browser backed by the server (same JSON-file pattern as devices/users), so `.lf` files aren't scattered across individual machines; authorship metadata already exists to surface per file
 - ⬜ Autosave drafts — periodically stash the working diagram (e.g. to localStorage) so an accidental close/crash can be recovered, complementing the unsaved-changes warning that's already in place
 - ⬜ Cable schedule export — CSV/Excel table of every connection (source device + port → destination device + port, signal type, label) for building pull sheets and cable-run lists
 - ⬜ Auto-numbered connection labels — "Add Label" pre-fills the next number per signal type (VID-001, VID-002, AUD-001, …)
-- ⬜ Copy/paste or duplicate nodes on the canvas
 - ⬜ Self-service password change (account menu) and admin password reset — currently a forgotten password means delete-and-recreate the account
 - ⬜ Duplicate device in the library (new devices are often one port different from an existing one)
 - ⬜ Docker image published to GitHub Container Registry for one-command self-hosting (needs volume-mount planning for `devices.json`/`users.json`)

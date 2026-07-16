@@ -144,6 +144,7 @@
         <div class="context-menu" style="left:@(_contextMenuX)px; top:@(_contextMenuY)px;">
             @if (_contextTarget == "node")
             {
+                <div class="context-menu-item" @onclick="DuplicateContextNode">⧉ Duplicate</div>
                 <div class="context-menu-item" @onclick="DeleteContextNode">🗑 Delete Node</div>
             }
             @if (_contextTarget == "link")
@@ -264,6 +265,8 @@
     private bool CanUndo => _undoStack.Count > 0;
     private bool CanRedo => _redoStack.Count > 0;
     private bool _isDirty = false; // unsaved changes since last Save/Open/New
+    private string? _clipboardJson = null; // in-app clipboard for copy/paste of nodes
+    private int _pasteSequence = 0; // grows per paste so repeats don't stack exactly
     private string _deviceSortMode = "category"; // "category" or "manufacturer"
 
     private IEnumerable<IGrouping<string, DeviceDefinition>> GroupedDevices =>
@@ -331,6 +334,8 @@
             });
             shortcuts.SetShortcut("z", ctrl: true, shift: false, alt: false, _ => { Undo(); return ValueTask.CompletedTask; });
             shortcuts.SetShortcut("y", ctrl: true, shift: false, alt: false, _ => { Redo(); return ValueTask.CompletedTask; });
+            shortcuts.SetShortcut("c", ctrl: true, shift: false, alt: false, _ => { CopySelection(); return ValueTask.CompletedTask; });
+            shortcuts.SetShortcut("v", ctrl: true, shift: false, alt: false, _ => { PasteClipboard(); return ValueTask.CompletedTask; });
         }
 
         await LoadDevices();
@@ -1049,6 +1054,62 @@
         MarkClean();
     }
 
+    // Per-item serializers, shared by full-diagram saves/snapshots (BuildDiagramData) and
+    // by clipboard copy (CopySelection) so both produce identical JSON shapes.
+    private object NodeToJson(LineFlowNode n) => new
+    {
+        id = n.Id,
+        manufacturer = n.Device.Manufacturer,
+        model = n.Device.Model,
+        category = n.Device.Category,
+        ports = n.Device.Ports,
+        x = n.Position.X,
+        y = n.Position.Y
+    };
+
+    private object LinkToJson(BaseLinkModel l) => new
+    {
+        sourceNodeId = (l.Source.Model as PortModel)?.Parent.Id,
+        sourcePortIndex = (l.Source.Model as PortModel) is PortModel sp
+            ? sp.Parent.Ports.ToList().IndexOf(sp) : 0,
+        targetNodeId = (l.Target!.Model as PortModel)?.Parent.Id,
+        targetPortIndex = (l.Target.Model as PortModel) is PortModel tp
+            ? tp.Parent.Ports.ToList().IndexOf(tp) : 0,
+        vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y }),
+        label = (l as ElbowLinkModel)?.LabelText ?? "",
+        labelX = (l as ElbowLinkModel)?.LabelNode?.Position.X,
+        labelY = (l as ElbowLinkModel)?.LabelNode?.Position.Y
+    };
+
+    private object BoxToJson(BoxNode b) => new
+    {
+        x = b.Position.X,
+        y = b.Position.Y,
+        width = b.Size?.Width ?? 160,
+        height = b.Size?.Height ?? 100,
+        borderColor = b.BorderColor
+    };
+
+    private object LineToJson(LineNode l) => new
+    {
+        x = l.Position.X,
+        y = l.Position.Y,
+        startX = l.Start.X,
+        startY = l.Start.Y,
+        endX = l.End.X,
+        endY = l.End.Y,
+        strokeColor = l.StrokeColor
+    };
+
+    private object TextToJson(TextNode t) => new
+    {
+        x = t.Position.X,
+        y = t.Position.Y,
+        text = t.Text,
+        fontSize = t.FontSize,
+        color = t.Color
+    };
+
     // Shared serializer for both .lf file saves and undo/redo snapshots. Meta is only
     // added by SaveDiagram — snapshots deliberately exclude it so undo never rewrites
     // the created-by/modified-by info bar.
@@ -1056,58 +1117,14 @@
     {
         return new Dictionary<string, object?>
         {
-            ["nodes"] = _diagram.Nodes.OfType<LineFlowNode>().Select(n => new
-            {
-                id = n.Id,
-                manufacturer = n.Device.Manufacturer,
-                model = n.Device.Model,
-                category = n.Device.Category,
-                ports = n.Device.Ports,
-                x = n.Position.X,
-                y = n.Position.Y
-            }).ToList<object>(),
+            ["nodes"] = _diagram.Nodes.OfType<LineFlowNode>().Select(NodeToJson).ToList(),
             // Skip links still being dragged (target not attached to a port yet)
             ["links"] = _diagram.Links
                 .Where(l => l.Source.Model is PortModel && l.Target?.Model is PortModel)
-                .Select(l => new
-            {
-                sourceNodeId = (l.Source.Model as PortModel)?.Parent.Id,
-                sourcePortIndex = (l.Source.Model as PortModel) is PortModel sp
-                    ? sp.Parent.Ports.ToList().IndexOf(sp) : 0,
-                targetNodeId = (l.Target!.Model as PortModel)?.Parent.Id,
-                targetPortIndex = (l.Target.Model as PortModel) is PortModel tp
-                    ? tp.Parent.Ports.ToList().IndexOf(tp) : 0,
-                vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y }),
-                label = (l as ElbowLinkModel)?.LabelText ?? "",
-                labelX = (l as ElbowLinkModel)?.LabelNode?.Position.X,
-                labelY = (l as ElbowLinkModel)?.LabelNode?.Position.Y
-            }).ToList<object>(),
-            ["boxes"] = _diagram.Nodes.OfType<BoxNode>().Select(b => new
-            {
-                x = b.Position.X,
-                y = b.Position.Y,
-                width = b.Size?.Width ?? 160,
-                height = b.Size?.Height ?? 100,
-                borderColor = b.BorderColor
-            }).ToList<object>(),
-            ["lines"] = _diagram.Nodes.OfType<LineNode>().Select(l => new
-            {
-                x = l.Position.X,
-                y = l.Position.Y,
-                startX = l.Start.X,
-                startY = l.Start.Y,
-                endX = l.End.X,
-                endY = l.End.Y,
-                strokeColor = l.StrokeColor
-            }).ToList<object>(),
-            ["texts"] = _diagram.Nodes.OfType<TextNode>().Select(t => new
-            {
-                x = t.Position.X,
-                y = t.Position.Y,
-                text = t.Text,
-                fontSize = t.FontSize,
-                color = t.Color
-            }).ToList<object>(),
+                .Select(LinkToJson).ToList(),
+            ["boxes"] = _diagram.Nodes.OfType<BoxNode>().Select(BoxToJson).ToList(),
+            ["lines"] = _diagram.Nodes.OfType<LineNode>().Select(LineToJson).ToList(),
+            ["texts"] = _diagram.Nodes.OfType<TextNode>().Select(TextToJson).ToList(),
             ["legend"] = _diagram.Nodes.OfType<LegendNode>().Select(g => new
             {
                 x = g.Position.X,
@@ -1119,6 +1136,174 @@
 
     private string SerializeDiagramState()
         => JsonSerializer.Serialize(BuildDiagramData());
+
+    private bool CanPaste => _clipboardJson != null;
+
+    // Copies the currently-selected nodes (devices + box/line/text annotations) to an in-app
+    // clipboard. Connections are included only when BOTH of their endpoints are among the
+    // copied devices, so duplicating a connected group brings the wiring along. The legend and
+    // connection-label nodes are intentionally not copyable.
+    private void CopySelection()
+    {
+        var deviceNodes = _diagram.Nodes.OfType<LineFlowNode>().Where(n => n.Selected).ToList();
+        var boxNodes = _diagram.Nodes.OfType<BoxNode>().Where(n => n.Selected).ToList();
+        var lineNodes = _diagram.Nodes.OfType<LineNode>().Where(n => n.Selected).ToList();
+        var textNodes = _diagram.Nodes.OfType<TextNode>().Where(n => n.Selected).ToList();
+
+        if (deviceNodes.Count + boxNodes.Count + lineNodes.Count + textNodes.Count == 0)
+            return;
+
+        var deviceIds = deviceNodes.Select(n => n.Id).ToHashSet();
+        var links = _diagram.Links.Where(l =>
+            l.Source.Model is PortModel sp && l.Target?.Model is PortModel tp &&
+            deviceIds.Contains(sp.Parent.Id) && deviceIds.Contains(tp.Parent.Id)).ToList();
+
+        var data = new Dictionary<string, object?>
+        {
+            ["nodes"] = deviceNodes.Select(NodeToJson).ToList(),
+            ["links"] = links.Select(LinkToJson).ToList(),
+            ["boxes"] = boxNodes.Select(BoxToJson).ToList(),
+            ["lines"] = lineNodes.Select(LineToJson).ToList(),
+            ["texts"] = textNodes.Select(TextToJson).ToList()
+        };
+        _clipboardJson = JsonSerializer.Serialize(data);
+        _pasteSequence = 0;
+    }
+
+    // Pastes the clipboard onto the canvas, offset from the originals and re-selected so the
+    // copy can be dragged immediately. Undoable. Repeated pastes step the offset so they don't
+    // stack. Device nodes get fresh ids; copied connections are re-created against the new nodes.
+    private void PasteClipboard()
+    {
+        if (_clipboardJson == null) return;
+        var doc = JsonDocument.Parse(_clipboardJson);
+
+        _pasteSequence++;
+        double off = 30 * _pasteSequence;
+
+        PushUndoSnapshot();
+        _diagram.UnselectAll();
+
+        var newNodes = new List<NodeModel>();
+        var idMap = new Dictionary<string, LineFlowNode>();
+
+        foreach (var nodeEl in doc.RootElement.GetProperty("nodes").EnumerateArray())
+        {
+            var oldId = nodeEl.GetProperty("id").GetString()!;
+            var device = new DeviceDefinition
+            {
+                Manufacturer = nodeEl.GetProperty("manufacturer").GetString() ?? "",
+                Model = nodeEl.GetProperty("model").GetString() ?? "",
+                Category = nodeEl.GetProperty("category").GetString() ?? "",
+                Ports = nodeEl.GetProperty("ports").Deserialize<List<PortDefinition>>() ?? new()
+            };
+            var node = new LineFlowNode(
+                new Point(nodeEl.GetProperty("x").GetDouble() + off, nodeEl.GetProperty("y").GetDouble() + off), device);
+            _diagram.Nodes.Add(node);
+            idMap[oldId] = node;
+            newNodes.Add(node);
+        }
+
+        foreach (var linkEl in doc.RootElement.GetProperty("links").EnumerateArray())
+        {
+            var sourceNodeId = linkEl.GetProperty("sourceNodeId").GetString()!;
+            var sourcePortIndex = linkEl.GetProperty("sourcePortIndex").GetInt32();
+            var targetNodeId = linkEl.GetProperty("targetNodeId").GetString()!;
+            var targetPortIndex = linkEl.GetProperty("targetPortIndex").GetInt32();
+
+            if (idMap.TryGetValue(sourceNodeId, out var sourceNode) &&
+                idMap.TryGetValue(targetNodeId, out var targetNode) &&
+                sourcePortIndex < sourceNode.Ports.Count &&
+                targetPortIndex < targetNode.Ports.Count)
+            {
+                var link = new ElbowLinkModel(
+                    (PortModel)sourceNode.Ports[sourcePortIndex],
+                    (PortModel)targetNode.Ports[targetPortIndex]);
+
+                if (linkEl.TryGetProperty("vertices", out var vertsEl))
+                {
+                    foreach (var v in vertsEl.EnumerateArray())
+                        link.Vertices.Add(new LinkVertexModel(link,
+                            new Point(v.GetProperty("x").GetDouble() + off, v.GetProperty("y").GetDouble() + off)));
+                }
+
+                _diagram.Links.Add(link);
+
+                if (linkEl.TryGetProperty("label", out var labelEl) && labelEl.ValueKind == JsonValueKind.String)
+                {
+                    var labelText = labelEl.GetString();
+                    if (!string.IsNullOrEmpty(labelText))
+                    {
+                        link.LabelText = labelText;
+                        var labelPos = linkEl.TryGetProperty("labelX", out var lxEl) && lxEl.ValueKind != JsonValueKind.Null &&
+                                        linkEl.TryGetProperty("labelY", out var lyEl) && lyEl.ValueKind != JsonValueKind.Null
+                            ? new Point(lxEl.GetDouble() + off, lyEl.GetDouble() + off)
+                            : ComputeLinkMidpoint(link);
+                        var labelNode = new ConnectionLabelNode(labelPos) { Text = labelText, OwnerLink = link };
+                        link.LabelNode = labelNode;
+                        _diagram.Nodes.Add(labelNode);
+                    }
+                }
+            }
+        }
+
+        foreach (var b in doc.RootElement.GetProperty("boxes").EnumerateArray())
+        {
+            var box = new BoxNode(new Point(b.GetProperty("x").GetDouble() + off, b.GetProperty("y").GetDouble() + off))
+            {
+                Size = new Blazor.Diagrams.Core.Geometry.Size(b.GetProperty("width").GetDouble(), b.GetProperty("height").GetDouble()),
+                BorderColor = b.TryGetProperty("borderColor", out var bc) ? bc.GetString() ?? "#e94560" : "#e94560"
+            };
+            _diagram.Nodes.Add(box);
+            newNodes.Add(box);
+        }
+
+        foreach (var l in doc.RootElement.GetProperty("lines").EnumerateArray())
+        {
+            var line = new LineNode(new Point(l.GetProperty("x").GetDouble() + off, l.GetProperty("y").GetDouble() + off))
+            {
+                Start = new Point(l.GetProperty("startX").GetDouble(), l.GetProperty("startY").GetDouble()),
+                End = new Point(l.GetProperty("endX").GetDouble(), l.GetProperty("endY").GetDouble()),
+                StrokeColor = l.TryGetProperty("strokeColor", out var sc) ? sc.GetString() ?? "#333333" : "#333333"
+            };
+            line.Size = new Blazor.Diagrams.Core.Geometry.Size(
+                Math.Max(Math.Abs(line.End.X - line.Start.X), 1),
+                Math.Max(Math.Abs(line.End.Y - line.Start.Y), 1));
+            _diagram.Nodes.Add(line);
+            newNodes.Add(line);
+        }
+
+        foreach (var t in doc.RootElement.GetProperty("texts").EnumerateArray())
+        {
+            var text = new TextNode(new Point(t.GetProperty("x").GetDouble() + off, t.GetProperty("y").GetDouble() + off))
+            {
+                Text = t.GetProperty("text").GetString() ?? "Text",
+                FontSize = t.TryGetProperty("fontSize", out var fs) ? fs.GetInt32() : 16,
+                Color = t.TryGetProperty("color", out var c) ? c.GetString() ?? "#222222" : "#222222"
+            };
+            _diagram.Nodes.Add(text);
+            newNodes.Add(text);
+        }
+
+        foreach (var n in newNodes)
+            _diagram.SelectModel(n, false);
+
+        StateHasChanged();
+    }
+
+    private void DuplicateContextNode()
+    {
+        _contextMenuVisible = false;
+        // Duplicate the whole selection; if the right-clicked node isn't part of it, act on just it.
+        if (_contextNode != null && !_contextNode.Selected)
+        {
+            _diagram.UnselectAll();
+            _diagram.SelectModel(_contextNode, false);
+        }
+        _contextNode = null;
+        CopySelection();
+        PasteClipboard();
+    }
 
     private async Task SaveDiagram()
     {

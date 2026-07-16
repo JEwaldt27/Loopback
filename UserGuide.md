@@ -91,6 +91,16 @@ Click **"+ Add Device"** in the dialog to save it to the shared library.
 ### Editing or deleting a device
 Each device card has **✏ (edit)** and **🗑 (delete)** buttons. Editing opens the same dialog pre-filled. Deleting removes it from the library — devices already placed on diagrams are not affected.
 
+### Copying and duplicating on the canvas
+Once devices (or annotations) are on the canvas, you can duplicate them instead of dragging fresh ones out:
+
+- **Right-click a device → ⧉ Duplicate** makes an instant copy right next to it.
+- **Ctrl+C** copies whatever is selected, then **Ctrl+V** pastes a copy (paste again for more — each lands slightly offset so they don't pile up on top of each other). The pasted copies come in already selected, so you can drag them into place immediately.
+- To copy several items at once, select multiple first: click one, then hold **Ctrl** and click others (or drag a selection box around them on empty canvas), then Ctrl+C / Ctrl+V.
+- **Connections come along** — if you copy two devices that are wired together, the connection between them (and its label) is copied too. This makes it quick to duplicate a whole sub-system (e.g. a repeated rack layout).
+
+> Copies are new independent objects — editing a copy doesn't affect the original. This clipboard only works within this browser tab.
+
 ---
 
 ## 4. Making Connections
