@@ -41,6 +41,7 @@
             <div class="lf-dropdown-menu">
                 <div class="lf-dropdown-item" @onclick="async () => { await ExportPdf(); CloseMenus(); }">📄 Export PDF</div>
                 <div class="lf-dropdown-item" @onclick="async () => { await ExportDxf(); CloseMenus(); }">📐 Export DXF</div>
+                <div class="lf-dropdown-item" @onclick="async () => { await ExportCableSchedule(); CloseMenus(); }">🧾 Cable Schedule (CSV)</div>
             </div>
         }
     </div>
@@ -1493,6 +1494,53 @@
         }
 
         StateHasChanged();
+    }
+
+    // Exports a cable schedule (pull sheet) as CSV: one row per connection with its label,
+    // signal type, and the source/destination device + port. Sorted by source device then
+    // source port so cables from the same box group together.
+    private async Task ExportCableSchedule()
+    {
+        static string Csv(string? s)
+        {
+            s ??= "";
+            return s.Contains(',') || s.Contains('"') || s.Contains('\n') || s.Contains('\r')
+                ? "\"" + s.Replace("\"", "\"\"") + "\""
+                : s;
+        }
+
+        var rows = _diagram.Links
+            .Where(l => l.Source.Model is LineFlowPort && l.Target?.Model is LineFlowPort)
+            .Select(l =>
+            {
+                var sp = (LineFlowPort)l.Source.Model!;
+                var tp = (LineFlowPort)l.Target!.Model!;
+                return new
+                {
+                    Cable = (l as ElbowLinkModel)?.LabelText ?? "",
+                    Signal = sp.Definition.Type,
+                    FromDevice = sp.Parent.Title ?? "",
+                    FromPort = sp.Definition.Name,
+                    ToDevice = tp.Parent.Title ?? "",
+                    ToPort = tp.Definition.Name
+                };
+            })
+            .OrderBy(r => r.FromDevice, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.FromPort, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append('\uFEFF'); // BOM so Excel opens the CSV with correct (UTF-8) encoding
+        sb.AppendLine("#,Cable,Signal,From Device,From Port,To Device,To Port");
+        int i = 1;
+        foreach (var r in rows)
+        {
+            sb.AppendLine(string.Join(",",
+                i++.ToString(), Csv(r.Cable), Csv(r.Signal),
+                Csv(r.FromDevice), Csv(r.FromPort), Csv(r.ToDevice), Csv(r.ToPort)));
+        }
+
+        await JS.InvokeVoidAsync("saveAsFile", "cable-schedule.csv", sb.ToString());
     }
 
     private async Task ExportPdf()

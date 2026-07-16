@@ -353,6 +353,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Legend node — click "Legend" to add a draggable canvas node showing only the signal types actually connected in the current diagram
 - ✅ PDF export (white background, title + date header, direct download) — resets zoom/pan before capture so connections render correctly at any zoom level
 - ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers), generating the same multi-segment path as the live app's routing
+- ✅ Cable schedule export (Export → Cable Schedule) — CSV pull sheet with one row per connection: cable label, signal type, source device + port, destination device + port; sorted by source device, CSV-escaped, UTF-8 BOM so Excel opens it cleanly
 - ✅ Zoom and pan on canvas
 - ✅ Freeform annotations — Box (resizable rectangle, no fill), Line (2-point freeform line with draggable endpoints, not attached to ports), and Text (click-to-place, editable, with font size/color controls); all three are selectable/deletable, saved in `.lf` files, and included in PDF and DXF exports (DXF `ANNOTATIONS` layer)
 - ✅ Per-user authentication — cookie-based login gating the entire app, first-run admin setup, Admin/User roles, in-app "Manage Users" page, account menu with Logout (see Authentication & User Management above)
@@ -367,7 +368,6 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 ## Features Planned / Not Yet Implemented
 - ⬜ Server-side diagram storage — a shared "Diagrams" browser backed by the server (same JSON-file pattern as devices/users), so `.lf` files aren't scattered across individual machines; authorship metadata already exists to surface per file
 - ⬜ Autosave drafts — periodically stash the working diagram (e.g. to localStorage) so an accidental close/crash can be recovered, complementing the unsaved-changes warning that's already in place
-- ⬜ Cable schedule export — CSV/Excel table of every connection (source device + port → destination device + port, signal type, label) for building pull sheets and cable-run lists
 - ⬜ Auto-numbered connection labels — "Add Label" pre-fills the next number per signal type (VID-001, VID-002, AUD-001, …)
 - ⬜ Self-service password change (account menu) and admin password reset — currently a forgotten password means delete-and-recreate the account
 - ⬜ Duplicate device in the library (new devices are often one port different from an existing one)

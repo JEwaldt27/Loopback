@@ -206,7 +206,7 @@ Whenever you have changes that haven't been saved to a `.lf` file, an amber **�
 
 ## 10. Exporting
 
-Both exports are in the **Export** menu and download directly, like Save does.
+All exports are in the **Export** menu and download directly, like Save does.
 
 ### 📄 PDF
 Captures the diagram onto a landscape A4 page with a header showing the **diagram title** (from the toolbar text box) and today's date. Zoom and pan are reset automatically during capture so the output is always at 100% scale regardless of how you were viewing it.
@@ -219,6 +219,18 @@ Generates an AutoCAD-compatible DXF with content organized on layers:
 - **ANNOTATIONS** — boxes, lines, and text you added
 
 Useful for dropping the diagram into CAD workflows or as a starting point for formal drawings.
+
+### 🧾 Cable Schedule (CSV)
+Generates a **cable schedule / pull sheet** — a spreadsheet listing every connection in the diagram, one per row, with these columns:
+
+| # | Cable | Signal | From Device | From Port | To Device | To Port |
+|---|-------|--------|-------------|-----------|-----------|---------|
+
+- **Cable** is the connection's label (e.g. VID-001) — blank if you haven't labelled it.
+- **Signal** is the connection's signal type (HDMI, Audio, etc.).
+- Rows are grouped/sorted by the source device, so all the cables coming off one box are listed together.
+
+It downloads as `cable-schedule.csv` and opens directly in Excel or Google Sheets — handy for handing a wiring list to installers. Tip: label your connections (right-click → Add Label) before exporting so each cable has an ID in the schedule.
 
 ---
 
