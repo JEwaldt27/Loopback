@@ -187,7 +187,10 @@ Diagrams save as **`.lf` files that download to your computer** — they are *no
 
 Every save stamps the file with your username and the current time — the first save records you as the **creator**, and every later save (by you or anyone else) updates the **last modified by** info shown in the bar under the toolbar.
 
-> ⚠️ Loopback has no autosave and no server-side storage of diagrams. If you close the tab without saving, unsaved changes are gone.
+### Unsaved changes
+Whenever you have changes that haven't been saved to a `.lf` file, an amber **● Unsaved** badge appears in the toolbar. If you try to close or reload the browser tab while it's showing, your browser will warn you ("Leave site? Changes you made may not be saved") so you get a chance to save first. Saving the diagram clears the badge.
+
+> ⚠️ Loopback has no autosave and no server-side storage of diagrams. The unsaved-changes warning helps, but if you dismiss it and close the tab, unsaved changes are gone.
 
 ---
 

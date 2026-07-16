@@ -30,6 +30,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
+        // Unsaved-changes guard. Blazor toggles this flag via setUnsavedChanges; the
+        // beforeunload handler triggers the browser's native "Leave site?" prompt when set.
+        window.__lfUnsavedChanges = false;
+        window.setUnsavedChanges = function (value) {
+            window.__lfUnsavedChanges = !!value;
+        };
+        window.addEventListener('beforeunload', function (e) {
+            if (window.__lfUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = ''; // required for Chrome/Edge to show the prompt
+                return '';
+            }
+        });
+
         window.saveAsFile = function (filename, content) {
             const a = document.createElement('a');
             a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);

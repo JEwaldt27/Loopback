@@ -623,6 +623,13 @@ html, body {
         color: #888;
     }
 
+.lf-unsaved-badge {
+    font-size: 11px;
+    color: #ffb74d;
+    white-space: nowrap;
+    user-select: none;
+}
+
 .lf-box {
     box-sizing: border-box;
     border: 2px solid #e94560;

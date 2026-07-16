@@ -49,6 +49,10 @@
     <button @onclick="Redo" disabled="@(!CanRedo)" title="Redo (Ctrl+Y)">↪ Redo</button>
     <button @onclick="DeleteSelected">Delete Selected</button>
     <input class="title-input" id="diagram-title" name="diagram-title" @bind="_diagramTitle" placeholder="Diagram title..." />
+    @if (_isDirty)
+    {
+        <span class="lf-unsaved-badge" title="You have unsaved changes">● Unsaved</span>
+    }
 
     <div class="lf-menu-root" style="margin-left:auto;">
         <button class="lf-menu-btn @(_openMenu == "account" ? "lf-menu-btn-active" : "")" @onclick='() => ToggleMenu("account")'>👤 @_currentUsername</button>
@@ -259,6 +263,7 @@
     private bool _restoringState = false;
     private bool CanUndo => _undoStack.Count > 0;
     private bool CanRedo => _redoStack.Count > 0;
+    private bool _isDirty = false; // unsaved changes since last Save/Open/New
     private string _deviceSortMode = "category"; // "category" or "manufacturer"
 
     private IEnumerable<IGrouping<string, DeviceDefinition>> GroupedDevices =>
@@ -570,6 +575,24 @@
         _undoStack.Add(snapshot);
         if (_undoStack.Count > MaxUndoDepth) _undoStack.RemoveAt(0);
         _redoStack.Clear();
+        MarkDirty();
+    }
+
+    // Tracks whether the canvas differs from the last Save/Open/New. Mirrored to a JS flag
+    // so the beforeunload handler in index.html can warn before the tab closes. This is a
+    // conservative flag (an edit-then-undo-back leaves it set) — we prefer a false "unsaved"
+    // warning over silently losing work.
+    private void MarkDirty()
+    {
+        if (_isDirty) return;
+        _isDirty = true;
+        _ = JS.InvokeVoidAsync("setUnsavedChanges", true);
+    }
+
+    private void MarkClean()
+    {
+        _isDirty = false;
+        _ = JS.InvokeVoidAsync("setUnsavedChanges", false);
     }
 
     private void Undo()
@@ -599,6 +622,7 @@
             LoadDiagramJson(json);
         }
         finally { _restoringState = false; }
+        MarkDirty();
         InvokeAsync(StateHasChanged);
     }
 
@@ -1022,6 +1046,7 @@
         _createdAt = null;
         _modifiedBy = "";
         _modifiedAt = null;
+        MarkClean();
     }
 
     // Shared serializer for both .lf file saves and undo/redo snapshots. Meta is only
@@ -1119,6 +1144,7 @@
             new JsonSerializerOptions { WriteIndented = true });
 
         await JS.InvokeVoidAsync("saveAsFile", "diagram.lf", json);
+        MarkClean();
     }
 
     private async Task OpenDiagram(InputFileChangeEventArgs e)
@@ -1137,6 +1163,7 @@
         _modifiedAt = null;
 
         LoadDiagramJson(json);
+        MarkClean();
     }
 
     // Rebuilds the entire canvas from serialized diagram JSON. Used by both file open

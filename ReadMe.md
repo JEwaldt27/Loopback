@@ -192,6 +192,15 @@ Snapshot-based, not command-based: every mutation pushes a full serialized-diagr
 - **Shortcuts**: Ctrl+Z / Ctrl+Y, registered on the library's `KeyboardShortcutsBehavior` — they only fire when the diagram canvas has focus, so they don't hijack text-field undo in inputs. Toolbar ↩/↪ buttons mirror them, disabled when their stack is empty.
 - `_restoringState` guards restore so the `Links.Added`/`Nodes.Removed` handlers and snapshot pushes don't re-fire mid-rebuild.
 
+### Unsaved-Changes Warning
+Warns before the browser tab closes with unsaved work, using the browser's native `beforeunload` prompt (its text can't be customized — Chrome/Edge/Firefox show their own generic "Leave site? / Changes you made may not be saved" dialog).
+
+- **Dirty tracking** rides on the same mutation funnels as undo/redo: `MarkDirty()` is called from `PushUndoSnapshot()` (all discrete + committed-drag mutations) and `RestoreDiagramState()` (undo/redo). `MarkClean()` is called by Save, Open, and New. A `_isDirty` bool backs it.
+- **Conservative by design**: this is a boolean flag, not a state comparison, so editing then undoing back to the exact saved state still reads as "dirty". That's deliberate — a spurious "you have unsaved changes" warning is harmless; failing to warn and losing work is not.
+- **JS bridge**: `MarkDirty`/`MarkClean` mirror the flag to `window.setUnsavedChanges(bool)` in `index.html`, which sets `window.__lfUnsavedChanges`. A single `beforeunload` listener (registered once at page load, before Blazor even starts) reads that flag and calls `e.preventDefault()` + sets `e.returnValue` only when dirty. Keeping the check in a plain JS flag is required because `beforeunload` fires synchronously and can't await a round-trip into .NET.
+- **Visual cue**: an amber `● Unsaved` badge (`.lf-unsaved-badge`) appears in the toolbar next to the diagram title whenever `_isDirty` is set.
+- **Note**: Logout does a full-page navigation (`forceLoad: true`), so logging out with unsaved changes correctly triggers the same prompt.
+
 ### Backward Compatibility
 Files saved before multi-bend support only stored a single `midX` value (no `vertices` array). On open, if `vertices` is missing/empty, the loader falls back to `ElbowLinkModel.MidX`, which `ElbowRouter` still understands as a single-bend midpoint.
 
@@ -217,6 +226,7 @@ All attached to `window` object for Blazor JS interop:
 - `.lf-modal` / `.lf-modal-overlay` — centered popup dialog + dimmed backdrop pattern (used by Add/Edit Device)
 - `.lf-connection-label` — the draggable connection label bubble (plain `<div>`, not the diagramming library's SVG-based link labels)
 - `.lf-file-meta` — the "Created by / Last modified by" info bar under the toolbar
+- `.lf-unsaved-badge` — the amber "● Unsaved" indicator shown in the toolbar when there are unsaved changes
 
 ## Known Issues / Work in Progress
 
@@ -340,10 +350,11 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Windows desktop wrapper (`Desktop/`, .NET MAUI) — native window shell with a configurable server address (Settings page, persisted via `Preferences`), not tied to a hardcoded URL (see Desktop Wrapper above)
 - ✅ Undo/redo — Ctrl+Z / Ctrl+Y (canvas focused) or toolbar ↩/↪ buttons; covers placements, connections, bends, labels, moves, resizes, text edits, deletes, New, and Open (see Undo/Redo above)
 - ✅ Legend persistence — legends are now saved in `.lf` files and restored on open
+- ✅ Unsaved-changes warning — browser prompt before closing the tab with unsaved work, plus an amber "● Unsaved" toolbar badge (see Unsaved-Changes Warning above)
 
 ## Features Planned / Not Yet Implemented
 - ⬜ Server-side diagram storage — a shared "Diagrams" browser backed by the server (same JSON-file pattern as devices/users), so `.lf` files aren't scattered across individual machines; authorship metadata already exists to surface per file
-- ⬜ Unsaved-changes protection — browser warning before closing a tab with unsaved work, and/or periodic autosave drafts
+- ⬜ Autosave drafts — periodically stash the working diagram (e.g. to localStorage) so an accidental close/crash can be recovered, complementing the unsaved-changes warning that's already in place
 - ⬜ Cable schedule export — CSV/Excel table of every connection (source device + port → destination device + port, signal type, label) for building pull sheets and cable-run lists
 - ⬜ Auto-numbered connection labels — "Add Label" pre-fills the next number per signal type (VID-001, VID-002, AUD-001, …)
 - ⬜ Copy/paste or duplicate nodes on the canvas
