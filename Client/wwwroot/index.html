@@ -53,6 +53,15 @@
             document.body.removeChild(a);
         };
 
+        // Reports the pixel size of the canvas viewport, used to compute a zoom-to-fit
+        // transform for PDF export so the whole diagram is framed regardless of spread.
+        window.getCanvasAreaSize = function () {
+            const el = document.querySelector('.canvas-area');
+            if (!el) return [0, 0];
+            const r = el.getBoundingClientRect();
+            return [r.width, r.height];
+        };
+
         window.exportToPdf = async function (title) {
             const canvasArea = document.querySelector('.canvas-area');
             const originalBg = canvasArea.style.background;

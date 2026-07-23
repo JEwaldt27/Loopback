@@ -212,7 +212,7 @@ Whenever you have changes that haven't been saved to a `.lf` file, an amber **�
 All exports are in the **Export** menu and download directly, like Save does.
 
 ### 📄 PDF
-Captures the diagram onto a landscape A4 page with a header showing the **diagram title** (from the toolbar text box) and today's date. Zoom and pan are reset automatically during capture so the output is always at 100% scale regardless of how you were viewing it.
+Captures the diagram onto a landscape A4 page with a header showing the **diagram title** (from the toolbar text box) and today's date. It automatically zooms out to fit your **entire** diagram in the export — even if parts are spread far off-screen — so nothing gets cut off, then puts your view back exactly where it was. (Very large diagrams naturally come out at a smaller scale so everything fits on the page.)
 
 ### 📐 DXF
 Generates an AutoCAD-compatible DXF with content organized on layers:

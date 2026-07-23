@@ -228,6 +228,7 @@ Legends are saved in `.lf` files as a top-level `legend` property (`{x, y, entri
 ## JS Functions (defined in index.html)
 All attached to `window` object for Blazor JS interop:
 - `window.saveAsFile(filename, content)` — triggers browser download
+- `window.getCanvasAreaSize()` — returns the canvas viewport `[width, height]` in px; used by `ExportPdf` to compute a zoom-to-fit transform
 - `window.exportToPdf(title)` — captures canvas with html2canvas, generates PDF with jsPDF
 
 ## CSS Classes of Note
@@ -354,7 +355,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Device list sorting by Type or Manufacturer, case-insensitive grouping
 - ✅ Color-coded connections and port dots by signal type (HDMI, SDI, Audio, Network, USB, IR, COM)
 - ✅ Legend node — click "Legend" to add a draggable canvas node showing only the signal types actually connected in the current diagram
-- ✅ PDF export (white background, title + date header, direct download) — resets zoom/pan before capture so connections render correctly at any zoom level
+- ✅ PDF export (white background, title + date header, direct download) — automatically fits the **entire** diagram into frame before capture (computes a zoom-to-fit transform from the node bounds + canvas size in `ExportPdf`), so even content spread far outside the default viewport is captured; the user's zoom/pan and selection are restored afterward
 - ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers), generating the same multi-segment path as the live app's routing
 - ✅ Cable schedule export (Export → Cable Schedule) — CSV pull sheet with one row per connection: cable label, signal type, source device + port, destination device + port; sorted by source device, CSV-escaped, UTF-8 BOM so Excel opens it cleanly
 - ✅ Zoom and pan on canvas
