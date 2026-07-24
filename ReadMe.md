@@ -23,6 +23,7 @@ LineFlowAppHosted/
 │   ├── wwwroot/
 │   │   ├── index.html              ← Entry point, loads JS libs (jsPDF, html2canvas)
 │   │   └── css/app.css             ← All styles
+│   ├── AppVersion.cs               ← Displayed build version — bump before each deploy
 │   ├── _Imports.razor              ← Global using statements
 │   ├── App.razor                   ← Root component
 │   └── Program.cs                  ← Service registration
@@ -228,8 +229,8 @@ Legends are saved in `.lf` files as a top-level `legend` property (`{x, y, entri
 ## JS Functions (defined in index.html)
 All attached to `window` object for Blazor JS interop:
 - `window.saveAsFile(filename, content)` — triggers browser download
-- `window.getCanvasAreaSize()` — returns the canvas viewport `[width, height]` in px; used by `ExportPdf` to compute a zoom-to-fit transform
-- `window.exportToPdf(title)` — captures canvas with html2canvas, generates PDF with jsPDF
+- `window.getCanvasAreaSize()` — returns the canvas viewport `[width, height]` in px (kept only for compatibility with older cached DLLs; no longer used by current `ExportPdf`)
+- `window.exportToPdf(title, version, bx, by, bw, bh)` — captures the diagram with html2canvas and generates a PDF with jsPDF (content fit to the page preserving aspect ratio, version stamped in the header). When content bounds are provided it captures the **full diagram** via an `onclone`-restyled copy of the page (see the PDF export feature bullet); with no bounds it falls back to capturing the visible view and trimming it with `cropToContent`
 
 ## CSS Classes of Note
 - `.lf-node` — custom node box
@@ -326,6 +327,9 @@ sudo systemctl start lineflow
 
 Then from your Windows machine, browse to `http://<linux-server-ip>:5052`.
 
+### Confirming a deploy landed
+The build version is shown in the toolbar (next to the "Loopback" title) and in the PDF export header, sourced from `Client/AppVersion.cs`. **Bump `AppVersion.Version` before each deploy** — then after copying the new build over and restarting the service, load the app and check the toolbar shows the new number. If it doesn't, the new build didn't actually land (wrong folder, service not restarted, or a browser cache holding the old page — hard-refresh with Ctrl+F5). Because the app is a Blazor SPA, a browser holding a **stale `index.html`** alongside a new WASM DLL can misbehave (e.g. PDF export silently falling back to capturing only the visible view); a hard refresh after every deploy avoids this.
+
 ## Install .NET 10 on Ubuntu
 ```bash
 sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
@@ -355,7 +359,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Device list sorting by Type or Manufacturer, case-insensitive grouping
 - ✅ Color-coded connections and port dots by signal type (HDMI, SDI, Audio, Network, USB, IR, COM)
 - ✅ Legend node — click "Legend" to add a draggable canvas node showing only the signal types actually connected in the current diagram
-- ✅ PDF export (white background, title + date header, direct download) — automatically fits the **entire** diagram into frame before capture (computes a zoom-to-fit transform from the node bounds + canvas size in `ExportPdf`), so even content spread far outside the default viewport is captured; the user's zoom/pan and selection are restored afterward
+- ✅ PDF export (white background, title + date + version header, direct download) — captures the **entire** diagram regardless of size or where the user has panned/zoomed, without ever touching the live view. How: `ExportPdf` computes the diagram's raw-coordinate bounds (node boxes **plus connection routing vertices** — elbow bends can extend far beyond the nodes they join) and passes them to `exportToPdf`, which restyles the **clone** html2canvas renders (`onclone`): the canvas area and layers are resized to the full bounds, the SVG layer gets a matching `viewBox`, and the HTML layer a matching translate. The `viewBox` is the load-bearing part: **html2canvas rasterizes inline SVGs clipped to the SVG element's own box**, and the connection lines live in an SVG layer sized to the visible viewport while using raw diagram coordinates — so any line geometry beyond the viewport's pixel size was silently cut from captures (while rendering fine live via `overflow: visible`). No zoom-the-diagram-first approach can fix that, which is why earlier attempts kept clipping lines; remapping coordinates with a `viewBox` in the rasterized clone does. Output is capped at ~8000px per side and placed on the page preserving aspect ratio.
 - ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers), generating the same multi-segment path as the live app's routing
 - ✅ Cable schedule export (Export → Cable Schedule) — CSV pull sheet with one row per connection: cable label, signal type, source device + port, destination device + port; sorted by source device, CSV-escaped, UTF-8 BOM so Excel opens it cleanly
 - ✅ Zoom and pan on canvas
@@ -369,6 +373,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Legend persistence — legends are now saved in `.lf` files and restored on open
 - ✅ Unsaved-changes warning — browser prompt before closing the tab with unsaved work, plus an amber "● Unsaved" toolbar badge (see Unsaved-Changes Warning above)
 - ✅ Copy/paste & duplicate — Ctrl+C / Ctrl+V or right-click → Duplicate; copies selected nodes plus the connections (and labels) between them (see Copy / Paste above)
+- ✅ Build version display — shown in the toolbar next to the app title and stamped into the PDF export header, sourced from `Client/AppVersion.cs`, so you can always confirm which build a server is running (see Confirming a deploy landed above)
 
 ## Features Planned / Not Yet Implemented
 - ⬜ Auto-numbered connection labels — "Add Label" pre-fills the next number per signal type (VID-001, VID-002, AUD-001, …)

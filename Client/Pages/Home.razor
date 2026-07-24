@@ -6,6 +6,7 @@
 
 <div class="toolbar">
     <span class="app-title">Loopback</span>
+    <span class="lf-version" title="Running build version">@($"v{AppVersion.Version}")</span>
 
     <div class="lf-menu-root">
         <button class="lf-menu-btn @(_openMenu == "file" ? "lf-menu-btn-active" : "")" @onclick='() => ToggleMenu("file")'>File</button>
@@ -1633,63 +1634,44 @@
 
     private async Task ExportPdf()
     {
-        // Remember the user's current view so we can put it back exactly after export.
-        var savedZoom = _diagram.Zoom;
-        var savedPan = _diagram.Pan;
-        var selected = _diagram.Nodes.Where(n => n.Selected).Cast<SelectableModel>()
-            .Concat(_diagram.Links.Where(l => l.Selected).Cast<SelectableModel>())
-            .ToList();
-
-        // Frame the ENTIRE diagram before capture so nothing is clipped, no matter how far
-        // apart the content is. We compute the fit ourselves (rather than the library's
-        // ZoomToFit, which throws when its internal container size is 0) from the node bounds
-        // and the actual canvas pixel size.
-        var nodes = _diagram.Nodes.ToList();
-        var size = await JS.InvokeAsync<double[]>("getCanvasAreaSize");
-        double vpW = size.Length > 0 ? size[0] : 0;
-        double vpH = size.Length > 1 ? size[1] : 0;
-
-        if (nodes.Count > 0 && vpW > 0 && vpH > 0)
+        // Compute the raw-coordinate bounds of the entire diagram (nodes + connection routing
+        // vertices — elbow bends can extend well beyond the nodes they join). The JS side uses
+        // these to capture the FULL content via an off-screen restyled clone, so nothing is
+        // clipped no matter how large the diagram is or where the user has panned/zoomed.
+        // The live view is never touched — no zoom jump, nothing to restore.
+        double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+        foreach (var n in _diagram.Nodes)
         {
-            double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
-            foreach (var n in nodes)
+            // Fall back to a typical node footprint if the browser hasn't measured it yet.
+            double w = n.Size?.Width ?? 220;
+            double h = n.Size?.Height ?? 140;
+            minX = Math.Min(minX, n.Position.X);
+            minY = Math.Min(minY, n.Position.Y);
+            maxX = Math.Max(maxX, n.Position.X + w);
+            maxY = Math.Max(maxY, n.Position.Y + h);
+        }
+        foreach (var link in _diagram.Links)
+        {
+            foreach (var v in link.Vertices)
             {
-                // Fall back to a typical node footprint if the browser hasn't measured it yet.
-                double w = n.Size?.Width ?? 220;
-                double h = n.Size?.Height ?? 140;
-                minX = Math.Min(minX, n.Position.X);
-                minY = Math.Min(minY, n.Position.Y);
-                maxX = Math.Max(maxX, n.Position.X + w);
-                maxY = Math.Max(maxY, n.Position.Y + h);
+                minX = Math.Min(minX, v.Position.X);
+                minY = Math.Min(minY, v.Position.Y);
+                maxX = Math.Max(maxX, v.Position.X);
+                maxY = Math.Max(maxY, v.Position.Y);
             }
-
-            const double margin = 40;
-            double contentW = Math.Max(maxX - minX, 1);
-            double contentH = Math.Max(maxY - minY, 1);
-            double zoom = Math.Min(vpW / (contentW + 2 * margin), vpH / (contentH + 2 * margin));
-            zoom = Math.Clamp(zoom, 0.05, 1.5);
-
-            // Center the content in the viewport at the computed zoom.
-            double panX = (vpW - contentW * zoom) / 2 - minX * zoom;
-            double panY = (vpH - contentH * zoom) / 2 - minY * zoom;
-
-            _diagram.UnselectAll();
-            _diagram.SetZoom(zoom);
-            var c = _diagram.Pan;
-            _diagram.UpdatePan(panX - c.X, panY - c.Y);
-            _diagram.Refresh();
-            await Task.Delay(250); // let the diagram re-render at the new transform before capture
         }
 
-        await JS.InvokeVoidAsync("exportToPdf", _diagramTitle);
+        const double margin = 40;
+        double bx = 0, by = 0, bw = 0, bh = 0;
+        if (maxX > minX)
+        {
+            bx = minX - margin;
+            by = minY - margin;
+            bw = (maxX - minX) + 2 * margin;
+            bh = (maxY - minY) + 2 * margin;
+        }
 
-        // Restore zoom, pan, and selection to exactly what the user had.
-        _diagram.SetZoom(savedZoom);
-        var cur = _diagram.Pan;
-        _diagram.UpdatePan(savedPan.X - cur.X, savedPan.Y - cur.Y);
-        foreach (var m in selected)
-            _diagram.SelectModel(m, false);
-        _diagram.Refresh();
+        await JS.InvokeVoidAsync("exportToPdf", _diagramTitle, AppVersion.Version, bx, by, bw, bh);
     }
 
     private async Task ExportDxf()

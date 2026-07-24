@@ -48,7 +48,7 @@ Any signed-in user can change their own password: click the **👤 account butto
 
 Once signed in, you'll see three main areas:
 
-- **Toolbar (top)** — the app menus and controls:
+- **Toolbar (top)** — the app menus and controls (a small version number next to the "Loopback" title shows which build the server is running):
   - **File** → 🆕 New, 💾 Save, 📂 Open
   - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text
   - **Export** → 📄 Export PDF, 📐 Export DXF
@@ -212,7 +212,7 @@ Whenever you have changes that haven't been saved to a `.lf` file, an amber **�
 All exports are in the **Export** menu and download directly, like Save does.
 
 ### 📄 PDF
-Captures the diagram onto a landscape A4 page with a header showing the **diagram title** (from the toolbar text box) and today's date. It automatically zooms out to fit your **entire** diagram in the export — even if parts are spread far off-screen — so nothing gets cut off, then puts your view back exactly where it was. (Very large diagrams naturally come out at a smaller scale so everything fits on the page.)
+Captures the diagram onto a landscape A4 page with a header showing the **diagram title** (from the toolbar text box), today's date, and the app version. The export always includes your **entire** diagram — every device, connection, and label, even parts spread far off-screen — no matter where you're currently panned or zoomed. Your on-screen view isn't affected at all. (Very large diagrams naturally come out at a smaller scale so everything fits on the page.)
 
 ### 📐 DXF
 Generates an AutoCAD-compatible DXF with content organized on layers:

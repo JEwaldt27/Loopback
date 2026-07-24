@@ -62,15 +62,96 @@
             return [r.width, r.height];
         };
 
-        window.exportToPdf = async function (title) {
+        // Trims the surrounding whitespace from a captured canvas down to its actual
+        // (non-white) content, so the exported diagram fills the page instead of sitting
+        // in a corner. The C# side zooms the whole diagram into view before capture; this
+        // crop removes the margins that fitting leaves around it.
+        function cropToContent(canvas) {
+            const ctx = canvas.getContext('2d');
+            const { width, height } = canvas;
+            const data = ctx.getImageData(0, 0, width, height).data;
+            let minX = width, minY = height, maxX = -1, maxY = -1;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    if (data[i] < 245 || data[i + 1] < 245 || data[i + 2] < 245) {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+            if (maxX < 0) return canvas; // all white / empty
+            const pad = 10;
+            minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+            maxX = Math.min(width - 1, maxX + pad); maxY = Math.min(height - 1, maxY + pad);
+            const cw = maxX - minX + 1, ch = maxY - minY + 1;
+            const out = document.createElement('canvas');
+            out.width = cw; out.height = ch;
+            out.getContext('2d').drawImage(canvas, minX, minY, cw, ch, 0, 0, cw, ch);
+            return out;
+        }
+
+        window.exportToPdf = async function (title, version, bx, by, bw, bh) {
             const canvasArea = document.querySelector('.canvas-area');
             const originalBg = canvasArea.style.background;
             canvasArea.style.background = '#ffffff';
 
-            const snapshot = await html2canvas(canvasArea, { backgroundColor: '#ffffff', scale: 2 });
+            const useBounds = typeof bw === 'number' && bw > 0 && bh > 0;
+            let snapshot;
+            if (useBounds) {
+                // Full-content capture. html2canvas rasterizes inline SVGs clipped to the SVG
+                // element's own box — and the diagram's connection lines live in an SVG layer
+                // sized to the visible viewport while using raw diagram coordinates. So any
+                // line geometry beyond the viewport's size is silently cut in the capture even
+                // though it renders fine live (overflow: visible). The fix: restyle the CLONE
+                // html2canvas renders (never the live page) so the layers cover the diagram's
+                // full bounds — the SVG gets a matching viewBox, remapping raw coordinates
+                // inside its rasterized box, and the HTML layer gets a matching translate.
+                const scale = Math.min(2, 8000 / bw, 8000 / bh);
+                snapshot = await html2canvas(canvasArea, {
+                    backgroundColor: '#ffffff',
+                    scale: scale,
+                    width: bw,
+                    height: bh,
+                    windowWidth: bw + 300,
+                    windowHeight: bh + 300,
+                    scrollX: 0,
+                    scrollY: 0,
+                    onclone: function (doc) {
+                        const area = doc.querySelector('.canvas-area');
+                        if (!area) return;
+                        area.style.width = bw + 'px';
+                        area.style.height = bh + 'px';
+                        area.style.overflow = 'visible';
+                        for (let el = area.parentElement; el; el = el.parentElement) {
+                            if (el.style) el.style.overflow = 'visible';
+                        }
+                        const dc = area.querySelector('.diagram-canvas');
+                        if (dc) { dc.style.width = bw + 'px'; dc.style.height = bh + 'px'; dc.style.overflow = 'visible'; }
+                        const htmlLayer = area.querySelector('.diagram-html-layer');
+                        if (htmlLayer) htmlLayer.style.transform = 'translate(' + (-bx) + 'px, ' + (-by) + 'px) scale(1)';
+                        const svgLayer = area.querySelector('.diagram-svg-layer');
+                        if (svgLayer) {
+                            svgLayer.setAttribute('viewBox', bx + ' ' + by + ' ' + bw + ' ' + bh);
+                            svgLayer.setAttribute('width', bw);
+                            svgLayer.setAttribute('height', bh);
+                            svgLayer.style.width = bw + 'px';
+                            svgLayer.style.height = bh + 'px';
+                            svgLayer.style.transform = 'none';
+                        }
+                    }
+                });
+            } else {
+                // No content bounds (empty diagram or older caller) — capture the visible view.
+                snapshot = await html2canvas(canvasArea, { backgroundColor: '#ffffff', scale: 2 });
+            }
             canvasArea.style.background = originalBg;
 
-            const imgData = snapshot.toDataURL('image/png');
+            // Bounds-based captures are already tight; the crop is the fallback path's trimmer.
+            const cropped = useBounds ? snapshot : cropToContent(snapshot);
+            const imgData = cropped.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
@@ -83,19 +164,30 @@
             pdf.text(title || 'Line Flow Diagram', margin, margin + 6);
 
             const date = new Date().toLocaleDateString();
+            const stamp = version ? (date + '   ·   Loopback v' + version) : date;
             pdf.setFontSize(10);
             pdf.setTextColor(120, 120, 120);
-            pdf.text(date, pageWidth - margin, margin + 6, { align: 'right' });
+            pdf.text(stamp, pageWidth - margin, margin + 6, { align: 'right' });
 
             pdf.setDrawColor(200, 200, 200);
             pdf.line(margin, margin + 10, pageWidth - margin, margin + 10);
 
-            const imgWidth = pageWidth - margin * 2;
-            const imgHeight = (snapshot.height / snapshot.width) * imgWidth;
-            const maxImgHeight = pageHeight - margin * 2 - 20;
-            const finalHeight = Math.min(imgHeight, maxImgHeight);
+            // Fit the cropped diagram into the area below the header, preserving aspect
+            // ratio (no stretching) and centering it.
+            const availX = margin;
+            const availY = margin + 14;
+            const availW = pageWidth - margin * 2;
+            const availH = pageHeight - availY - margin;
+            const aspect = cropped.width / cropped.height;
 
-            pdf.addImage(imgData, 'PNG', margin, margin + 14, imgWidth, finalHeight);
+            let drawW = availW;
+            let drawH = drawW / aspect;
+            if (drawH > availH) { drawH = availH; drawW = drawH * aspect; }
+
+            const drawX = availX + (availW - drawW) / 2;
+            const drawY = availY + (availH - drawH) / 2;
+
+            pdf.addImage(imgData, 'PNG', drawX, drawY, drawW, drawH);
             pdf.save('lineflow-diagram.pdf');
         };
     </script>
