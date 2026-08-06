@@ -1,8 +1,10 @@
 ﻿@page "/"
+@implements IDisposable
 @inject IJSRuntime JS
 @inject HttpClient Http
 @inject NavigationManager Nav
 @using System.Text.Json
+@using Microsoft.JSInterop
 
 <div class="toolbar">
     <span class="app-title">Loopback</span>
@@ -378,6 +380,75 @@
 
         await LoadDevices();
         await LoadAuthStatus();
+    }
+
+    private DotNetObjectReference<Home>? _selfRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            // Wire the middle-mouse double-click zoom-to-fit gesture. Guarded so a stale
+            // cached index.html without the helper just leaves the feature inactive.
+            try { await JS.InvokeVoidAsync("registerMiddleDblClickZoom", _selfRef); }
+            catch { }
+        }
+    }
+
+    // Invoked from JS on a middle-mouse-button double-click: frame the entire diagram so
+    // content that was panned or zoomed out of view is easy to find again. Uses the same
+    // node + link-vertex bounds as PDF export, then centers it in the current viewport.
+    [JSInvokable]
+    public async Task ZoomToFitContent()
+    {
+        double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+        foreach (var n in _diagram.Nodes)
+        {
+            double w = n.Size?.Width ?? 220;
+            double h = n.Size?.Height ?? 140;
+            minX = Math.Min(minX, n.Position.X);
+            minY = Math.Min(minY, n.Position.Y);
+            maxX = Math.Max(maxX, n.Position.X + w);
+            maxY = Math.Max(maxY, n.Position.Y + h);
+        }
+        foreach (var link in _diagram.Links)
+            foreach (var v in link.Vertices)
+            {
+                minX = Math.Min(minX, v.Position.X);
+                minY = Math.Min(minY, v.Position.Y);
+                maxX = Math.Max(maxX, v.Position.X);
+                maxY = Math.Max(maxY, v.Position.Y);
+            }
+        if (maxX <= minX || maxY <= minY) return; // empty canvas — nothing to frame
+
+        double[] size;
+        try { size = await JS.InvokeAsync<double[]>("getCanvasAreaSize"); }
+        catch { return; }
+        if (size == null || size.Length < 2) return;
+        double vw = size[0], vh = size[1];
+        if (vw <= 0 || vh <= 0) return;
+
+        const double margin = 60;
+        double contentW = (maxX - minX) + margin * 2;
+        double contentH = (maxY - minY) + margin * 2;
+        double zoom = Math.Min(vw / contentW, vh / contentH);
+        zoom = Math.Clamp(zoom, 0.1, 2.0);
+
+        // screen = diagram * zoom + pan; place the content's center at the viewport center.
+        double centerX = (minX + maxX) / 2;
+        double centerY = (minY + maxY) / 2;
+        double panX = vw / 2 - centerX * zoom;
+        double panY = vh / 2 - centerY * zoom;
+
+        _diagram.SetZoom(zoom);
+        _diagram.SetPan(panX, panY);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _selfRef?.Dispose();
     }
 
     private async Task LoadAuthStatus()

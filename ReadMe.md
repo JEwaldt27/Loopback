@@ -231,7 +231,8 @@ Legends are saved in `.lf` files as a top-level `legend` property (`{x, y, entri
 ## JS Functions (defined in index.html)
 All attached to `window` object for Blazor JS interop:
 - `window.saveAsFile(filename, content)` — triggers browser download
-- `window.getCanvasAreaSize()` — returns the canvas viewport `[width, height]` in px (kept only for compatibility with older cached DLLs; no longer used by current `ExportPdf`)
+- `window.getCanvasAreaSize()` — returns the canvas viewport `[width, height]` in px (used by the middle-click zoom-to-fit to compute the framing transform; not used by current `ExportPdf`)
+- `window.registerMiddleDblClickZoom(dotNetRef)` — called once on first render with a `DotNetObjectReference<Home>`; binds a capture-phase `mousedown` listener on `.canvas-area` that suppresses the middle button's default (autoscroll/paste) and, on a double middle-press within 400 ms, invokes `[JSInvokable] ZoomToFitContent()` to frame the whole diagram
 - `window.exportToPdf(title, version, bx, by, bw, bh)` — captures the diagram with html2canvas and generates a PDF with jsPDF (content fit to the page preserving aspect ratio, version stamped in the header). When content bounds are provided it captures the **full diagram** via an `onclone`-restyled copy of the page (see the PDF export feature bullet); with no bounds it falls back to capturing the visible view and trimming it with `cropToContent`
 
 ## CSS Classes of Note
@@ -382,6 +383,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ File authorship tracking — `.lf` files record who created and who last modified them, and when, shown in an info bar under the toolbar
 - ✅ Connection labels — right-click a connection to add/edit a text label (e.g. "VID-005"); draggable, rotatable in 90° increments (right-click the label → ↻ Rotate Label 90°), saved in `.lf` files, included in DXF export, and PDF-export-safe (see Connection Labels above for why that needed a custom rendering path)
 - ✅ Windows desktop wrapper (`Desktop/`, .NET MAUI) — native window shell with a configurable server address (Settings page, persisted via `Preferences`), not tied to a hardcoded URL (see Desktop Wrapper above)
+- ✅ Zoom-to-fit — double-click the middle mouse button (mouse wheel) anywhere on the canvas to frame the entire diagram in the viewport; a recovery gesture for when you've zoomed/panned the content out of view (`ZoomToFitContent` in `Home.razor`, wired via `registerMiddleDblClickZoom` in `index.html`)
 - ✅ Undo/redo — Ctrl+Z / Ctrl+Y (canvas focused) or toolbar ↩/↪ buttons; covers placements, connections, bends, labels, moves, resizes, text edits, deletes, New, and Open (see Undo/Redo above)
 - ✅ Legend persistence — legends are now saved in `.lf` files and restored on open
 - ✅ Unsaved-changes warning — browser prompt before closing the tab with unsaved work, plus an amber "● Unsaved" toolbar badge (see Unsaved-Changes Warning above)

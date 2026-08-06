@@ -62,6 +62,31 @@
             return [r.width, r.height];
         };
 
+        // Middle-mouse-button double-click on the canvas -> zoom-to-fit. A recovery
+        // gesture for when the diagram has been panned/zoomed out of view. We suppress
+        // the middle button's default (autoscroll on Windows, paste on X11) and use a
+        // short time window to detect the double-press (more reliable across browsers
+        // than relying on the middle button's click-count). Capture phase so it fires
+        // even if the diagramming library handles the event on an inner element.
+        window.registerMiddleDblClickZoom = function (dotNetRef) {
+            const area = document.querySelector('.canvas-area');
+            if (!area || area.__mdblZoomBound) return;
+            area.__mdblZoomBound = true;
+            let lastMid = 0;
+            area.addEventListener('mousedown', function (e) {
+                if (e.button !== 1) return;
+                e.preventDefault();
+                const now = Date.now();
+                if (now - lastMid > 0 && now - lastMid < 400) {
+                    lastMid = 0;
+                    dotNetRef.invokeMethodAsync('ZoomToFitContent');
+                } else {
+                    lastMid = now;
+                }
+            }, true);
+            area.addEventListener('auxclick', function (e) { if (e.button === 1) e.preventDefault(); }, true);
+        };
+
         // Trims the surrounding whitespace from a captured canvas down to its actual
         // (non-white) content, so the exported diagram fills the page instead of sitting
         // in a corner. The C# side zooms the whole diagram into view before capture; this

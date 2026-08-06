@@ -57,7 +57,7 @@ Once signed in, you'll see three main areas:
   - **Diagram title box** — the name used in the PDF export header
   - **👤 account menu** — your username, Manage Users (admins only), and Logout
 - **Devices panel (left)** — the shared device library, grouped by category, with a sort control and an "+ Add Device" button at the bottom.
-- **Canvas (everything else)** — where the diagram lives. Scroll to zoom, drag empty space to pan.
+- **Canvas (everything else)** — where the diagram lives. Scroll to zoom, drag empty space to pan. **Lost your diagram after zooming too far?** Double-click the middle mouse button (press the scroll wheel twice quickly) anywhere on the canvas to snap the whole diagram back into view.
 
 When a diagram that has been saved before is open, a thin info bar under the toolbar shows **who created the file and when, and who last modified it** — e.g. *"Created by jsmith on Jul 6, 2026 3:12 PM · Last modified by mjones on Jul 8, 2026 9:41 AM."*
 
