@@ -287,6 +287,17 @@ Cookie authentication (`Microsoft.AspNetCore.Authentication.Cookies`) and passwo
 ```
 
 ## Deploying to Ubuntu Linux
+
+### Quick path — `deploy/deploy.ps1`
+If you have a systemd service already set up (see the manual steps below for the first-time setup), the bundled script does the whole publish → copy → install → restart cycle from your Windows dev box:
+
+```powershell
+./deploy/deploy.ps1 -Deploy
+```
+
+It prompts for your server's IP/hostname and SSH username (or pass `-Server user@host`, or set `$env:LOOPBACK_SERVER`), publishes the Server build, copies it up, and runs the server-side installer over SSH — which drops the build into the app folder and restarts the service. The server-side half is `deploy/deploy.sh`, configurable via `APP_DIR` / `STAGING` / `SERVICE` env vars (defaults: `$HOME/lineflowapp`, `$HOME/loopback-staging`, `lineflow`). Your `users.json` is never part of the build, so deploys never overwrite your logins. Omit `-Deploy` to copy only and finish the install by hand.
+
+### Manual steps
 ```bash
 # On Windows dev machine — framework-dependent publish (runs on any OS with the
 # matching ASP.NET Core runtime installed; no -r/--self-contained flag needed)
