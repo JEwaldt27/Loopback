@@ -1,4 +1,5 @@
-<div class="lf-connection-label">@Node.Text</div>
+<div class="lf-connection-label"
+     style="transform: translate(-50%, -50%) rotate(@(Node.Rotation)deg);">@Node.Text</div>
 
 @code {
     [Parameter] public Home.ConnectionLabelNode Node { get; set; } = null!;

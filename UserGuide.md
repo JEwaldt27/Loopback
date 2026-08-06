@@ -165,6 +165,7 @@ Label a cable run the way real drawings do (e.g. **"VID-005"**):
 The label appears as a small tag centered on the connection. From there you can:
 
 - **Drag it** anywhere — it's a free-floating tag, so if the layout gets busy you can slide it along or away from the line. It keeps its position when you save/reopen.
+- **Rotate it** — right-click the label tag → **↻ Rotate Label 90°**. Each click turns it another quarter-turn clockwise (0° → 90° → 180° → 270° → back to flat), handy for labelling vertical cable runs so the text reads along the line. The rotation is saved with your diagram and shows up in PDF and DXF exports.
 - **Edit it** — right-click the connection again → **🏷 Edit Label** (the field comes pre-filled).
 - **Remove it** — the edit dialog has a **🗑 Remove Label** button, or just select the label tag on the canvas and delete it like any other object.
 

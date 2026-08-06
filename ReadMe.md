@@ -92,14 +92,15 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
       "vertices": [{ "x": 450.5, "y": 220.0 }, { "x": 600.0, "y": 300.0 }],
       "label": "VID-005",
       "labelX": 525.0,
-      "labelY": 220.0
+      "labelY": 220.0,
+      "labelRotation": 90
     }
   ]
 }
 ```
 `vertices` holds every bend point along the connection, in order from source to target. Older files saved a single `midX` value instead — these still load fine (see Backward Compatibility below).
 
-`label`/`labelX`/`labelY` are omitted (or `label` is `""`) for connections with no label. `labelX`/`labelY` record the label's actual on-canvas position (which the user can drag independently — see Connection Labels below); if they're missing on an older file that only has `label`, the position is recomputed from the connection's route midpoint on open.
+`label`/`labelX`/`labelY` are omitted (or `label` is `""`) for connections with no label. `labelX`/`labelY` record the label's actual on-canvas position (which the user can drag independently — see Connection Labels below); if they're missing on an older file that only has `label`, the position is recomputed from the connection's route midpoint on open. `labelRotation` is the label's clockwise angle in degrees (0/90/180/270); it defaults to 0 when absent.
 
 `meta` is stamped automatically on Save: the first save of a new diagram sets `createdBy`/`createdAt` to the signed-in user and current time; every save (including the first) updates `modifiedBy`/`modifiedAt`. It's read back on Open and shown in a thin info bar under the toolbar (e.g. "Created by jdoe on Jul 6, 2026 3:12 PM · Last modified by asmith on Jul 6, 2026 4:05 PM"). Files saved before this feature existed simply have no `meta` block — they open fine, the info bar just stays hidden until the next save.
 
@@ -146,7 +147,7 @@ The whole app sits behind a login gate — added so it can be safely exposed to 
 - **`LineFlowNode`** — extends `NodeModel`, holds `DeviceDefinition`, creates `LineFlowPort` instances
 - **`LineFlowPort`** — extends `PortModel`, holds `PortDefinition` with name/type/direction
 - **`ElbowLinkModel`** — extends `LinkModel`; routing is driven by its `Vertices` collection (one or more draggable bend points). `MidX` is kept only as a legacy fallback for old saves with no vertices. `Color`/`SelectedColor` are set automatically from the source port's signal type via `ColorForType()`. `LabelText`/`LabelNode` hold its optional connection label (see Connection Labels below).
-- **`ConnectionLabelNode`** — extends `NodeModel`, a draggable text bubble for a connection label; rendered by `ConnectionLabelWidget.razor`. `OwnerLink` points back at its `ElbowLinkModel` so deleting either side cleans up the other.
+- **`ConnectionLabelNode`** — extends `NodeModel`, a draggable text bubble for a connection label; rendered by `ConnectionLabelWidget.razor`. `OwnerLink` points back at its `ElbowLinkModel` so deleting either side cleans up the other. `Rotation` holds a clockwise angle in 90° increments (0/90/180/270), applied as a CSS transform (see Connection Labels below).
 - **`ElbowRouter`** — extends `Router`, generates an orthogonal H-V-H-...-H path through all of the link's vertices, in order
 - **`LegendNode`** — extends `NodeModel`, holds a list of `(Type, Color)` entries; rendered by `LegendNodeWidget.razor`. Created/updated by the "Legend" toolbar button using only the signal types present in current connections.
 - **`DeviceDefinition`** — manufacturer, model, category, list of ports
@@ -184,8 +185,9 @@ Right-click a connection → **🏷 Add Label** / **Edit Label** opens a small m
 - Created at the connection's route midpoint (`ComputeLinkMidpoint`, a cumulative-path-length interpolation over `ElbowRouter.GetRoute()`), but **not** auto-tracked afterward — like `TextNode`/`BoxNode`/`LineNode`, the user can freely drag it if the layout changes later.
 - `ComputeLinkMidpoint` has a fallback: right after a `.lf` file is opened, `PortModel.Position` hasn't been measured by the browser yet — it defaults to `Point(0,0)` rather than `null`, so `ElbowRouter.GetRoute()` silently returns a degenerate zero-length "route" instead of an empty one. `ComputeLinkMidpoint` detects that (`totalLength <= 0.01`) and falls back to averaging the two endpoint *nodes'* positions instead, which are reliable immediately (set directly from the `.lf` file, not measured from rendered DOM).
 - `_diagram.Links.Removed`/`_diagram.Nodes.Removed` handlers (wired up once in `OnInitializedAsync`) keep `LabelText`/`LabelNode` in sync no matter how a label or its owning connection gets deleted — via the modal's "Remove Label" button, deleting the label node directly (it's a normal draggable/selectable/deletable node), deleting the connection itself, or "Delete Selected".
-- Persisted in `.lf` files as `label`, `labelX`, `labelY` on each link (see File Format below) so a manually-repositioned label survives save/reload exactly where it was left.
-- Included in DXF export as a centered `TEXT` entity on the `CONNECTIONS` layer, positioned at the label node's actual (possibly user-dragged) position — not recomputed — for consistency with what's on screen.
+- **Rotatable in 90° steps.** Right-click a label → **↻ Rotate Label 90°** cycles it clockwise 0 → 90 → 180 → 270 → 0. Stored as `ConnectionLabelNode.Rotation` and applied by the widget as `transform: translate(-50%, -50%) rotate(Ndeg)` — the translate keeps the bubble centered on its anchor point while it spins in place. Because it's a plain CSS transform on a real DOM node, PDF export (html2canvas) captures the rotated label automatically, no export-side work needed.
+- Persisted in `.lf` files as `label`, `labelX`, `labelY`, `labelRotation` on each link (see File Format below) so a manually-repositioned and/or rotated label survives save/reload exactly where it was left. `labelRotation` is re-normalized to 0–359 on load, and defaults to 0 for older files that predate the field.
+- Included in DXF export as a centered `TEXT` entity on the `CONNECTIONS` layer, positioned at the label node's actual (possibly user-dragged) position — not recomputed — for consistency with what's on screen. Its rotation is emitted via DXF group code `50`; the screen's clockwise angle maps directly to DXF's counterclockwise-positive convention because the export flips the Y axis.
 
 ### Undo/Redo
 Snapshot-based, not command-based: every mutation pushes a full serialized-diagram JSON snapshot (via `SerializeDiagramState()`, which shares `BuildDiagramData()` with `.lf` saves) onto `_undoStack` (capped at 50); undo/redo restore by rebuilding the whole canvas through `LoadDiagramJson()` — the same code path as file open, so restore fidelity is guaranteed to match save/open fidelity. Snapshots exclude the `meta` block so undo never rewrites the created-by/modified-by info bar.
@@ -367,7 +369,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Per-user authentication — cookie-based login gating the entire app, first-run admin setup, Admin/User roles, in-app "Manage Users" page, account menu with Logout (see Authentication & User Management above)
 - ✅ Password management — self-service "Change Password" for any user (verifies current password) and admin password reset per user on the Manage Users page
 - ✅ File authorship tracking — `.lf` files record who created and who last modified them, and when, shown in an info bar under the toolbar
-- ✅ Connection labels — right-click a connection to add/edit a text label (e.g. "VID-005"); draggable, saved in `.lf` files, included in DXF export, and PDF-export-safe (see Connection Labels above for why that needed a custom rendering path)
+- ✅ Connection labels — right-click a connection to add/edit a text label (e.g. "VID-005"); draggable, rotatable in 90° increments (right-click the label → ↻ Rotate Label 90°), saved in `.lf` files, included in DXF export, and PDF-export-safe (see Connection Labels above for why that needed a custom rendering path)
 - ✅ Windows desktop wrapper (`Desktop/`, .NET MAUI) — native window shell with a configurable server address (Settings page, persisted via `Preferences`), not tied to a hardcoded URL (see Desktop Wrapper above)
 - ✅ Undo/redo — Ctrl+Z / Ctrl+Y (canvas focused) or toolbar ↩/↪ buttons; covers placements, connections, bends, labels, moves, resizes, text edits, deletes, New, and Open (see Undo/Redo above)
 - ✅ Legend persistence — legends are now saved in `.lf` files and restored on open
