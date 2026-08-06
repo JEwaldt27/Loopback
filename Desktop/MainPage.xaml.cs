@@ -50,6 +50,18 @@ public partial class MainPage : ContentPage
         await OpenSettingsAsync();
     }
 
+    // Reveal the Settings/Reload buttons while the pointer is over the top strip;
+    // collapse back to the slim sliver when it leaves.
+    private void OnTopBarPointerEntered(object? sender, PointerEventArgs e)
+    {
+        TopBarButtons.IsVisible = true;
+    }
+
+    private void OnTopBarPointerExited(object? sender, PointerEventArgs e)
+    {
+        TopBarButtons.IsVisible = false;
+    }
+
     private async Task OpenSettingsAsync()
     {
         await Navigation.PushModalAsync(new SettingsPage());

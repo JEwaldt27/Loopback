@@ -2,18 +2,25 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="Desktop.MainPage"
+             Shell.NavBarIsVisible="False"
              BackgroundColor="#1a1a2e">
 
+    <!-- Row 0 is a thin hover-reveal strip that lives in its own grid row (NOT over the
+         WebView, so its pointer events fire reliably on Windows). It sits collapsed as a
+         slim sliver; moving the mouse to the top edge reveals the Settings/Reload buttons,
+         and moving away collapses it again. The web app's own toolbar already shows the
+         Loopback title + version, so there's no duplicate label here. -->
     <Grid RowDefinitions="Auto,*">
 
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" BackgroundColor="#16213e" Padding="12,8">
-            <Label Grid.Column="0"
-                   Text="Loopback"
-                   TextColor="#e94560"
-                   FontSize="16"
-                   FontAttributes="Bold"
-                   VerticalOptions="Center" />
-            <HorizontalStackLayout Grid.Column="1" Spacing="8">
+        <Grid Grid.Row="0" x:Name="TopBar" BackgroundColor="#16213e" Padding="8,4">
+            <Grid.GestureRecognizers>
+                <PointerGestureRecognizer PointerEntered="OnTopBarPointerEntered"
+                                          PointerExited="OnTopBarPointerExited" />
+            </Grid.GestureRecognizers>
+            <HorizontalStackLayout x:Name="TopBarButtons"
+                                   HorizontalOptions="End"
+                                   Spacing="6"
+                                   IsVisible="False">
                 <Button x:Name="SettingsButton"
                         Text="Settings"
                         Clicked="OnSettingsClicked"
@@ -22,7 +29,8 @@
                         BorderColor="#e94560"
                         BorderWidth="1"
                         CornerRadius="4"
-                        Padding="12,4" />
+                        FontSize="12"
+                        Padding="10,2" />
                 <Button x:Name="ReloadButton"
                         Text="Reload"
                         Clicked="OnReloadClicked"
@@ -31,7 +39,8 @@
                         BorderColor="#e94560"
                         BorderWidth="1"
                         CornerRadius="4"
-                        Padding="12,4" />
+                        FontSize="12"
+                        Padding="10,2" />
             </HorizontalStackLayout>
         </Grid>
 
