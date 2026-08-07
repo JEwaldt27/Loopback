@@ -46,18 +46,19 @@ Any signed-in user can change their own password: click the **👤 account butto
 
 ## 2. The Interface at a Glance
 
-Once signed in, you'll see three main areas:
+Once signed in, you'll see four main areas:
 
 - **Toolbar (top)** — the app menus and controls (a small version number next to the "Loopback" title shows which build the server is running):
   - **File** → 🆕 New, 💾 Save, 📂 Open
-  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text
-  - **Export** → 📄 Export PDF, 📐 Export DXF
+  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 🔢 Auto-Label Connections
+  - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV)
   - **↩ Undo / ↪ Redo** — step backward/forward through your changes (also **Ctrl+Z** / **Ctrl+Y** when the canvas has focus). Covers everything: placing and deleting devices, connections, bends, labels, moves, resizes, and text edits. Up to 50 steps.
   - **Delete Selected** — removes whatever is currently selected on the canvas
   - **Diagram title box** — the name used in the PDF export header
   - **👤 account menu** — your username, Manage Users (admins only), and Logout
 - **Devices panel (left)** — the shared device library, grouped by category, with a sort control and an "+ Add Device" button at the bottom.
-- **Canvas (everything else)** — where the diagram lives. Scroll to zoom, drag empty space to pan. **Lost your diagram after zooming too far?** Double-click the middle mouse button (press the scroll wheel twice quickly) anywhere on the canvas to snap the whole diagram back into view.
+- **Cable Types panel (right)** — define the cabling types used in this diagram (color, prefix, part number, cable color); connections are colored and labeled from these (see Cable types under Making Connections).
+- **Canvas (middle)** — where the diagram lives. Scroll to zoom, drag empty space to pan. **Lost your diagram after zooming too far?** Double-click the middle mouse button (press the scroll wheel twice quickly) anywhere on the canvas to snap the whole diagram back into view.
 
 When a diagram that has been saved before is open, a thin info bar under the toolbar shows **who created the file and when, and who last modified it** — e.g. *"Created by jsmith on Jul 6, 2026 3:12 PM · Last modified by mjones on Jul 8, 2026 9:41 AM."*
 
@@ -176,6 +177,9 @@ The label appears as a small tag centered on the connection. From there you can:
 
 Labels are included in both PDF and DXF exports.
 
+### Auto-labeling every connection
+Instead of labeling each connection by hand, you can label them all at once from their cable types. First give each cable type a **label prefix** in the Cable Types panel (e.g. `DATA`), then choose **Tools → 🔢 Auto-Label Connections**. Every connection gets a label like `DATA-1`, `DATA-2`, … — numbered per prefix starting at 1, in the same order as the Cable Schedule (by source device). Connections with no cable type (or no prefix) are left alone. Run it again anytime to renumber. The results are ordinary labels, so you can still right-click any connection to tweak its label, and drag/rotate the tags as usual.
+
 ---
 
 ## 7. Annotations: Boxes, Lines, and Text
@@ -192,7 +196,7 @@ All annotations can be selected, moved, and deleted like anything else, are save
 
 ## 8. The Legend
 
-**Tools → 🏷 Legend** places a color-key node on the canvas showing what each **cable type** color means — and it only lists the types **actually used in the current diagram's connections**, so it stays relevant. Click Legend again after adding more connections to refresh it. It's a normal node: drag it wherever it looks best.
+**Tools → 🏷 Legend** places a color-key node on the canvas — a small **table** with columns for the color swatch, cable type, part number, and cable color — listing only the types **actually used in the current diagram's connections**, so it stays relevant. Click Legend again after adding more connections to refresh it. It's a normal node: drag it wherever it looks best.
 
 ---
 
@@ -271,7 +275,8 @@ http://192.168.1.200:5052
 
 Click **Save & Connect**. The address is remembered permanently on that computer.
 
-### The top bar
+### The control strip
+The desktop app is nearly all app — the controls sit in a thin strip at the very top that **auto-hides**. Move your mouse to the top edge of the window and it reveals two buttons:
 - **Settings** — reopens the server-address window anytime (e.g. if the server moves or you want to point at a different one).
 - **Reload** — reloads the app from the server; handy if the server restarted or the connection hiccuped.
 

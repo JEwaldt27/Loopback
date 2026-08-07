@@ -767,23 +767,45 @@ html, body {
     margin-bottom: 8px;
 }
 
-.lf-legend-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 5px;
+.lf-legend-table {
+    border-collapse: collapse;
+    font-size: 11px;
+    color: #fff;
+}
+
+.lf-legend-table th,
+.lf-legend-table td {
+    border: 1px solid #0f3460;
+    padding: 3px 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.lf-legend-table th {
+    background: #0f3460;
+    color: #e94560;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lf-legend-name {
+    font-weight: 600;
+}
+
+.lf-legend-th-swatch,
+.lf-legend-swatch-cell {
+    width: 40px;
+    text-align: center;
 }
 
 .lf-legend-swatch {
+    display: inline-block;
     width: 28px;
-    height: 4px;
+    height: 5px;
     border-radius: 2px;
-    flex-shrink: 0;
-}
-
-.lf-legend-label {
-    font-size: 11px;
-    color: #fff;
+    vertical-align: middle;
 }
 
 .context-menu {

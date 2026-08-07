@@ -1,27 +1,34 @@
 @using Blazor.Diagrams.Core.Models
 
 <div class="lf-legend">
-    <div class="lf-legend-title">Legend</div>
-    @foreach (var (name, color, partNumber, cableColor) in Node.Entries)
-    {
-        <div class="lf-legend-row">
-            <span class="lf-legend-swatch" style="background:@color;"></span>
-            <span class="lf-legend-label">
-                @name@(BuildDetail(partNumber, cableColor))
-            </span>
-        </div>
-    }
+    <div class="lf-legend-title">Cable Legend</div>
+    <table class="lf-legend-table">
+        <thead>
+            <tr>
+                <th class="lf-legend-th-swatch"></th>
+                <th>Cable Type</th>
+                @if (AnyPart) { <th>Part #</th> }
+                @if (AnyColor) { <th>Color</th> }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var (name, color, partNumber, cableColor) in Node.Entries)
+            {
+                <tr>
+                    <td class="lf-legend-swatch-cell"><span class="lf-legend-swatch" style="background:@color;"></span></td>
+                    <td class="lf-legend-name">@name</td>
+                    @if (AnyPart) { <td>@partNumber</td> }
+                    @if (AnyColor) { <td>@cableColor</td> }
+                </tr>
+            }
+        </tbody>
+    </table>
 </div>
 
 @code {
     [Parameter] public Home.LegendNode Node { get; set; } = null!;
 
-    // Appends " — Part# · Color" when either detail is present.
-    private static string BuildDetail(string partNumber, string cableColor)
-    {
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(partNumber)) parts.Add(partNumber);
-        if (!string.IsNullOrWhiteSpace(cableColor)) parts.Add(cableColor);
-        return parts.Count == 0 ? "" : "  —  " + string.Join(" · ", parts);
-    }
+    // Only show the Part # / Color columns when at least one entry has a value.
+    private bool AnyPart => Node.Entries.Any(e => !string.IsNullOrWhiteSpace(e.PartNumber));
+    private bool AnyColor => Node.Entries.Any(e => !string.IsNullOrWhiteSpace(e.CableColor));
 }
