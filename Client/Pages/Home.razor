@@ -1789,17 +1789,21 @@
 
         double scale = 0.3;
 
+        // R12 (AC1009) is the most widely-compatible DXF flavor: unlike R2000+ (AC1015)
+        // it needs no per-entity subclass markers (100 AcDbEntity/AcDbLine/...) or handles,
+        // which this writer doesn't emit. Declaring AC1015 without them makes AutoCAD throw
+        // a DXF read error and open a blank drawing.
         sb.AppendLine("0\nSECTION");
         sb.AppendLine("2\nHEADER");
         sb.AppendLine("9\n$ACADVER");
-        sb.AppendLine("1\nAC1015");
+        sb.AppendLine("1\nAC1009");
         sb.AppendLine("0\nENDSEC");
 
         sb.AppendLine("0\nSECTION");
         sb.AppendLine("2\nTABLES");
         sb.AppendLine("0\nTABLE");
         sb.AppendLine("2\nLAYER");
-        sb.AppendLine("70\n2");
+        sb.AppendLine("70\n3");
         sb.AppendLine("0\nLAYER");
         sb.AppendLine("2\nNODES");
         sb.AppendLine("70\n0");
@@ -1823,15 +1827,20 @@
 
         var portPositions = new Dictionary<string, (double x, double y)>();
 
+        // DXF requires a '.' decimal separator regardless of the user's locale, so format
+        // every coordinate with the invariant culture (a comma-decimal locale would
+        // otherwise emit "12,34" and corrupt the file).
+        static string F(double v) => v.ToString("F4", System.Globalization.CultureInfo.InvariantCulture);
+
         void DxfLine(double x1, double y1, double x2, double y2, string layer = "NODES")
         {
             sb.AppendLine("0\nLINE");
             sb.AppendLine($"8\n{layer}");
-            sb.AppendLine($"10\n{x1:F4}");
-            sb.AppendLine($"20\n{y1:F4}");
+            sb.AppendLine($"10\n{F(x1)}");
+            sb.AppendLine($"20\n{F(y1)}");
             sb.AppendLine("30\n0.0");
-            sb.AppendLine($"11\n{x2:F4}");
-            sb.AppendLine($"21\n{y2:F4}");
+            sb.AppendLine($"11\n{F(x2)}");
+            sb.AppendLine($"21\n{F(y2)}");
             sb.AppendLine("31\n0.0");
         }
 
@@ -1839,16 +1848,16 @@
         {
             sb.AppendLine("0\nTEXT");
             sb.AppendLine($"8\n{layer}");
-            sb.AppendLine($"10\n{tx:F4}");
-            sb.AppendLine($"20\n{ty:F4}");
+            sb.AppendLine($"10\n{F(tx)}");
+            sb.AppendLine($"20\n{F(ty)}");
             sb.AppendLine("30\n0.0");
-            sb.AppendLine($"40\n{height}");
+            sb.AppendLine($"40\n{F(height)}");
             sb.AppendLine($"1\n{text ?? ""}");
             if (rotation != 0)
-                sb.AppendLine($"50\n{rotation:F4}");
+                sb.AppendLine($"50\n{F(rotation)}");
             sb.AppendLine($"72\n{halign}");
-            sb.AppendLine($"11\n{tx:F4}");
-            sb.AppendLine($"21\n{ty:F4}");
+            sb.AppendLine($"11\n{F(tx)}");
+            sb.AppendLine($"21\n{F(ty)}");
             sb.AppendLine("31\n0.0");
         }
 
