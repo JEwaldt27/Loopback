@@ -620,6 +620,19 @@ html, body {
     min-width: 90px;
 }
 
+.cable-prefix-input {
+    width: 62px;
+    flex-shrink: 0;
+    padding: 2px 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.cable-type-add .cable-prefix-input {
+    flex: 0 0 62px;
+    min-width: 0;
+}
+
 /* Cable-type picker modal */
 .cable-picker-list {
     display: flex;

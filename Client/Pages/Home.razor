@@ -34,6 +34,7 @@
                 <div class="lf-dropdown-item @(_placementMode == "line" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("line"); CloseMenus(); }'>╱ Line</div>
                 <div class="lf-dropdown-item @(_placementMode == "text" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("text"); CloseMenus(); }'>T Text</div>
                 <div class="lf-dropdown-item" @onclick="() => { OpenDeviceColors(); CloseMenus(); }">🎨 Device Colors…</div>
+                <div class="lf-dropdown-item" @onclick="() => { AutoLabelConnections(); CloseMenus(); }">🔢 Auto-Label Connections</div>
             </div>
         }
     </div>
@@ -157,11 +158,14 @@
                 <input type="color" class="cable-type-swatch" value="@ct.Color"
                        @oninput="e => OnCableColorInput(ct, e)" @onchange="EndCableColorEdit" title="Cable color" />
                 <span class="cable-type-name" title="@ct.Name">@ct.Name</span>
+                <input class="device-input cable-prefix-input" value="@ct.Prefix" placeholder="PREFIX"
+                       @onchange="e => OnCablePrefixChanged(ct, e)" title="Auto-label prefix (e.g. DATA → DATA-1)" />
                 <button class="device-action-btn device-action-delete" @onclick="() => DeleteCableType(ct)" title="Delete cable type">🗑</button>
             </div>
         }
         <div class="cable-type-add">
             <input class="device-input" placeholder="New cable type…" @bind="_newCableTypeName" @bind:event="oninput" @onkeydown="OnCableTypeKeyDown" />
+            <input class="device-input cable-prefix-input" placeholder="PREFIX" @bind="_newCableTypePrefix" @bind:event="oninput" @onkeydown="OnCableTypeKeyDown" title="Auto-label prefix (optional)" />
             <input type="color" class="cable-type-swatch" @bind="_newCableTypeColor" title="Color for the new cable type" />
             <button class="add-device-btn" @onclick="AddCableType">+ Add</button>
         </div>
@@ -388,6 +392,7 @@
     private const string NeutralLinkColor = "#808080";
     private List<CableType> _cableTypes = new();
     private string _newCableTypeName = "";
+    private string _newCableTypePrefix = "";
     private string _newCableTypeColor = "#4fc3f7";
     private bool _editingCableColor;
 
@@ -891,13 +896,22 @@
         if (string.IsNullOrEmpty(name)) return;
         if (_cableTypes.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
         PushUndoSnapshot();
-        _cableTypes.Add(new CableType { Name = name, Color = _newCableTypeColor });
+        _cableTypes.Add(new CableType { Name = name, Color = _newCableTypeColor, Prefix = _newCableTypePrefix.Trim() });
         _newCableTypeName = "";
+        _newCableTypePrefix = "";
     }
 
     private void OnCableTypeKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") AddCableType();
+    }
+
+    private void OnCablePrefixChanged(CableType ct, ChangeEventArgs e)
+    {
+        var v = (e.Value?.ToString() ?? "").Trim();
+        if (v == ct.Prefix) return;
+        PushUndoSnapshot();
+        ct.Prefix = v;
     }
 
     private void DeleteCableType(CableType ct)
@@ -959,6 +973,57 @@
         if (_contextLink is ElbowLinkModel elbow)
             OpenCableTypePicker(elbow, isNew: false);
         _contextLink = null;
+    }
+
+    // Sets/creates a connection's label (shared by the manual modal and auto-labeling).
+    private void ApplyLabelToLink(ElbowLinkModel elbow, string text)
+    {
+        elbow.LabelText = text;
+        if (elbow.LabelNode == null)
+        {
+            var node = new ConnectionLabelNode(ComputeLinkMidpoint(elbow)) { Text = text, OwnerLink = elbow };
+            elbow.LabelNode = node;
+            _diagram.Nodes.Add(node);
+        }
+        else
+        {
+            elbow.LabelNode.Text = text;
+            elbow.LabelNode.Refresh();
+        }
+    }
+
+    // Tools -> Auto-Label Connections: labels every connection that has a cable type with a
+    // prefix, numbering per prefix from 1 (e.g. DATA-1, DATA-2). Numbered in cable-schedule
+    // order (by source device then source port) so the labels match the schedule. Connections
+    // with no cable type / no prefix are left untouched. Regenerates on each run; the labels
+    // are ordinary labels the user can still edit or move afterward.
+    private void AutoLabelConnections()
+    {
+        var links = _diagram.Links.OfType<ElbowLinkModel>()
+            .Where(l => l.Source.Model is PortModel && l.Target?.Model is PortModel)
+            .OrderBy(l => (l.Source.Model as LineFlowPort)?.Parent.Title, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(l =>
+            {
+                var p = l.Source.Model as LineFlowPort;
+                return p != null ? p.Parent.Ports.ToList().IndexOf(p) : 0;
+            })
+            .ToList();
+
+        string? PrefixFor(ElbowLinkModel l) =>
+            _cableTypes.FirstOrDefault(c => c.Name == l.CableTypeName)?.Prefix?.Trim();
+
+        if (!links.Any(l => !string.IsNullOrEmpty(PrefixFor(l)))) return;
+
+        PushUndoSnapshot();
+        var counters = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var link in links)
+        {
+            var prefix = PrefixFor(link);
+            if (string.IsNullOrEmpty(prefix)) continue;
+            int n = counters.TryGetValue(prefix, out var last) ? last + 1 : 1;
+            counters[prefix] = n;
+            ApplyLabelToLink(link, $"{prefix}-{n}");
+        }
     }
 
     // Best-effort midpoint of the link's current route, for placing a freshly-created label.
@@ -1581,7 +1646,7 @@
                 y = g.Position.Y,
                 entries = g.Entries.Select(en => new { type = en.Type, color = en.Color }).ToList()
             }).FirstOrDefault(),
-            ["cableTypes"] = _cableTypes.Select(c => new { name = c.Name, color = c.Color }).ToList()
+            ["cableTypes"] = _cableTypes.Select(c => new { name = c.Name, color = c.Color, prefix = c.Prefix }).ToList()
         };
     }
 
@@ -1830,7 +1895,8 @@
                 _cableTypes.Add(new CableType
                 {
                     Name = ctEl.TryGetProperty("name", out var cn) ? cn.GetString() ?? "" : "",
-                    Color = ctEl.TryGetProperty("color", out var cc) ? cc.GetString() ?? "#e94560" : "#e94560"
+                    Color = ctEl.TryGetProperty("color", out var cc) ? cc.GetString() ?? "#e94560" : "#e94560",
+                    Prefix = ctEl.TryGetProperty("prefix", out var cp) ? cp.GetString() ?? "" : ""
                 });
         }
 
@@ -2361,6 +2427,8 @@
     {
         public string Name { get; set; } = "";
         public string Color { get; set; } = "#e94560";
+        // Label prefix used by auto-labeling, e.g. "DATA" -> "DATA-1", "DATA-2", ...
+        public string Prefix { get; set; } = "";
     }
 
     public class ElbowLinkModel : LinkModel
