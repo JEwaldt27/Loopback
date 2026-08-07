@@ -414,7 +414,8 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ⬜ Auto-numbered connection labels — "Add Label" pre-fills the next number per signal type (VID-001, VID-002, AUD-001, …)
 - ⬜ Duplicate device in the library (new devices are often one port different from an existing one)
 - ⬜ Docker image published to GitHub Container Registry for one-command self-hosting (needs volume-mount planning for `devices.json`/`users.json`)
-- ⬜ Conection line "break" - Would split the connection line in two with a tag on the end of each segment. Attempt to make complicated system flows more readable.)
+- ⬜ Conection line "break" - Would split the connection line in two with a tag on the end of each segment. Attempt to make complicated system flows more readable.
+- ⬜ Add a cable type to connection types in the legend.
 
 ## License
 [PolyForm Noncommercial 1.0.0](LICENSE) — free to use, modify, and share for any noncommercial purpose. Commercial use requires separate permission from the copyright holder. Note this is a "source-available" license, not an OSI-approved open source license — the Open Source Definition explicitly prohibits restricting commercial use, which is exactly the restriction this project needs.
