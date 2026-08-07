@@ -133,8 +133,9 @@ If a connection isn't allowed, it simply won't attach.
 ### Cable types (connection colors)
 You define your own **cable types** and their colors in the **Cable Types** panel on the right side of the screen:
 
-- Type a name (e.g. "HDMI", "Cat6", "XLR"), optionally a **label prefix** (e.g. `VID`), pick a color, click **+ Add**.
+- Type a name (e.g. "HDMI", "Cat6", "XLR"), pick an on-screen color, and optionally fill in a **label prefix** (e.g. `VID`), a **part number** (e.g. `Belden 1694A`), and the physical **cable color** (e.g. `Blue`), then click **+ Add**. You can edit any of these later in the panel.
 - Each connection is colored by the cable type you assign to it. Change a type's color and every connection using it re-colors instantly.
+- The **part number** and **cable color** show up in the legend (next to the type name) and in the Cable Schedule CSV — handy for handing a precise materials list to installers.
 - To change a connection's type later, **right-click it → 🔌 Cable Type…** and pick a different one.
 - Delete a type with the 🗑 button; any connections that used it revert to neutral gray.
 
@@ -235,7 +236,7 @@ Generates a **cable schedule / pull sheet** — a spreadsheet listing every conn
 |---|-------|--------|-------------|-----------|-----------|---------|
 
 - **Cable** is the connection's label (e.g. VID-001) — blank if you haven't labelled it.
-- **Cable Type** is the cabling type you assigned to the connection (from the Cable Types panel).
+- **Cable Type**, **Part Number**, and **Cable Color** come from the cabling type you assigned to the connection (from the Cable Types panel).
 - **Signal** is the port's signal type (HDMI, Audio, etc.) — still recorded on each device port.
 - Rows are grouped/sorted by the source device, so all the cables coming off one box are listed together.
 

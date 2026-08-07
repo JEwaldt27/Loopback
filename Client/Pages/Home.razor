@@ -154,19 +154,29 @@
         }
         @foreach (var ct in _cableTypes)
         {
-            <div class="cable-type-row">
-                <input type="color" class="cable-type-swatch" value="@ct.Color"
-                       @oninput="e => OnCableColorInput(ct, e)" @onchange="EndCableColorEdit" title="Cable color" />
-                <span class="cable-type-name" title="@ct.Name">@ct.Name</span>
-                <input class="device-input cable-prefix-input" value="@ct.Prefix" placeholder="PREFIX"
-                       @onchange="e => OnCablePrefixChanged(ct, e)" title="Auto-label prefix (e.g. DATA → DATA-1)" />
-                <button class="device-action-btn device-action-delete" @onclick="() => DeleteCableType(ct)" title="Delete cable type">🗑</button>
+            <div class="cable-type-card">
+                <div class="cable-type-row">
+                    <input type="color" class="cable-type-swatch" value="@ct.Color"
+                           @oninput="e => OnCableColorInput(ct, e)" @onchange="EndCableColorEdit" title="On-screen line color" />
+                    <span class="cable-type-name" title="@ct.Name">@ct.Name</span>
+                    <button class="device-action-btn device-action-delete" @onclick="() => DeleteCableType(ct)" title="Delete cable type">🗑</button>
+                </div>
+                <div class="cable-type-fields">
+                    <input class="device-input cable-field-input" value="@ct.Prefix" placeholder="Prefix"
+                           @onchange="e => OnCableFieldChanged(ct, (c, v) => c.Prefix = v, e)" title="Auto-label prefix (e.g. DATA → DATA-1)" />
+                    <input class="device-input cable-field-input" value="@ct.PartNumber" placeholder="Part #"
+                           @onchange="e => OnCableFieldChanged(ct, (c, v) => c.PartNumber = v, e)" title="Cable part number" />
+                    <input class="device-input cable-field-input" value="@ct.CableColor" placeholder="Color"
+                           @onchange="e => OnCableFieldChanged(ct, (c, v) => c.CableColor = v, e)" title="Physical cable/jacket color (text)" />
+                </div>
             </div>
         }
         <div class="cable-type-add">
             <input class="device-input" placeholder="New cable type…" @bind="_newCableTypeName" @bind:event="oninput" @onkeydown="OnCableTypeKeyDown" />
-            <input class="device-input cable-prefix-input" placeholder="PREFIX" @bind="_newCableTypePrefix" @bind:event="oninput" @onkeydown="OnCableTypeKeyDown" title="Auto-label prefix (optional)" />
-            <input type="color" class="cable-type-swatch" @bind="_newCableTypeColor" title="Color for the new cable type" />
+            <input type="color" class="cable-type-swatch" @bind="_newCableTypeColor" title="On-screen line color" />
+            <input class="device-input cable-field-input" placeholder="Prefix" @bind="_newCableTypePrefix" @bind:event="oninput" @onkeydown="OnCableTypeKeyDown" title="Auto-label prefix (optional)" />
+            <input class="device-input cable-field-input" placeholder="Part #" @bind="_newCableTypePartNumber" @bind:event="oninput" @onkeydown="OnCableTypeKeyDown" title="Cable part number (optional)" />
+            <input class="device-input cable-field-input" placeholder="Color" @bind="_newCableTypeCableColor" @bind:event="oninput" @onkeydown="OnCableTypeKeyDown" title="Physical cable color (optional)" />
             <button class="add-device-btn" @onclick="AddCableType">+ Add</button>
         </div>
     </div>
@@ -393,6 +403,8 @@
     private List<CableType> _cableTypes = new();
     private string _newCableTypeName = "";
     private string _newCableTypePrefix = "";
+    private string _newCableTypePartNumber = "";
+    private string _newCableTypeCableColor = "";
     private string _newCableTypeColor = "#4fc3f7";
     private bool _editingCableColor;
 
@@ -896,9 +908,18 @@
         if (string.IsNullOrEmpty(name)) return;
         if (_cableTypes.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
         PushUndoSnapshot();
-        _cableTypes.Add(new CableType { Name = name, Color = _newCableTypeColor, Prefix = _newCableTypePrefix.Trim() });
+        _cableTypes.Add(new CableType
+        {
+            Name = name,
+            Color = _newCableTypeColor,
+            Prefix = _newCableTypePrefix.Trim(),
+            PartNumber = _newCableTypePartNumber.Trim(),
+            CableColor = _newCableTypeCableColor.Trim()
+        });
         _newCableTypeName = "";
         _newCableTypePrefix = "";
+        _newCableTypePartNumber = "";
+        _newCableTypeCableColor = "";
     }
 
     private void OnCableTypeKeyDown(KeyboardEventArgs e)
@@ -906,12 +927,12 @@
         if (e.Key == "Enter") AddCableType();
     }
 
-    private void OnCablePrefixChanged(CableType ct, ChangeEventArgs e)
+    // Generic text-field editor for a cable type (prefix / part number / cable color).
+    private void OnCableFieldChanged(CableType ct, Action<CableType, string> set, ChangeEventArgs e)
     {
         var v = (e.Value?.ToString() ?? "").Trim();
-        if (v == ct.Prefix) return;
         PushUndoSnapshot();
-        ct.Prefix = v;
+        set(ct, v);
     }
 
     private void DeleteCableType(CableType ct)
@@ -1239,7 +1260,7 @@
 
         var entries = _cableTypes
             .Where(c => usedNames.Contains(c.Name))
-            .Select(c => (c.Name, c.Color))
+            .Select(c => (c.Name, c.Color, c.PartNumber, c.CableColor))
             .ToList();
 
         if (entries.Count == 0) return;
@@ -1644,9 +1665,9 @@
             {
                 x = g.Position.X,
                 y = g.Position.Y,
-                entries = g.Entries.Select(en => new { type = en.Type, color = en.Color }).ToList()
+                entries = g.Entries.Select(en => new { type = en.Name, color = en.Color, partNumber = en.PartNumber, cableColor = en.CableColor }).ToList()
             }).FirstOrDefault(),
-            ["cableTypes"] = _cableTypes.Select(c => new { name = c.Name, color = c.Color, prefix = c.Prefix }).ToList()
+            ["cableTypes"] = _cableTypes.Select(c => new { name = c.Name, color = c.Color, prefix = c.Prefix, partNumber = c.PartNumber, cableColor = c.CableColor }).ToList()
         };
     }
 
@@ -1896,7 +1917,9 @@
                 {
                     Name = ctEl.TryGetProperty("name", out var cn) ? cn.GetString() ?? "" : "",
                     Color = ctEl.TryGetProperty("color", out var cc) ? cc.GetString() ?? "#e94560" : "#e94560",
-                    Prefix = ctEl.TryGetProperty("prefix", out var cp) ? cp.GetString() ?? "" : ""
+                    Prefix = ctEl.TryGetProperty("prefix", out var cp) ? cp.GetString() ?? "" : "",
+                    PartNumber = ctEl.TryGetProperty("partNumber", out var cpn) ? cpn.GetString() ?? "" : "",
+                    CableColor = ctEl.TryGetProperty("cableColor", out var ccl) ? ccl.GetString() ?? "" : ""
                 });
         }
 
@@ -2039,7 +2062,11 @@
             if (legendEl.TryGetProperty("entries", out var entriesEl))
             {
                 foreach (var en in entriesEl.EnumerateArray())
-                    legend.Entries.Add((en.GetProperty("type").GetString() ?? "", en.GetProperty("color").GetString() ?? "#e94560"));
+                    legend.Entries.Add((
+                        en.GetProperty("type").GetString() ?? "",
+                        en.GetProperty("color").GetString() ?? "#e94560",
+                        en.TryGetProperty("partNumber", out var epn) ? epn.GetString() ?? "" : "",
+                        en.TryGetProperty("cableColor", out var ecc) ? ecc.GetString() ?? "" : ""));
             }
             _diagram.Nodes.Add(legend);
         }
@@ -2070,6 +2097,8 @@
                 {
                     Cable = (l as ElbowLinkModel)?.LabelText ?? "",
                     CableType = (l as ElbowLinkModel)?.CableTypeName ?? "",
+                    PartNumber = _cableTypes.FirstOrDefault(c => c.Name == (l as ElbowLinkModel)?.CableTypeName)?.PartNumber ?? "",
+                    CableColor = _cableTypes.FirstOrDefault(c => c.Name == (l as ElbowLinkModel)?.CableTypeName)?.CableColor ?? "",
                     Signal = sp.Definition.Type,
                     FromDevice = sp.Parent.Title ?? "",
                     FromPort = sp.Definition.Name,
@@ -2083,12 +2112,12 @@
 
         var sb = new System.Text.StringBuilder();
         sb.Append('\uFEFF'); // BOM so Excel opens the CSV with correct (UTF-8) encoding
-        sb.AppendLine("#,Cable,Cable Type,Signal,From Device,From Port,To Device,To Port");
+        sb.AppendLine("#,Cable,Cable Type,Part Number,Cable Color,Signal,From Device,From Port,To Device,To Port");
         int i = 1;
         foreach (var r in rows)
         {
             sb.AppendLine(string.Join(",",
-                i++.ToString(), Csv(r.Cable), Csv(r.CableType), Csv(r.Signal),
+                i++.ToString(), Csv(r.Cable), Csv(r.CableType), Csv(r.PartNumber), Csv(r.CableColor), Csv(r.Signal),
                 Csv(r.FromDevice), Csv(r.FromPort), Csv(r.ToDevice), Csv(r.ToPort)));
         }
 
@@ -2386,7 +2415,7 @@
 
     public class LegendNode : NodeModel
     {
-        public List<(string Type, string Color)> Entries { get; set; } = new();
+        public List<(string Name, string Color, string PartNumber, string CableColor)> Entries { get; set; } = new();
         public LegendNode(Point position) : base(position) { }
     }
 
@@ -2426,9 +2455,11 @@
     public class CableType
     {
         public string Name { get; set; } = "";
-        public string Color { get; set; } = "#e94560";
+        public string Color { get; set; } = "#e94560";       // on-screen line color
         // Label prefix used by auto-labeling, e.g. "DATA" -> "DATA-1", "DATA-2", ...
         public string Prefix { get; set; } = "";
+        public string PartNumber { get; set; } = "";         // manufacturer part number
+        public string CableColor { get; set; } = "";         // physical jacket color (text, e.g. "Blue")
     }
 
     public class ElbowLinkModel : LinkModel

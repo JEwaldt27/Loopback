@@ -2,15 +2,26 @@
 
 <div class="lf-legend">
     <div class="lf-legend-title">Legend</div>
-    @foreach (var (type, color) in Node.Entries)
+    @foreach (var (name, color, partNumber, cableColor) in Node.Entries)
     {
         <div class="lf-legend-row">
             <span class="lf-legend-swatch" style="background:@color;"></span>
-            <span class="lf-legend-label">@type</span>
+            <span class="lf-legend-label">
+                @name@(BuildDetail(partNumber, cableColor))
+            </span>
         </div>
     }
 </div>
 
 @code {
     [Parameter] public Home.LegendNode Node { get; set; } = null!;
+
+    // Appends " — Part# · Color" when either detail is present.
+    private static string BuildDetail(string partNumber, string cableColor)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(partNumber)) parts.Add(partNumber);
+        if (!string.IsNullOrWhiteSpace(cableColor)) parts.Add(cableColor);
+        return parts.Count == 0 ? "" : "  —  " + string.Join(" · ", parts);
+    }
 }

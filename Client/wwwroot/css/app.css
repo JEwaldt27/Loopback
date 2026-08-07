@@ -563,7 +563,7 @@ html, body {
 
 /* Right-side Cable Types panel */
 .cable-panel {
-    width: 210px;
+    width: 240px;
     background: #16213e;
     border-left: 1px solid #0f3460;
     display: flex;
@@ -580,12 +580,28 @@ html, body {
     line-height: 1.4;
 }
 
+.cable-type-card {
+    padding: 6px 4px;
+    border-bottom: 1px solid #0f3460;
+}
+
 .cable-type-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 5px 4px;
-    border-bottom: 1px solid #0f3460;
+}
+
+.cable-type-fields {
+    display: flex;
+    gap: 4px;
+    margin-top: 5px;
+}
+
+.cable-field-input {
+    flex: 1;
+    min-width: 0;
+    padding: 2px 4px;
+    font-size: 11px;
 }
 
 .cable-type-swatch {
@@ -620,18 +636,6 @@ html, body {
     min-width: 90px;
 }
 
-.cable-prefix-input {
-    width: 62px;
-    flex-shrink: 0;
-    padding: 2px 4px;
-    font-size: 11px;
-    text-transform: uppercase;
-}
-
-.cable-type-add .cable-prefix-input {
-    flex: 0 0 62px;
-    min-width: 0;
-}
 
 /* Cable-type picker modal */
 .cable-picker-list {
