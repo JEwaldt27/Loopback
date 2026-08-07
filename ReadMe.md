@@ -96,14 +96,21 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
       "label": "VID-005",
       "labelX": 525.0,
       "labelY": 220.0,
-      "labelRotation": 90
+      "labelRotation": 90,
+      "cableType": "HDMI"
     }
+  ],
+  "cableTypes": [
+    { "name": "HDMI", "color": "#22cc44" },
+    { "name": "Audio", "color": "#ff8800" }
   ]
 }
 ```
 `vertices` holds every bend point along the connection, in order from source to target. Older files saved a single `midX` value instead — these still load fine (see Backward Compatibility below).
 
 `label`/`labelX`/`labelY` are omitted (or `label` is `""`) for connections with no label. `labelX`/`labelY` record the label's actual on-canvas position (which the user can drag independently — see Connection Labels below); if they're missing on an older file that only has `label`, the position is recomputed from the connection's route midpoint on open. `labelRotation` is the label's clockwise angle in degrees (0/90/180/270); it defaults to 0 when absent. Each device node also carries a `backgroundColor` (a hex string or `"transparent"`) for its block fill, a `borderColor` (hex) for its outline, and a `textColor` (hex) for its title + port labels; they default to navy `#16213e` / coral `#e94560` / white `#ffffff` when absent.
+
+`cableTypes` is the per-diagram palette of user-defined cabling types (`name` + `color`), managed in the right-side **Cable Types** panel. Each link's `cableType` names the type it's assigned (omitted/`null` = unassigned → neutral gray). A connection's on-screen color comes from its cable type's color; port dots are always black. This replaces the old auto-coloring by signal type — the port `Type` field is retained as data (shown in the Cable Schedule "Signal" column) but no longer drives any color, and the legend now lists cable types.
 
 `meta` is stamped automatically on Save: the first save of a new diagram sets `createdBy`/`createdAt` to the signed-in user and current time; every save (including the first) updates `modifiedBy`/`modifiedAt`. It's read back on Open and shown in a thin info bar under the toolbar (e.g. "Created by jdoe on Jul 6, 2026 3:12 PM · Last modified by asmith on Jul 6, 2026 4:05 PM"). Files saved before this feature existed simply have no `meta` block — they open fine, the info bar just stays hidden until the next save.
 
@@ -394,11 +401,11 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ New / Save (.lf) / Open (.lf) diagram files, with multi-vertex routing persisted and legacy single-`midX` files still loading correctly
 - ✅ Server-side device library with add, edit, and delete devices, via a centered modal dialog (not inline in the side panel)
 - ✅ Device list sorting by Type or Manufacturer, case-insensitive grouping
-- ✅ Color-coded connections and port dots by signal type (HDMI, SDI, Audio, Network, USB, IR, COM)
-- ✅ Legend node — click "Legend" to add a draggable canvas node showing only the signal types actually connected in the current diagram
+- ✅ Cable types — define your own cabling types (name + color) in the right-side **Cable Types** panel; drawing a connection prompts you to pick one (required, with an unassigned/neutral fallback if none exist yet), and you can reassign via right-click → 🔌 Cable Type. Editing a type's color live-recolors every connection using it. Ports render black; connection color comes from the assigned cable type. Per-diagram, saved in `.lf`.
+- ✅ Legend node — click "Legend" to add a draggable canvas node listing the cable types actually used in the current diagram (name + color swatch)
 - ✅ PDF export (white background, title + date + version header, direct download) — captures the **entire** diagram regardless of size or where the user has panned/zoomed, without ever touching the live view. How: `ExportPdf` computes the diagram's raw-coordinate bounds (node boxes **plus connection routing vertices** — elbow bends can extend far beyond the nodes they join) and passes them to `exportToPdf`, which restyles the **clone** html2canvas renders (`onclone`): the canvas area and layers are resized to the full bounds, the SVG layer gets a matching `viewBox`, and the HTML layer a matching translate. The `viewBox` is the load-bearing part: **html2canvas rasterizes inline SVGs clipped to the SVG element's own box**, and the connection lines live in an SVG layer sized to the visible viewport while using raw diagram coordinates — so any line geometry beyond the viewport's pixel size was silently cut from captures (while rendering fine live via `overflow: visible`). No zoom-the-diagram-first approach can fix that, which is why earlier attempts kept clipping lines; remapping coordinates with a `viewBox` in the rasterized clone does. Output is capped at ~8000px per side and placed on the page preserving aspect ratio.
 - ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers), generating the same multi-segment path as the live app's routing
-- ✅ Cable schedule export (Export → Cable Schedule) — CSV pull sheet with one row per connection: cable label, signal type, source device + port, destination device + port; sorted by source device, CSV-escaped, UTF-8 BOM so Excel opens it cleanly
+- ✅ Cable schedule export (Export → Cable Schedule) — CSV pull sheet with one row per connection: cable label, cable type, signal type, source device + port, destination device + port; sorted by source device, CSV-escaped, UTF-8 BOM so Excel opens it cleanly
 - ✅ Zoom and pan on canvas
 - ✅ Freeform annotations — Box (resizable rectangle, no fill), Line (2-point freeform line with draggable endpoints, not attached to ports), and Text (click-to-place, editable, with font size/color controls); all three are selectable/deletable, saved in `.lf` files, and included in PDF and DXF exports (DXF `ANNOTATIONS` layer)
 - ✅ Per-user authentication — cookie-based login gating the entire app, first-run admin setup, Admin/User roles, in-app "Manage Users" page, account menu with Logout (see Authentication & User Management above)

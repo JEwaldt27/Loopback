@@ -145,6 +145,28 @@
         </CascadingValue>
     </div>
 
+    <div class="cable-panel">
+        <div class="side-panel-header">Cable Types</div>
+        @if (_cableTypes.Count == 0)
+        {
+            <div class="cable-type-empty">No cable types yet. Add one below — you'll pick a type when you draw a connection.</div>
+        }
+        @foreach (var ct in _cableTypes)
+        {
+            <div class="cable-type-row">
+                <input type="color" class="cable-type-swatch" value="@ct.Color"
+                       @oninput="e => OnCableColorInput(ct, e)" @onchange="EndCableColorEdit" title="Cable color" />
+                <span class="cable-type-name" title="@ct.Name">@ct.Name</span>
+                <button class="device-action-btn device-action-delete" @onclick="() => DeleteCableType(ct)" title="Delete cable type">🗑</button>
+            </div>
+        }
+        <div class="cable-type-add">
+            <input class="device-input" placeholder="New cable type…" @bind="_newCableTypeName" @bind:event="oninput" @onkeydown="OnCableTypeKeyDown" />
+            <input type="color" class="cable-type-swatch" @bind="_newCableTypeColor" title="Color for the new cable type" />
+            <button class="add-device-btn" @onclick="AddCableType">+ Add</button>
+        </div>
+    </div>
+
     @if (_contextMenuVisible)
     {
         <div class="context-menu" style="left:@(_contextMenuX)px; top:@(_contextMenuY)px;">
@@ -164,6 +186,7 @@
                 {
                     <div class="context-menu-item" @onclick="RemoveLastBend">➖ Remove Last Bend</div>
                 }
+                <div class="context-menu-item" @onclick="OpenCableTypeForContextLink">🔌 Cable Type…</div>
                 <div class="context-menu-item" @onclick="OpenLabelModal">🏷 @(!string.IsNullOrEmpty((_contextLink as ElbowLinkModel)?.LabelText) ? "Edit Label" : "Add Label")</div>
                 <div class="context-menu-item" @onclick="DeleteContextLink">🗑 Delete Connection</div>
             }
@@ -280,6 +303,38 @@
     </div>
 }
 
+@if (_cableTypePickerOpen)
+{
+    <div class="lf-modal-overlay" @onclick="CloseCableTypePicker"></div>
+    <div class="lf-modal" style="width:260px;" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>Choose Cable Type</span>
+            <button class="lf-modal-close" @onclick="CloseCableTypePicker">✕</button>
+        </div>
+        @if (_cableTypes.Count == 0)
+        {
+            <div class="cable-type-empty">No cable types defined yet. Add one in the <b>Cable Types</b> panel on the right, then set it here — the connection stays neutral until you do.</div>
+        }
+        else
+        {
+            <div class="cable-picker-list">
+                @foreach (var ct in _cableTypes)
+                {
+                    <button class="cable-picker-option @(_cableTypePickerLink?.CableTypeName == ct.Name ? "cable-picker-selected" : "")"
+                            @onclick="() => AssignCableType(ct.Name)">
+                        <span class="cable-picker-swatch" style="background:@ct.Color;"></span>
+                        <span class="cable-picker-optname">@ct.Name</span>
+                    </button>
+                }
+                <button class="cable-picker-option" @onclick="() => AssignCableType(null)">
+                    <span class="cable-picker-swatch" style="background:@NeutralLinkColor;"></span>
+                    <span class="cable-picker-optname">None (unassigned)</span>
+                </button>
+            </div>
+        }
+    </div>
+}
+
 @if (_passwordModalOpen)
 {
     <div class="lf-modal-overlay" @onclick="CloseChangePassword"></div>
@@ -328,6 +383,17 @@
     private string _labelText = "";
 
     private bool _deviceColorModalOpen = false;
+
+    // Per-diagram cable types (name + color). Persisted in the .lf file.
+    private const string NeutralLinkColor = "#808080";
+    private List<CableType> _cableTypes = new();
+    private string _newCableTypeName = "";
+    private string _newCableTypeColor = "#4fc3f7";
+    private bool _editingCableColor;
+
+    private bool _cableTypePickerOpen = false;
+    private ElbowLinkModel? _cableTypePickerLink = null;
+    private bool _cableTypePickerIsNew = false;
 
     private bool _passwordModalOpen = false;
     private string _pwCurrent = "";
@@ -614,16 +680,19 @@
 
                 elbow.Vertices.Add(new LinkVertexModel(elbow, new Point(midX, centerY)));
                 elbow.Refresh();
+
+                // Require a cable type for the new connection (falls back to unassigned/
+                // neutral if none are defined yet — the picker nudges to create one).
+                OpenCableTypePicker(elbow, isNew: true);
+                StateHasChanged();
             });
         };
     }
 
     private void SetupElbowLink(ElbowLinkModel elbow)
     {
-        var portType = (elbow.Source.Model as LineFlowPort)?.Definition.Type ?? "Other";
-        var color = ElbowLinkModel.ColorForType(portType);
-        elbow.Color = color;
-        elbow.SelectedColor = color;
+        // Color comes from the assigned cable type (neutral until one is chosen / on load).
+        ApplyCableColor(elbow);
 
         bool updating = false;
         elbow.Changed += _ =>
@@ -795,6 +864,102 @@
     }
 
     private void SetAllFillTransparent() => ApplyToAllDevices(n => n.BackgroundColor = "transparent");
+
+    // --- Cable types (right-side panel + per-connection assignment) ---
+
+    // Sets a link's color from its assigned cable type (neutral gray if unassigned/unknown).
+    private void ApplyCableColor(ElbowLinkModel link)
+    {
+        var ct = _cableTypes.FirstOrDefault(c => c.Name == link.CableTypeName);
+        var color = ct?.Color ?? NeutralLinkColor;
+        link.Color = color;
+        link.SelectedColor = color;
+    }
+
+    private void RefreshAllLinkColors()
+    {
+        foreach (var link in _diagram.Links.OfType<ElbowLinkModel>())
+        {
+            ApplyCableColor(link);
+            link.Refresh();
+        }
+    }
+
+    private void AddCableType()
+    {
+        var name = _newCableTypeName.Trim();
+        if (string.IsNullOrEmpty(name)) return;
+        if (_cableTypes.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
+        PushUndoSnapshot();
+        _cableTypes.Add(new CableType { Name = name, Color = _newCableTypeColor });
+        _newCableTypeName = "";
+    }
+
+    private void OnCableTypeKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") AddCableType();
+    }
+
+    private void DeleteCableType(CableType ct)
+    {
+        PushUndoSnapshot();
+        _cableTypes.Remove(ct);
+        // Unassign any links that used it, so they fall back to the neutral color.
+        foreach (var link in _diagram.Links.OfType<ElbowLinkModel>().Where(l => l.CableTypeName == ct.Name))
+            link.CableTypeName = null;
+        RefreshAllLinkColors();
+    }
+
+    // Live color edit of a cable type: recolors every link using it as one undo step.
+    private void OnCableColorInput(CableType ct, ChangeEventArgs e)
+    {
+        if (!_editingCableColor) { CapturePointerSnapshot(); _editingCableColor = true; }
+        ct.Color = e.Value?.ToString() ?? ct.Color;
+        RefreshAllLinkColors();
+    }
+
+    private void EndCableColorEdit()
+    {
+        _editingCableColor = false;
+        CommitPointerSnapshot();
+    }
+
+    // Opens the "choose a cable type" picker for a connection. isNew = the link was just
+    // drawn (its creation already pushed an undo step, so assigning shouldn't push another).
+    private void OpenCableTypePicker(ElbowLinkModel link, bool isNew)
+    {
+        _cableTypePickerLink = link;
+        _cableTypePickerIsNew = isNew;
+        _cableTypePickerOpen = true;
+    }
+
+    private void AssignCableType(string? name)
+    {
+        if (_cableTypePickerLink is ElbowLinkModel link)
+        {
+            if (!_cableTypePickerIsNew) PushUndoSnapshot();
+            link.CableTypeName = name;
+            ApplyCableColor(link);
+            link.Refresh();
+        }
+        CloseCableTypePicker();
+    }
+
+    private void CloseCableTypePicker()
+    {
+        _cableTypePickerOpen = false;
+        _cableTypePickerLink = null;
+        _cableTypePickerIsNew = false;
+    }
+
+    // Opens the picker for the right-clicked connection (reassignment).
+    private void OpenCableTypeForContextLink()
+    {
+        _contextMenuVisible = false;
+        if (_contextLink is ElbowLinkModel elbow)
+            OpenCableTypePicker(elbow, isNew: false);
+        _contextLink = null;
+    }
 
     // Best-effort midpoint of the link's current route, for placing a freshly-created label.
     // Falls back to the node midpoint if port positions aren't measured yet (e.g. right after
@@ -998,20 +1163,23 @@
 
     private void AddLegend()
     {
-        var usedTypes = _diagram.Links
-            .Select(l => (l.Source.Model as LineFlowPort)?.Definition.Type)
-            .Where(t => t != null)
-            .Select(t => t!)
+        // Legend lists the cable types actually used by connections (name + color),
+        // in the order they appear in the Cable Types panel.
+        var usedNames = _diagram.Links.OfType<ElbowLinkModel>()
+            .Select(l => l.CableTypeName)
+            .Where(n => !string.IsNullOrEmpty(n))
+            .Select(n => n!)
             .Distinct()
-            .OrderBy(t => t)
+            .ToHashSet();
+
+        var entries = _cableTypes
+            .Where(c => usedNames.Contains(c.Name))
+            .Select(c => (c.Name, c.Color))
             .ToList();
 
-        if (usedTypes.Count == 0) return;
+        if (entries.Count == 0) return;
 
         PushUndoSnapshot();
-        var entries = usedTypes
-            .Select(t => (t, ElbowLinkModel.ColorForType(t)))
-            .ToList();
 
         // Update existing legend if present, otherwise create one
         var existing = _diagram.Nodes.OfType<LegendNode>().FirstOrDefault();
@@ -1323,6 +1491,7 @@
             PushUndoSnapshot();
         _diagram.Nodes.Clear();
         _diagram.Links.Clear();
+        _cableTypes.Clear();
         _createdBy = "";
         _createdAt = null;
         _modifiedBy = "";
@@ -1358,7 +1527,8 @@
         label = (l as ElbowLinkModel)?.LabelText ?? "",
         labelX = (l as ElbowLinkModel)?.LabelNode?.Position.X,
         labelY = (l as ElbowLinkModel)?.LabelNode?.Position.Y,
-        labelRotation = (l as ElbowLinkModel)?.LabelNode?.Rotation ?? 0
+        labelRotation = (l as ElbowLinkModel)?.LabelNode?.Rotation ?? 0,
+        cableType = (l as ElbowLinkModel)?.CableTypeName
     };
 
     private object BoxToJson(BoxNode b) => new
@@ -1410,7 +1580,8 @@
                 x = g.Position.X,
                 y = g.Position.Y,
                 entries = g.Entries.Select(en => new { type = en.Type, color = en.Color }).ToList()
-            }).FirstOrDefault()
+            }).FirstOrDefault(),
+            ["cableTypes"] = _cableTypes.Select(c => new { name = c.Name, color = c.Color }).ToList()
         };
     }
 
@@ -1505,6 +1676,10 @@
                 var link = new ElbowLinkModel(
                     (PortModel)sourceNode.Ports[sourcePortIndex],
                     (PortModel)targetNode.Ports[targetPortIndex]);
+
+                // Preserve the pasted link's cable type (color resolves from current types).
+                if (linkEl.TryGetProperty("cableType", out var lctEl) && lctEl.ValueKind == JsonValueKind.String)
+                    link.CableTypeName = lctEl.GetString();
 
                 if (linkEl.TryGetProperty("vertices", out var vertsEl))
                 {
@@ -1648,6 +1823,17 @@
         _diagram.Nodes.Clear();
         _diagram.Links.Clear();
 
+        _cableTypes.Clear();
+        if (doc.RootElement.TryGetProperty("cableTypes", out var ctsEl) && ctsEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var ctEl in ctsEl.EnumerateArray())
+                _cableTypes.Add(new CableType
+                {
+                    Name = ctEl.TryGetProperty("name", out var cn) ? cn.GetString() ?? "" : "",
+                    Color = ctEl.TryGetProperty("color", out var cc) ? cc.GetString() ?? "#e94560" : "#e94560"
+                });
+        }
+
         if (doc.RootElement.TryGetProperty("meta", out var metaEl) && metaEl.ValueKind == JsonValueKind.Object)
         {
             _createdBy = metaEl.TryGetProperty("createdBy", out var cb) ? cb.GetString() ?? "" : "";
@@ -1698,6 +1884,10 @@
                 var link = new ElbowLinkModel(
                     (PortModel)sourceNode.Ports[sourcePortIndex],
                     (PortModel)targetNode.Ports[targetPortIndex]);
+
+                // Cable type set before Add so SetupElbowLink colors it from the cable type.
+                if (linkEl.TryGetProperty("cableType", out var lctEl) && lctEl.ValueKind == JsonValueKind.String)
+                    link.CableTypeName = lctEl.GetString();
 
                 // Restore vertices (new format)
                 if (linkEl.TryGetProperty("vertices", out var vertsEl))
@@ -1813,6 +2003,7 @@
                 return new
                 {
                     Cable = (l as ElbowLinkModel)?.LabelText ?? "",
+                    CableType = (l as ElbowLinkModel)?.CableTypeName ?? "",
                     Signal = sp.Definition.Type,
                     FromDevice = sp.Parent.Title ?? "",
                     FromPort = sp.Definition.Name,
@@ -1826,12 +2017,12 @@
 
         var sb = new System.Text.StringBuilder();
         sb.Append('\uFEFF'); // BOM so Excel opens the CSV with correct (UTF-8) encoding
-        sb.AppendLine("#,Cable,Signal,From Device,From Port,To Device,To Port");
+        sb.AppendLine("#,Cable,Cable Type,Signal,From Device,From Port,To Device,To Port");
         int i = 1;
         foreach (var r in rows)
         {
             sb.AppendLine(string.Join(",",
-                i++.ToString(), Csv(r.Cable), Csv(r.Signal),
+                i++.ToString(), Csv(r.Cable), Csv(r.CableType), Csv(r.Signal),
                 Csv(r.FromDevice), Csv(r.FromPort), Csv(r.ToDevice), Csv(r.ToPort)));
         }
 
@@ -2164,11 +2355,21 @@
         public TextNode(Point position) : base(position) { }
     }
 
+    // A user-defined cabling type with an assigned color. Cable types are per-diagram
+    // (saved in the .lf file); connections are colored by their assigned cable type.
+    public class CableType
+    {
+        public string Name { get; set; } = "";
+        public string Color { get; set; } = "#e94560";
+    }
+
     public class ElbowLinkModel : LinkModel
     {
         public double? MidX { get; set; }
         public string? LabelText { get; set; }
         public ConnectionLabelNode? LabelNode { get; set; }
+        // Name of the assigned CableType (null = unassigned → neutral color).
+        public string? CableTypeName { get; set; }
         public ElbowLinkModel(PortModel source, PortModel target) : base(source, target) { }
 
         public static string ColorForType(string type) => type switch

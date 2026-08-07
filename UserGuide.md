@@ -76,7 +76,7 @@ Two ways — both give the same result:
 
 > If you're using the **desktop app**, use click-to-place — drag-and-drop doesn't work there due to a Windows platform bug (see [The Desktop App](#12-the-desktop-app)).
 
-A placed device appears as a node with its **input ports on the left edge** and its **output/universal ports on the right edge**, each with a colored dot showing its signal type.
+A placed device appears as a node with its **input ports on the left edge** and its **output/universal ports on the right edge**, each with a black port dot. (Connection color now comes from the cable type you assign — see Cable types below.)
 
 **Change a block's colors:** click a device block to select it — a small bar appears above it with three controls: **Fill** (the block color, plus a checkerboard button to make it **transparent**, handy for layering blocks over a colored box), **Line** (the outline color), and **Text** (the title and port-label color). All are saved with your diagram and show up in PDF exports.
 
@@ -114,7 +114,7 @@ Once devices (or annotations) are on the canvas, you can duplicate them instead 
 
 ## 4. Making Connections
 
-To connect two devices, **click and drag from one port dot to another**. The line draws as you drag; release on the target port.
+To connect two devices, **click and drag from one port dot to another** (the dots are black). The line draws as you drag; release on the target port. When the connection lands, a **Choose Cable Type** prompt appears — pick which cabling type it is, and the connection takes that type's color. (If you haven't defined any cable types yet, the connection stays a neutral gray until you assign one.)
 
 ### Connection rules
 Loopback enforces signal direction, so you can't wire two outputs together by accident:
@@ -130,19 +130,15 @@ Loopback enforces signal direction, so you can't wire two outputs together by ac
 
 If a connection isn't allowed, it simply won't attach.
 
-### Color coding
-Connections and port dots are colored automatically by signal type:
+### Cable types (connection colors)
+You define your own **cable types** and their colors in the **Cable Types** panel on the right side of the screen:
 
-| Type | Color |
-|---|---|
-| HDMI | Light blue |
-| SDI | Green |
-| Audio | Orange |
-| Network | Purple |
-| USB | Pink |
-| IR | Teal |
-| COM | Yellow |
-| Other | Coral red |
+- Type a name (e.g. "HDMI", "Cat6", "XLR"), pick a color, click **+ Add**.
+- Each connection is colored by the cable type you assign to it. Change a type's color and every connection using it re-colors instantly.
+- To change a connection's type later, **right-click it → 🔌 Cable Type…** and pick a different one.
+- Delete a type with the 🗑 button; any connections that used it revert to neutral gray.
+
+Cable types are saved inside each diagram's `.lf` file, so they travel with the drawing. (Port dots are always black — the color now lives on the cables, not the ports.)
 
 ### Deleting a connection
 Right-click the connection → **🗑 Delete Connection**, or click it to select it and press the **Delete** key (or the **Delete Selected** toolbar button).
@@ -193,7 +189,7 @@ All annotations can be selected, moved, and deleted like anything else, are save
 
 ## 8. The Legend
 
-**Tools → 🏷 Legend** places a color-key node on the canvas showing which signal-type colors mean what — and it only lists the types **actually used in the current diagram's connections**, so it stays relevant. Click Legend again after adding more connection types to refresh it. It's a normal node: drag it wherever it looks best.
+**Tools → 🏷 Legend** places a color-key node on the canvas showing what each **cable type** color means — and it only lists the types **actually used in the current diagram's connections**, so it stays relevant. Click Legend again after adding more connections to refresh it. It's a normal node: drag it wherever it looks best.
 
 ---
 
@@ -237,7 +233,8 @@ Generates a **cable schedule / pull sheet** — a spreadsheet listing every conn
 |---|-------|--------|-------------|-----------|-----------|---------|
 
 - **Cable** is the connection's label (e.g. VID-001) — blank if you haven't labelled it.
-- **Signal** is the connection's signal type (HDMI, Audio, etc.).
+- **Cable Type** is the cabling type you assigned to the connection (from the Cable Types panel).
+- **Signal** is the port's signal type (HDMI, Audio, etc.) — still recorded on each device port.
 - Rows are grouped/sorted by the source device, so all the cables coming off one box are listed together.
 
 It downloads as `cable-schedule.csv` and opens directly in Excel or Google Sheets — handy for handing a wiring list to installers. Tip: label your connections (right-click → Add Label) before exporting so each cable has an ID in the schedule.
