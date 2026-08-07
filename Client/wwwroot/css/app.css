@@ -775,19 +775,23 @@ html, body {
 
 .lf-legend-table th,
 .lf-legend-table td {
-    border: 1px solid #0f3460;
-    padding: 3px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    padding: 4px 12px;
     text-align: left;
     white-space: nowrap;
 }
 
 .lf-legend-table th {
     background: #0f3460;
-    color: #e94560;
+    color: #ff7b90;
     font-weight: 600;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.lf-legend-table tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .lf-legend-name {
@@ -796,16 +800,19 @@ html, body {
 
 .lf-legend-th-swatch,
 .lf-legend-swatch-cell {
-    width: 40px;
+    width: 44px;
     text-align: center;
+    padding-left: 6px;
+    padding-right: 6px;
 }
 
 .lf-legend-swatch {
     display: inline-block;
     width: 28px;
-    height: 5px;
+    height: 8px;
     border-radius: 2px;
     vertical-align: middle;
+    border: 1px solid rgba(255, 255, 255, 0.45);
 }
 
 .context-menu {
