@@ -370,3 +370,9 @@ Server/users.json
 
 # Local deploy scripts (environment-specific server details)
 scripts/
+
+# Generated TLS material - private keys must NEVER be committed. The .bat and
+# README in deploy/client-cert/ are tracked; the generated cert next to them is not.
+deploy/certs/
+deploy/client-cert/*.crt
+Server/certs/

@@ -341,6 +341,26 @@ sudo systemctl start lineflow
 
 Then from your Windows machine, browse to `http://<linux-server-ip>:5052`.
 
+## Serving over HTTPS on a fully-local network (no public domain / no admin)
+
+Browsers **block downloads** (PDF/DXF/CSV/.lf exports) initiated from an insecure `http://` origin — you get "Insecure download blocked". The fix is to serve the app over `https://`, which needs a certificate the client browsers trust. With no public domain and no company CA, you run your **own** tiny CA: issue a cert for the server's IP and have each user trust the root once. No admin rights are needed on either side.
+
+1. **Generate a CA + server cert** (on the server, or in Git Bash on your dev box — both have `openssl`):
+   ```bash
+   ./deploy/gen-cert.sh 192.168.1.200        # your server's LAN IP
+   ```
+   This writes `deploy/certs/{rootCA.crt,rootCA.key,server.crt,server.key}` and stages the public `rootCA.crt` into `deploy/client-cert/`. The server cert carries the IP as a SAN, so clients use `https://<ip>:5052` with no DNS/hosts changes. **Keep `rootCA.key` private; never distribute it.**
+2. **Install the cert on the server:** copy `server.crt` + `server.key` into `<app-dir>/certs/` (e.g. `/home/jewaldt/lineflowapp/certs/`). `Server/appsettings.Production.json` already points Kestrel at `certs/server.crt` / `certs/server.key` (path is relative to the app dir; used only in the `Production` environment, so local/dev runs are unaffected). Like `users.json`, this folder lives only on the server and deploys never overwrite it.
+3. **Switch the service to HTTPS:** in the systemd unit change the URL scheme —
+   ```ini
+   Environment=ASPNETCORE_URLS=https://0.0.0.0:5052
+   ```
+   then `sudo systemctl daemon-reload && sudo systemctl restart lineflow`. (Kestrel picks up the cert from `Kestrel:Certificates:Default` in `appsettings.Production.json`.)
+4. **Each user trusts the root once (no admin):** hand out the `deploy/client-cert/` folder (`install-cert.bat` + `LoopbackRootCA.crt`). They double-click `install-cert.bat` — it imports the root into their **current-user** trust store via `certutil -user -addstore Root`, which Chrome, Edge, and the desktop app's WebView2 all honor. Firefox users additionally set `security.enterprise_roots.enabled` to `true` in `about:config`.
+5. Everyone browses **`https://192.168.1.200:5052`**, and point the desktop app's Settings → server URL at the same. Downloads now work with no warnings.
+
+Verified: with the CA trusted, `curl --cacert rootCA.crt https://<ip>:5052/` returns `302` with `ssl_verify_result=0`; without it the TLS handshake is rejected.
+
 ### Confirming a deploy landed
 The build version is shown in the toolbar (next to the "Loopback" title) and in the PDF export header, sourced from `Client/AppVersion.cs`. **Bump `AppVersion.Version` before each deploy** — then after copying the new build over and restarting the service, load the app and check the toolbar shows the new number. If it doesn't, the new build didn't actually land (wrong folder, service not restarted, or a browser cache holding the old page — hard-refresh with Ctrl+F5). Because the app is a Blazor SPA, a browser holding a **stale `index.html`** alongside a new WASM DLL can misbehave (e.g. PDF export silently falling back to capturing only the visible view); a hard refresh after every deploy avoids this.
 
