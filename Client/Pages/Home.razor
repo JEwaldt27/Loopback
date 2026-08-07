@@ -33,6 +33,7 @@
                 <div class="lf-dropdown-item @(_placementMode == "box" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("box"); CloseMenus(); }'>▭ Box</div>
                 <div class="lf-dropdown-item @(_placementMode == "line" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("line"); CloseMenus(); }'>╱ Line</div>
                 <div class="lf-dropdown-item @(_placementMode == "text" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("text"); CloseMenus(); }'>T Text</div>
+                <div class="lf-dropdown-item" @onclick="() => { OpenDeviceColors(); CloseMenus(); }">🎨 Device Colors…</div>
             </div>
         }
     </div>
@@ -238,6 +239,41 @@
     </div>
 }
 
+@if (_deviceColorModalOpen)
+{
+    <div class="lf-modal-overlay" @onclick="CloseDeviceColors"></div>
+    <div class="lf-modal" style="width:260px;" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>Device Block Colors</span>
+            <button class="lf-modal-close" @onclick="CloseDeviceColors">✕</button>
+        </div>
+        @{
+            var deviceCount = _diagram.Nodes.OfType<LineFlowNode>().Count();
+        }
+        @if (deviceCount == 0)
+        {
+            <div class="lf-bulk-color-hint">No device blocks on the canvas yet.</div>
+        }
+        else
+        {
+            <div class="lf-bulk-color-hint">Applies to all @deviceCount device block@(deviceCount == 1 ? "" : "s") as you change each color.</div>
+            <div class="lf-bulk-color-row">
+                <span class="lf-bulk-color-label">Fill</span>
+                <input type="color" class="lf-node-color-input" @bind="BulkFillProxy" title="Fill color for all devices" />
+                <button type="button" class="lf-node-transparent-btn" title="Transparent fill for all devices" @onclick="SetAllFillTransparent"></button>
+            </div>
+            <div class="lf-bulk-color-row">
+                <span class="lf-bulk-color-label">Line</span>
+                <input type="color" class="lf-node-color-input" @bind="BulkLineProxy" title="Outline color for all devices" />
+            </div>
+            <div class="lf-bulk-color-row">
+                <span class="lf-bulk-color-label">Text</span>
+                <input type="color" class="lf-node-color-input" @bind="BulkTextProxy" title="Text color for all devices" />
+            </div>
+        }
+    </div>
+}
+
 @if (_passwordModalOpen)
 {
     <div class="lf-modal-overlay" @onclick="CloseChangePassword"></div>
@@ -284,6 +320,8 @@
     private bool _labelModalOpen = false;
     private ElbowLinkModel? _labelTargetLink = null;
     private string _labelText = "";
+
+    private bool _deviceColorModalOpen = false;
 
     private bool _passwordModalOpen = false;
     private string _pwCurrent = "";
@@ -698,6 +736,53 @@
         _labelTargetLink = null;
         _labelText = "";
     }
+
+    // --- Bulk device recolor (Tools -> Device Colors) ---
+    private void OpenDeviceColors() => _deviceColorModalOpen = true;
+    private void CloseDeviceColors() => _deviceColorModalOpen = false;
+
+    // Applies a color change to EVERY device block on the canvas, as one undo step.
+    private void ApplyToAllDevices(Action<LineFlowNode> set)
+    {
+        var devices = _diagram.Nodes.OfType<LineFlowNode>().ToList();
+        if (devices.Count == 0) return;
+        PushUndoSnapshot();
+        foreach (var n in devices)
+        {
+            set(n);
+            n.Refresh();
+        }
+    }
+
+    // The pickers show the first device's current color and, on change, push the new
+    // value to all devices. A solid-color getter falls back to a default when the value
+    // is "transparent" (which the native color input can't represent).
+    private string FirstDeviceColor(Func<LineFlowNode, string> pick, string fallback)
+    {
+        var first = _diagram.Nodes.OfType<LineFlowNode>().FirstOrDefault();
+        var c = first == null ? fallback : pick(first);
+        return string.Equals(c, "transparent", StringComparison.OrdinalIgnoreCase) ? fallback : c;
+    }
+
+    private string BulkFillProxy
+    {
+        get => FirstDeviceColor(n => n.BackgroundColor, "#16213e");
+        set => ApplyToAllDevices(n => n.BackgroundColor = value);
+    }
+
+    private string BulkLineProxy
+    {
+        get => FirstDeviceColor(n => n.BorderColor, "#e94560");
+        set => ApplyToAllDevices(n => n.BorderColor = value);
+    }
+
+    private string BulkTextProxy
+    {
+        get => FirstDeviceColor(n => n.TextColor, "#ffffff");
+        set => ApplyToAllDevices(n => n.TextColor = value);
+    }
+
+    private void SetAllFillTransparent() => ApplyToAllDevices(n => n.BackgroundColor = "transparent");
 
     // Best-effort midpoint of the link's current route, for placing a freshly-created label.
     // Falls back to the node midpoint if port positions aren't measured yet (e.g. right after

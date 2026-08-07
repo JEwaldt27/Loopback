@@ -540,6 +540,26 @@ html, body {
     outline-offset: 1px;
 }
 
+/* Bulk "Device Colors" modal rows */
+.lf-bulk-color-hint {
+    font-size: 12px;
+    color: #9aa5b1;
+    margin: 4px 0 10px;
+}
+
+.lf-bulk-color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.lf-bulk-color-label {
+    width: 40px;
+    font-size: 13px;
+    color: #e6e6e6;
+}
+
 .lf-node-title {
     font-size: 13px;
     font-weight: 600;

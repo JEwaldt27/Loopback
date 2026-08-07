@@ -80,6 +80,8 @@ A placed device appears as a node with its **input ports on the left edge** and 
 
 **Change a block's colors:** click a device block to select it — a small bar appears above it with three controls: **Fill** (the block color, plus a checkerboard button to make it **transparent**, handy for layering blocks over a colored box), **Line** (the outline color), and **Text** (the title and port-label color). All are saved with your diagram and show up in PDF exports.
 
+**Recolor every device at once:** use **Tools → 🎨 Device Colors** to open Fill / Line / Text pickers (with the same transparent option) that apply to *all* device blocks on the canvas as you change each one. A single Undo reverts a bulk change across every block.
+
 ### Adding a new device to the library
 Click **"+ Add Device"** at the bottom of the panel. A dialog opens:
 

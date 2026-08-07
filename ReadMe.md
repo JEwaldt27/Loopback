@@ -412,6 +412,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Unsaved-changes warning — browser prompt before closing the tab with unsaved work, plus an amber "● Unsaved" toolbar badge (see Unsaved-Changes Warning above)
 - ✅ Copy/paste & duplicate — Ctrl+C / Ctrl+V or right-click → Duplicate; copies selected nodes plus the connections (and labels) between them (see Copy / Paste above)
 - ✅ Per-block fill, outline & text color — select a device block to reveal a small style bar with **Fill** (+ a transparent toggle), **Line** (outline), and **Text** color pickers; all are saved in `.lf` files and captured in PDF export. Default to navy fill / coral outline / white text.
+- ✅ Bulk device recolor — **Tools → 🎨 Device Colors** opens Fill/Line/Text pickers (with a transparent-fill option) that apply to **every** device block on the canvas at once; each change is a single undo step (`OpenDeviceColors`/`ApplyToAllDevices` in `Home.razor`)
 - ✅ Build version display — shown in the toolbar next to the app title and stamped into the PDF export header, sourced from `Client/AppVersion.cs`, so you can always confirm which build a server is running (see Confirming a deploy landed above)
 
 ## Features Planned / Not Yet Implemented
