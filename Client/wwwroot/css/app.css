@@ -517,6 +517,7 @@ html, body {
     background: none;
     cursor: pointer;
 }
+/* (color pickers apply live as you drag; one undo step per pick) */
 
 /* Checkerboard swatch = "transparent" */
 .lf-node-transparent-btn {

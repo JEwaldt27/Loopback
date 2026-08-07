@@ -259,16 +259,22 @@
             <div class="lf-bulk-color-hint">Applies to all @deviceCount device block@(deviceCount == 1 ? "" : "s") as you change each color.</div>
             <div class="lf-bulk-color-row">
                 <span class="lf-bulk-color-label">Fill</span>
-                <input type="color" class="lf-node-color-input" @bind="BulkFillProxy" title="Fill color for all devices" />
+                <input type="color" class="lf-node-color-input" title="Fill color for all devices"
+                       value="@FirstDeviceColor(n => n.BackgroundColor, "#16213e")"
+                       @oninput="e => OnBulkColorInput((n, v) => n.BackgroundColor = v, e)" @onchange="EndBulkColorEdit" />
                 <button type="button" class="lf-node-transparent-btn" title="Transparent fill for all devices" @onclick="SetAllFillTransparent"></button>
             </div>
             <div class="lf-bulk-color-row">
                 <span class="lf-bulk-color-label">Line</span>
-                <input type="color" class="lf-node-color-input" @bind="BulkLineProxy" title="Outline color for all devices" />
+                <input type="color" class="lf-node-color-input" title="Outline color for all devices"
+                       value="@FirstDeviceColor(n => n.BorderColor, "#e94560")"
+                       @oninput="e => OnBulkColorInput((n, v) => n.BorderColor = v, e)" @onchange="EndBulkColorEdit" />
             </div>
             <div class="lf-bulk-color-row">
                 <span class="lf-bulk-color-label">Text</span>
-                <input type="color" class="lf-node-color-input" @bind="BulkTextProxy" title="Text color for all devices" />
+                <input type="color" class="lf-node-color-input" title="Text color for all devices"
+                       value="@FirstDeviceColor(n => n.TextColor, "#ffffff")"
+                       @oninput="e => OnBulkColorInput((n, v) => n.TextColor = v, e)" @onchange="EndBulkColorEdit" />
             </div>
         }
     </div>
@@ -741,7 +747,10 @@
     private void OpenDeviceColors() => _deviceColorModalOpen = true;
     private void CloseDeviceColors() => _deviceColorModalOpen = false;
 
+    private bool _editingBulkColor;
+
     // Applies a color change to EVERY device block on the canvas, as one undo step.
+    // Used by the instant transparent-all button.
     private void ApplyToAllDevices(Action<LineFlowNode> set)
     {
         var devices = _diagram.Nodes.OfType<LineFlowNode>().ToList();
@@ -754,32 +763,35 @@
         }
     }
 
-    // The pickers show the first device's current color and, on change, push the new
-    // value to all devices. A solid-color getter falls back to a default when the value
-    // is "transparent" (which the native color input can't represent).
+    // Live bulk recolor: update every device on each 'input' as the picker is dragged, but
+    // snapshot the undo state once (first input) and commit once on 'change' — so a single
+    // bulk pick is one undo step across all devices.
+    private void OnBulkColorInput(Action<LineFlowNode, string> set, ChangeEventArgs e)
+    {
+        var devices = _diagram.Nodes.OfType<LineFlowNode>().ToList();
+        if (devices.Count == 0) return;
+        if (!_editingBulkColor) { CapturePointerSnapshot(); _editingBulkColor = true; }
+        var v = e.Value?.ToString() ?? "";
+        foreach (var n in devices)
+        {
+            set(n, v);
+            n.Refresh();
+        }
+    }
+
+    private void EndBulkColorEdit()
+    {
+        _editingBulkColor = false;
+        CommitPointerSnapshot();
+    }
+
+    // Shows the first device's current color in a picker (falls back to a default when the
+    // value is "transparent", which the native color input can't represent).
     private string FirstDeviceColor(Func<LineFlowNode, string> pick, string fallback)
     {
         var first = _diagram.Nodes.OfType<LineFlowNode>().FirstOrDefault();
         var c = first == null ? fallback : pick(first);
         return string.Equals(c, "transparent", StringComparison.OrdinalIgnoreCase) ? fallback : c;
-    }
-
-    private string BulkFillProxy
-    {
-        get => FirstDeviceColor(n => n.BackgroundColor, "#16213e");
-        set => ApplyToAllDevices(n => n.BackgroundColor = value);
-    }
-
-    private string BulkLineProxy
-    {
-        get => FirstDeviceColor(n => n.BorderColor, "#e94560");
-        set => ApplyToAllDevices(n => n.BorderColor = value);
-    }
-
-    private string BulkTextProxy
-    {
-        get => FirstDeviceColor(n => n.TextColor, "#ffffff");
-        set => ApplyToAllDevices(n => n.TextColor = value);
     }
 
     private void SetAllFillTransparent() => ApplyToAllDevices(n => n.BackgroundColor = "transparent");

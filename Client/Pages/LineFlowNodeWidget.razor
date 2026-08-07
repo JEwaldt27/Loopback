@@ -8,18 +8,21 @@
             <span class="lf-node-style-label">Fill</span>
             <input type="color" class="lf-node-color-input"
                    id="@($"node-fill-{Node.Id}")" name="@($"node-fill-{Node.Id}")"
-                   title="Block fill color" @bind="ColorProxy" />
+                   title="Block fill color" value="@FillSwatch"
+                   @oninput="e => OnColorInput(v => Node.BackgroundColor = v, e)" @onchange="EndColorEdit" />
             <button type="button"
                     class="lf-node-transparent-btn @(IsTransparent ? "lf-node-transparent-active" : "")"
                     title="Transparent fill" @onclick="ToggleTransparent"></button>
             <span class="lf-node-style-label">Line</span>
             <input type="color" class="lf-node-color-input"
                    id="@($"node-border-{Node.Id}")" name="@($"node-border-{Node.Id}")"
-                   title="Block outline color" @bind="BorderColorProxy" />
+                   title="Block outline color" value="@Node.BorderColor"
+                   @oninput="e => OnColorInput(v => Node.BorderColor = v, e)" @onchange="EndColorEdit" />
             <span class="lf-node-style-label">Text</span>
             <input type="color" class="lf-node-color-input"
                    id="@($"node-text-{Node.Id}")" name="@($"node-text-{Node.Id}")"
-                   title="Block text color" @bind="TextColorProxy" />
+                   title="Block text color" value="@Node.TextColor"
+                   @oninput="e => OnColorInput(v => Node.TextColor = v, e)" @onchange="EndColorEdit" />
         </div>
     }
     <div class="lf-node-title">@Node.Title</div>
@@ -54,22 +57,27 @@
     [CascadingParameter] public Home Page { get; set; } = null!;
 
     private const string DefaultColor = "#16213e";
+    private bool _editingColor;
 
     private bool IsTransparent =>
         string.Equals(Node.BackgroundColor, "transparent", StringComparison.OrdinalIgnoreCase);
 
-    // The native color input can't represent "transparent", so fall back to the default
-    // swatch while transparent is active. Setter wraps the change in an undo snapshot.
-    private string ColorProxy
+    // The native color input can't represent "transparent", so show the default swatch then.
+    private string FillSwatch => IsTransparent ? DefaultColor : Node.BackgroundColor;
+
+    // Live update on every 'input' as the user drags in the picker, but snapshot the undo
+    // state only once (at the first input of a drag) and commit once on 'change', so a
+    // single color pick is one undo step rather than dozens.
+    private void OnColorInput(Action<string> set, ChangeEventArgs e)
     {
-        get => IsTransparent ? DefaultColor : Node.BackgroundColor;
-        set
-        {
-            if (value == Node.BackgroundColor) return;
-            Page?.CapturePointerSnapshot();
-            Node.BackgroundColor = value;
-            Page?.CommitPointerSnapshot();
-        }
+        if (!_editingColor) { Page?.CapturePointerSnapshot(); _editingColor = true; }
+        set(e.Value?.ToString() ?? "");
+    }
+
+    private void EndColorEdit()
+    {
+        _editingColor = false;
+        Page?.CommitPointerSnapshot();
     }
 
     private void ToggleTransparent()
@@ -77,29 +85,5 @@
         Page?.CapturePointerSnapshot();
         Node.BackgroundColor = IsTransparent ? DefaultColor : "transparent";
         Page?.CommitPointerSnapshot();
-    }
-
-    private string BorderColorProxy
-    {
-        get => Node.BorderColor;
-        set
-        {
-            if (value == Node.BorderColor) return;
-            Page?.CapturePointerSnapshot();
-            Node.BorderColor = value;
-            Page?.CommitPointerSnapshot();
-        }
-    }
-
-    private string TextColorProxy
-    {
-        get => Node.TextColor;
-        set
-        {
-            if (value == Node.TextColor) return;
-            Page?.CapturePointerSnapshot();
-            Node.TextColor = value;
-            Page?.CommitPointerSnapshot();
-        }
     }
 }
