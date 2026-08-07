@@ -557,7 +557,7 @@
   },
   {
     "manufacturer": "NETGEAR",
-    "model": "M4250-26G4F-PoE+",
+    "model": "M4250-26G4F-PoE\u002B",
     "category": "Network Switch",
     "ports": [
       {
@@ -581,7 +581,7 @@
         "direction": "Universal"
       },
       {
-        "name": "SFP+ Uplink",
+        "name": "SFP\u002B Uplink",
         "type": "Network",
         "direction": "Universal"
       }
@@ -1070,6 +1070,11 @@
         "name": "Audio In",
         "type": "Audio",
         "direction": "In"
+      },
+      {
+        "name": "Daisy Chain (Diagram Only)",
+        "type": "Audio",
+        "direction": "Out"
       }
     ]
   },
