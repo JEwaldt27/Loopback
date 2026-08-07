@@ -52,6 +52,7 @@ Once signed in, you'll see four main areas:
   - **File** → 🆕 New, 💾 Save, 📂 Open
   - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 🔢 Auto-Label Connections
   - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV)
+  - **Help** → 📖 User Guide (opens this guide on GitHub in a new tab)
   - **↩ Undo / ↪ Redo** — step backward/forward through your changes (also **Ctrl+Z** / **Ctrl+Y** when the canvas has focus). Covers everything: placing and deleting devices, connections, bends, labels, moves, resizes, and text edits. Up to 50 steps.
   - **Delete Selected** — removes whatever is currently selected on the canvas
   - **Diagram title box** — the name used in the PDF export header

@@ -154,6 +154,14 @@ html, body {
     background: #e94560;
 }
 
+/* Anchor styled as a dropdown item (e.g. Help → User Guide) */
+.lf-dropdown-link,
+.lf-dropdown-link:hover,
+.lf-dropdown-link:visited {
+    text-decoration: none;
+    color: #fff;
+}
+
 .lf-modal-overlay {
     position: fixed;
     inset: 0;

@@ -51,6 +51,17 @@
         }
     </div>
 
+    <div class="lf-menu-root">
+        <button class="lf-menu-btn @(_openMenu == "help" ? "lf-menu-btn-active" : "")" @onclick='() => ToggleMenu("help")'>Help</button>
+        @if (_openMenu == "help")
+        {
+            <div class="lf-dropdown-menu">
+                <a class="lf-dropdown-item lf-dropdown-link" href="https://github.com/JEwaldt27/Loopback/blob/master/UserGuide.md"
+                   target="_blank" rel="noopener noreferrer" @onclick="CloseMenus">📖 User Guide</a>
+            </div>
+        }
+    </div>
+
     <button @onclick="Undo" disabled="@(!CanUndo)" title="Undo (Ctrl+Z)">↩ Undo</button>
     <button @onclick="Redo" disabled="@(!CanRedo)" title="Redo (Ctrl+Y)">↪ Redo</button>
     <button @onclick="DeleteSelected">Delete Selected</button>
