@@ -78,6 +78,8 @@ Two ways — both give the same result:
 
 A placed device appears as a node with its **input ports on the left edge** and its **output/universal ports on the right edge**, each with a colored dot showing its signal type.
 
+**Change a block's colors:** click a device block to select it — a small bar appears above it with three controls: **Fill** (the block color, plus a checkerboard button to make it **transparent**, handy for layering blocks over a colored box), **Line** (the outline color), and **Text** (the title and port-label color). All are saved with your diagram and show up in PDF exports.
+
 ### Adding a new device to the library
 Click **"+ Add Device"** at the bottom of the panel. A dialog opens:
 

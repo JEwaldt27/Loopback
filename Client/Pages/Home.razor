@@ -1243,7 +1243,10 @@
         category = n.Device.Category,
         ports = n.Device.Ports,
         x = n.Position.X,
-        y = n.Position.Y
+        y = n.Position.Y,
+        backgroundColor = n.BackgroundColor,
+        borderColor = n.BorderColor,
+        textColor = n.TextColor
     };
 
     private object LinkToJson(BaseLinkModel l) => new
@@ -1379,6 +1382,12 @@
             };
             var node = new LineFlowNode(
                 new Point(nodeEl.GetProperty("x").GetDouble() + off, nodeEl.GetProperty("y").GetDouble() + off), device);
+            if (nodeEl.TryGetProperty("backgroundColor", out var nbg) && nbg.ValueKind == JsonValueKind.String)
+                node.BackgroundColor = nbg.GetString() ?? "#16213e";
+            if (nodeEl.TryGetProperty("borderColor", out var nbc) && nbc.ValueKind == JsonValueKind.String)
+                node.BorderColor = nbc.GetString() ?? "#e94560";
+            if (nodeEl.TryGetProperty("textColor", out var ntc) && ntc.ValueKind == JsonValueKind.String)
+                node.TextColor = ntc.GetString() ?? "#ffffff";
             _diagram.Nodes.Add(node);
             idMap[oldId] = node;
             newNodes.Add(node);
@@ -1567,6 +1576,12 @@
             };
 
             var node = new LineFlowNode(new Point(x, y), device);
+            if (nodeEl.TryGetProperty("backgroundColor", out var nbg) && nbg.ValueKind == JsonValueKind.String)
+                node.BackgroundColor = nbg.GetString() ?? "#16213e";
+            if (nodeEl.TryGetProperty("borderColor", out var nbc) && nbc.ValueKind == JsonValueKind.String)
+                node.BorderColor = nbc.GetString() ?? "#e94560";
+            if (nodeEl.TryGetProperty("textColor", out var ntc) && ntc.ValueKind == JsonValueKind.String)
+                node.TextColor = ntc.GetString() ?? "#ffffff";
             _diagram.Nodes.Add(node);
             nodeMap[id] = node;
         }
@@ -2122,6 +2137,12 @@
     public class LineFlowNode : NodeModel
     {
         public DeviceDefinition Device { get; }
+        // Per-block background fill. Defaults to the original navy; "transparent" is allowed.
+        public string BackgroundColor { get; set; } = "#16213e";
+        // Per-block outline color. Defaults to the original coral.
+        public string BorderColor { get; set; } = "#e94560";
+        // Per-block text color (title + port labels). Defaults to white.
+        public string TextColor { get; set; } = "#ffffff";
 
         public LineFlowNode(Point position, DeviceDefinition device) : base(position)
         {

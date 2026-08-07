@@ -1,7 +1,27 @@
-﻿@using Blazor.Diagrams.Components.Renderers
+@using Blazor.Diagrams.Components.Renderers
 @using Blazor.Diagrams.Core.Models
 
-<div class="lf-node">
+<div class="lf-node" style="background:@Node.BackgroundColor;border-color:@Node.BorderColor;color:@Node.TextColor;">
+    @if (Node.Selected)
+    {
+        <div class="lf-node-style-row" @onmousedown:stopPropagation="true" @onclick:stopPropagation="true">
+            <span class="lf-node-style-label">Fill</span>
+            <input type="color" class="lf-node-color-input"
+                   id="@($"node-fill-{Node.Id}")" name="@($"node-fill-{Node.Id}")"
+                   title="Block fill color" @bind="ColorProxy" />
+            <button type="button"
+                    class="lf-node-transparent-btn @(IsTransparent ? "lf-node-transparent-active" : "")"
+                    title="Transparent fill" @onclick="ToggleTransparent"></button>
+            <span class="lf-node-style-label">Line</span>
+            <input type="color" class="lf-node-color-input"
+                   id="@($"node-border-{Node.Id}")" name="@($"node-border-{Node.Id}")"
+                   title="Block outline color" @bind="BorderColorProxy" />
+            <span class="lf-node-style-label">Text</span>
+            <input type="color" class="lf-node-color-input"
+                   id="@($"node-text-{Node.Id}")" name="@($"node-text-{Node.Id}")"
+                   title="Block text color" @bind="TextColorProxy" />
+        </div>
+    }
     <div class="lf-node-title">@Node.Title</div>
     <div class="lf-node-body">
         <div class="lf-ports-left">
@@ -11,7 +31,7 @@
                 var dotColor = Home.ElbowLinkModel.ColorForType(port.Definition.Type);
                 <div class="lf-port-row-left">
                     <PortRenderer Port="port" Class="lf-port-dot" Style="@($"background:{dotColor} !important;")" />
-                    <span class="lf-port-label-left">@port.Definition.Name</span>
+                    <span class="lf-port-label-left" style="color:@Node.TextColor;">@port.Definition.Name</span>
                 </div>
             }
         </div>
@@ -21,7 +41,7 @@
             {
                 var dotColor = Home.ElbowLinkModel.ColorForType(port.Definition.Type);
                 <div class="lf-port-row-right">
-                    <span class="lf-port-label-right">@port.Definition.Name</span>
+                    <span class="lf-port-label-right" style="color:@Node.TextColor;">@port.Definition.Name</span>
                     <PortRenderer Port="port" Class="lf-port-dot" Style="@($"background:{dotColor} !important;")" />
                 </div>
             }
@@ -31,4 +51,55 @@
 
 @code {
     [Parameter] public Home.LineFlowNode Node { get; set; } = null!;
+    [CascadingParameter] public Home Page { get; set; } = null!;
+
+    private const string DefaultColor = "#16213e";
+
+    private bool IsTransparent =>
+        string.Equals(Node.BackgroundColor, "transparent", StringComparison.OrdinalIgnoreCase);
+
+    // The native color input can't represent "transparent", so fall back to the default
+    // swatch while transparent is active. Setter wraps the change in an undo snapshot.
+    private string ColorProxy
+    {
+        get => IsTransparent ? DefaultColor : Node.BackgroundColor;
+        set
+        {
+            if (value == Node.BackgroundColor) return;
+            Page?.CapturePointerSnapshot();
+            Node.BackgroundColor = value;
+            Page?.CommitPointerSnapshot();
+        }
+    }
+
+    private void ToggleTransparent()
+    {
+        Page?.CapturePointerSnapshot();
+        Node.BackgroundColor = IsTransparent ? DefaultColor : "transparent";
+        Page?.CommitPointerSnapshot();
+    }
+
+    private string BorderColorProxy
+    {
+        get => Node.BorderColor;
+        set
+        {
+            if (value == Node.BorderColor) return;
+            Page?.CapturePointerSnapshot();
+            Node.BorderColor = value;
+            Page?.CommitPointerSnapshot();
+        }
+    }
+
+    private string TextColorProxy
+    {
+        get => Node.TextColor;
+        set
+        {
+            if (value == Node.TextColor) return;
+            Page?.CapturePointerSnapshot();
+            Node.TextColor = value;
+            Page?.CommitPointerSnapshot();
+        }
+    }
 }

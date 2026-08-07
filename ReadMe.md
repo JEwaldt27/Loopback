@@ -80,7 +80,10 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
       "category": "AV over IP",
       "ports": [{ "name": "HDMI Out", "type": "HDMI", "direction": "Out" }],
       "x": 100,
-      "y": 200
+      "y": 200,
+      "backgroundColor": "#16213e",
+      "borderColor": "#e94560",
+      "textColor": "#ffffff"
     }
   ],
   "links": [
@@ -100,7 +103,7 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
 ```
 `vertices` holds every bend point along the connection, in order from source to target. Older files saved a single `midX` value instead — these still load fine (see Backward Compatibility below).
 
-`label`/`labelX`/`labelY` are omitted (or `label` is `""`) for connections with no label. `labelX`/`labelY` record the label's actual on-canvas position (which the user can drag independently — see Connection Labels below); if they're missing on an older file that only has `label`, the position is recomputed from the connection's route midpoint on open. `labelRotation` is the label's clockwise angle in degrees (0/90/180/270); it defaults to 0 when absent.
+`label`/`labelX`/`labelY` are omitted (or `label` is `""`) for connections with no label. `labelX`/`labelY` record the label's actual on-canvas position (which the user can drag independently — see Connection Labels below); if they're missing on an older file that only has `label`, the position is recomputed from the connection's route midpoint on open. `labelRotation` is the label's clockwise angle in degrees (0/90/180/270); it defaults to 0 when absent. Each device node also carries a `backgroundColor` (a hex string or `"transparent"`) for its block fill, a `borderColor` (hex) for its outline, and a `textColor` (hex) for its title + port labels; they default to navy `#16213e` / coral `#e94560` / white `#ffffff` when absent.
 
 `meta` is stamped automatically on Save: the first save of a new diagram sets `createdBy`/`createdAt` to the signed-in user and current time; every save (including the first) updates `modifiedBy`/`modifiedAt`. It's read back on Open and shown in a thin info bar under the toolbar (e.g. "Created by jdoe on Jul 6, 2026 3:12 PM · Last modified by asmith on Jul 6, 2026 4:05 PM"). Files saved before this feature existed simply have no `meta` block — they open fine, the info bar just stays hidden until the next save.
 
@@ -408,6 +411,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Legend persistence — legends are now saved in `.lf` files and restored on open
 - ✅ Unsaved-changes warning — browser prompt before closing the tab with unsaved work, plus an amber "● Unsaved" toolbar badge (see Unsaved-Changes Warning above)
 - ✅ Copy/paste & duplicate — Ctrl+C / Ctrl+V or right-click → Duplicate; copies selected nodes plus the connections (and labels) between them (see Copy / Paste above)
+- ✅ Per-block fill, outline & text color — select a device block to reveal a small style bar with **Fill** (+ a transparent toggle), **Line** (outline), and **Text** color pickers; all are saved in `.lf` files and captured in PDF export. Default to navy fill / coral outline / white text.
 - ✅ Build version display — shown in the toolbar next to the app title and stamped into the PDF export header, sourced from `Client/AppVersion.cs`, so you can always confirm which build a server is running (see Confirming a deploy landed above)
 
 ## Features Planned / Not Yet Implemented

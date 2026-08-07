@@ -477,12 +477,67 @@ html, body {
 }
 
 .lf-node {
+    position: relative;
     background: #16213e;
     border: 2px solid #e94560;
     border-radius: 6px;
     color: #fff;
     min-width: 200px;
     cursor: move;
+}
+
+/* Floating style bar shown above a selected device block (background color +
+   transparent toggle). Absolutely positioned so it doesn't disturb the block. */
+.lf-node-style-row {
+    position: absolute;
+    top: -34px;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    background: #0f3460;
+    border: 1px solid #e94560;
+    border-radius: 4px;
+    z-index: 10;
+    cursor: default;
+}
+
+.lf-node-style-label {
+    font-size: 10px;
+    color: #cbd5e1;
+    user-select: none;
+}
+
+.lf-node-color-input {
+    width: 28px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+/* Checkerboard swatch = "transparent" */
+.lf-node-transparent-btn {
+    width: 24px;
+    height: 22px;
+    border: 1px solid #888;
+    border-radius: 3px;
+    cursor: pointer;
+    background-color: #fff;
+    background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+}
+
+.lf-node-transparent-active {
+    outline: 2px solid #e94560;
+    outline-offset: 1px;
 }
 
 .lf-node-title {
