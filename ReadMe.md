@@ -353,12 +353,12 @@ Browsers **block downloads** (PDF/DXF/CSV/.lf exports) initiated from an insecur
    ./deploy/gen-cert.sh 192.168.1.200        # your server's LAN IP
    ```
    This writes `deploy/certs/{rootCA.crt,rootCA.key,server.crt,server.key}` and stages the public `rootCA.crt` into `deploy/client-cert/`. The server cert carries the IP as a SAN, so clients use `https://<ip>:5052` with no DNS/hosts changes. **Keep `rootCA.key` private; never distribute it.**
-2. **Install the cert on the server:** copy `server.crt` + `server.key` into `<app-dir>/certs/` (e.g. `/home/jewaldt/lineflowapp/certs/`). `Server/appsettings.Production.json` already points Kestrel at `certs/server.crt` / `certs/server.key` (path is relative to the app dir; used only in the `Production` environment, so local/dev runs are unaffected). Like `users.json`, this folder lives only on the server and deploys never overwrite it.
+2. **Install the cert on the server:** copy `server.crt` + `server.key` into `<app-dir>/certs/` (e.g. `/home/jewaldt/lineflowapp/certs/`). At startup `Program.cs` checks for `certs/server.crt` + `certs/server.key` (relative to the app dir) and, **if both exist**, uses them as Kestrel's default HTTPS certificate. The check is optional by design — a server with no cert (like the Cloudflare-fronted dev box) simply serves HTTP, so the same build runs on both without crashing. Like `users.json`, this folder lives only on the server and deploys never overwrite it.
 3. **Switch the service to HTTPS:** in the systemd unit change the URL scheme —
    ```ini
    Environment=ASPNETCORE_URLS=https://0.0.0.0:5052
    ```
-   then `sudo systemctl daemon-reload && sudo systemctl restart lineflow`. (Kestrel picks up the cert from `Kestrel:Certificates:Default` in `appsettings.Production.json`.)
+   then `sudo systemctl daemon-reload && sudo systemctl restart lineflow`. (Kestrel picks up the cert that `Program.cs` auto-detected in `certs/`.)
 4. **Each user trusts the root once (no admin):** hand out the `deploy/client-cert/` folder (`install-cert.bat` + `LoopbackRootCA.crt`). They double-click `install-cert.bat` — it imports the root into their **current-user** trust store via `certutil -user -addstore Root`, which Chrome, Edge, and the desktop app's WebView2 all honor. Firefox users additionally set `security.enterprise_roots.enabled` to `true` in `about:config`.
 5. Everyone browses **`https://192.168.1.200:5052`**, and point the desktop app's Settings → server URL at the same. Downloads now work with no warnings.
 
