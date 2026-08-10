@@ -457,7 +457,51 @@ html, body {
     flex: 1;
     overflow: hidden;
     background: #f0f0f0;
+    position: relative; /* anchors the trace chip */
 }
+
+/* Signal path trace: traced devices glow, everything off the path fades */
+.lf-node-traced {
+    box-shadow: 0 0 0 3px #ffc107, 0 0 16px rgba(255, 193, 7, 0.75);
+}
+
+.lf-node-dimmed {
+    opacity: 0.18;
+}
+
+.lf-trace-dim {
+    opacity: 0.18;
+}
+
+.lf-trace-chip {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: #fff;
+    background: #16213e;
+    border: 1px solid #ffc107;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    z-index: 50;
+}
+
+.lf-trace-clear {
+    padding: 1px 10px;
+    font-size: 12px;
+    color: #fff;
+    background: transparent;
+    border: 1px solid #888;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.lf-trace-clear:hover { border-color: #ffc107; color: #ffc107; }
 
 /* Sheet tabs under the canvas (Excel-style) */
 .lf-sheet-bar {

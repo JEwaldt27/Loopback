@@ -1,8 +1,9 @@
 @* A broken connection's end tag — a small free-standing label block tied to its port by a
    stub connection. An ordinary diagram node: drag it anywhere, right-click for the
    connection menu (handled by OnDiagramPointerDown, which routes to the owner link). *@
-<div class="lf-break-tag" style="border-color:@Node.Color;">@Node.Text</div>
+<div class="lf-break-tag @(Page?.TraceClassForLink(Node.OwnerLink))" style="border-color:@Node.Color;">@Node.Text</div>
 
 @code {
     [Parameter] public Home.BreakTagNode Node { get; set; } = null!;
+    [CascadingParameter] public Home Page { get; set; } = null!;
 }

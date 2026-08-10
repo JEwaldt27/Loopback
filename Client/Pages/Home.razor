@@ -182,6 +182,13 @@
                     <DiagramCanvas />
                 </CascadingValue>
             </CascadingValue>
+            @if (TraceActive)
+            {
+                <div class="lf-trace-chip" @onclick:stopPropagation="true">
+                    🔦 Tracing signal path
+                    <button class="lf-trace-clear" @onclick="ClearTrace" title="Clear trace (Esc)">✕ clear</button>
+                </div>
+            }
         </div>
         <div class="lf-sheet-bar">
             @for (int i = 0; i < _sheets.Count; i++)
@@ -257,6 +264,10 @@
                 {
                     <div class="context-menu-item" @onclick="RotateContextLabel">↻ Rotate Label 90°</div>
                 }
+                @if (_contextNode is LineFlowNode)
+                {
+                    <div class="context-menu-item" @onclick="TraceContextNode">🔦 Trace Signal Path</div>
+                }
                 <div class="context-menu-item" @onclick="DuplicateContextNode">⧉ Duplicate</div>
                 <div class="context-menu-item" @onclick="DeleteContextNode">🗑 Delete Node</div>
             }
@@ -271,6 +282,7 @@
                         <div class="context-menu-item" @onclick="RemoveLastBend">➖ Remove Last Bend</div>
                     }
                 }
+                <div class="context-menu-item" @onclick="TraceContextLink">🔦 Trace Signal Path</div>
                 <div class="context-menu-item" @onclick="OpenCableTypeForContextLink">🔌 Cable Type…</div>
                 <div class="context-menu-item" @onclick="ToggleBreakContextLink">🔗 @((_contextLink as ElbowLinkModel)?.IsBroken == true ? "Rejoin Connection" : "Break Connection")</div>
                 <div class="context-menu-item" @onclick="OpenLabelModal">🏷 @(!string.IsNullOrEmpty((_contextLink as ElbowLinkModel)?.LabelText) ? "Edit Label" : "Add Label")</div>
@@ -619,6 +631,8 @@
             shortcuts.SetShortcut("y", ctrl: true, shift: false, alt: false, _ => { Redo(); return ValueTask.CompletedTask; });
             shortcuts.SetShortcut("c", ctrl: true, shift: false, alt: false, _ => { CopySelection(); return ValueTask.CompletedTask; });
             shortcuts.SetShortcut("v", ctrl: true, shift: false, alt: false, _ => { PasteClipboard(); return ValueTask.CompletedTask; });
+
+            shortcuts.SetShortcut("Escape", ctrl: false, shift: false, alt: false, _ => { ClearTrace(); return ValueTask.CompletedTask; });
 
             // Arrow-key nudge: 1px per press, 10px with Shift.
             foreach (var (key, dx, dy) in new[] { ("ArrowLeft", -1.0, 0.0), ("ArrowRight", 1.0, 0.0), ("ArrowUp", 0.0, -1.0), ("ArrowDown", 0.0, 1.0) })
@@ -1011,6 +1025,9 @@
     private void ApplyCableColor(ElbowLinkModel link)
     {
         var visColor = CableColorFor(link);
+        // While a trace is live, connections off the path fade to near-transparent.
+        if (TraceActive && !_tracedLinks.Contains(link))
+            visColor = DimColor(visColor);
 
         // Keep the broken-state visuals (tag blocks + stubs) on the cable color too.
         if (link.SrcTagNode != null) { link.SrcTagNode.Color = visColor; link.SrcTagNode.Refresh(); }
@@ -1413,6 +1430,10 @@
 
     private void OnDiagramPointerDown(Model? model, Blazor.Diagrams.Core.Events.PointerEventArgs args)
     {
+        // Clicking empty canvas dismisses a live signal trace.
+        if (args.Button == 0 && model == null)
+            ClearTrace();
+
         if (args.Button == 0 && model is NodeModel or BaseLinkModel or LinkVertexModel)
             CapturePointerSnapshot();
 
@@ -1449,6 +1470,106 @@
                 ShowContextMenu(args.ClientX, args.ClientY);
             }
         }
+    }
+
+    // --- Signal path trace (right-click → 🔦 Trace Signal Path) ---
+    // Pure view state: the traced set brightens/thickens while everything else dims.
+    // Never serialized, never on the undo stack; cleared on any diagram rebuild.
+
+    private readonly HashSet<NodeModel> _tracedNodes = new();
+    private readonly HashSet<ElbowLinkModel> _tracedLinks = new();
+    private bool TraceActive => _tracedNodes.Count > 0 || _tracedLinks.Count > 0;
+
+    // Walks the connection graph from a device or connection: every device and connection
+    // electrically reachable from the start is part of the path. Broken connections are
+    // still single logical links, so a trace flows straight through them (and lights
+    // their tag blocks).
+    private void TraceSignalPath(object start)
+    {
+        _tracedNodes.Clear();
+        _tracedLinks.Clear();
+
+        var queue = new Queue<LineFlowNode>();
+        void Visit(NodeModel? n) { if (n is LineFlowNode d && _tracedNodes.Add(d)) queue.Enqueue(d); }
+
+        if (start is ElbowLinkModel firstLink)
+        {
+            _tracedLinks.Add(firstLink);
+            Visit((firstLink.Source.Model as PortModel)?.Parent);
+            Visit((firstLink.Target?.Model as PortModel)?.Parent);
+        }
+        else if (start is LineFlowNode firstNode)
+        {
+            Visit(firstNode);
+        }
+
+        while (queue.Count > 0)
+        {
+            var device = queue.Dequeue();
+            foreach (var link in _diagram.Links.OfType<ElbowLinkModel>())
+            {
+                if (link.Source.Model is not PortModel sp || link.Target?.Model is not PortModel tp) continue;
+                if (sp.Parent != device && tp.Parent != device) continue;
+                _tracedLinks.Add(link);
+                Visit(sp.Parent);
+                Visit(tp.Parent);
+            }
+        }
+
+        ApplyTraceVisuals();
+    }
+
+    public void ClearTrace()
+    {
+        if (!TraceActive) return;
+        _tracedNodes.Clear();
+        _tracedLinks.Clear();
+        ApplyTraceVisuals();
+    }
+
+    private void TraceContextNode()
+    {
+        _contextMenuVisible = false;
+        if (_contextNode is LineFlowNode device) TraceSignalPath(device);
+        _contextNode = null;
+    }
+
+    private void TraceContextLink()
+    {
+        _contextMenuVisible = false;
+        if (_contextLink is ElbowLinkModel link) TraceSignalPath(link);
+        _contextLink = null;
+    }
+
+    // Recolors every connection (ApplyCableColor knows about the trace) and re-renders
+    // every node so the widgets pick up their glow/dim classes.
+    private void ApplyTraceVisuals()
+    {
+        foreach (var link in _diagram.Links.OfType<ElbowLinkModel>())
+        {
+            link.Width = TraceActive && _tracedLinks.Contains(link) ? 5 : 2;
+            ApplyCableColor(link);
+            link.Refresh();
+        }
+        foreach (var node in _diagram.Nodes)
+            node.Refresh();
+        StateHasChanged();
+    }
+
+    // Widget hooks: glow the traced devices, fade everything else while a trace is live.
+    public string TraceClassFor(NodeModel node) =>
+        !TraceActive ? "" : _tracedNodes.Contains(node) ? "lf-node-traced" : "lf-node-dimmed";
+
+    public string TraceClassForLink(ElbowLinkModel? owner) =>
+        !TraceActive ? "" : owner != null && _tracedLinks.Contains(owner) ? "" : "lf-trace-dim";
+
+    // #rrggbb → mostly-transparent rgba for the dimmed connections.
+    private static string DimColor(string color)
+    {
+        if (color.Length == 7 && color[0] == '#'
+            && int.TryParse(color.AsSpan(1), System.Globalization.NumberStyles.HexNumber, null, out var rgb))
+            return $"rgba({(rgb >> 16) & 0xFF},{(rgb >> 8) & 0xFF},{rgb & 0xFF},0.15)";
+        return "rgba(128,128,128,0.15)";
     }
 
     // --- Connection "break": two label blocks + stub connections drawn to them ---
@@ -2535,6 +2656,10 @@
     // and undo/redo restore (snapshots have no meta property, so meta is left alone).
     private void LoadDiagramJson(string json)
     {
+        // Trace is view state over the current canvas — a rebuild invalidates it.
+        _tracedNodes.Clear();
+        _tracedLinks.Clear();
+
         var doc = JsonDocument.Parse(json);
 
         // Guarded so the tag-block rejoin hook doesn't fire while everything is torn down.

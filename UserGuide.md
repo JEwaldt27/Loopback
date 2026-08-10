@@ -158,6 +158,11 @@ Cable types are saved inside each diagram's `.lf` file, so they travel with the 
 ### Deleting a connection
 Right-click the connection → **🗑 Delete Connection**, or click it to select it and press the **Delete** key (or the **Delete Selected** toolbar button).
 
+### Tracing a signal path
+On a busy drawing, "where does this actually go?" gets hard to answer by eye. Right-click any **connection or device** → **🔦 Trace Signal Path**: everything electrically reachable from that point lights up — traced connections draw thick in full color and traced devices get an amber glow, while the rest of the diagram fades into the background. Broken connections trace straight through (they're still one cable), lighting their label blocks along the way.
+
+A "🔦 Tracing signal path" chip appears at the top of the canvas while a trace is live. Clear it with **Esc**, by **clicking empty canvas**, or with the chip's **✕ clear** button. Tracing is a view tool only — it changes nothing about the diagram, isn't saved, and doesn't touch your undo history.
+
 ---
 
 ## 5. Routing Connections Around Things

@@ -22,6 +22,8 @@ if (File.Exists(certPath) && File.Exists(keyPath))
 }
 
 builder.Services.AddControllersWithViews();
+// Resolved once at startup: seeds the data directory when one is configured (containers).
+builder.Services.AddSingleton<DataPaths>();
 builder.Services.AddSingleton<UserStore>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -55,6 +57,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// Resolve eagerly so a configured data directory is created and seeded at startup
+// (and logged) rather than on whichever request happens to touch it first.
+app.Services.GetRequiredService<DataPaths>();
 
 if (app.Environment.IsDevelopment())
 {

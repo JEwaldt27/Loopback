@@ -1,0 +1,39 @@
+# Files excluded from the Docker "build context" (what gets sent to the builder).
+# Keeps builds fast, and — more importantly — keeps secrets out of the image.
+
+# SECURITY: the Web SDK publishes every *.json in the project, so without this the local
+# account store (password hashes) would be baked into any image you build and share.
+Server/users.json
+
+# TLS material — private keys must never end up in an image.
+Server/certs/
+deploy/certs/
+deploy/client-cert/*.crt
+*.pfx
+
+# .NET MAUI desktop app: can't build on Linux and isn't needed to serve the web app.
+Desktop/
+
+# Local-only deploy scripts (environment-specific server details).
+scripts/
+
+# Build output — the image builds from source, and stale host output would only confuse
+# the build (Windows-built binaries are useless in a Linux container anyway).
+**/bin/
+**/obj/
+publish/
+release/
+LineFlowServer/
+
+# Editor / VCS noise
+.git/
+.github/
+.vs/
+.idea/
+.claude/
+**/*.user
+**/.DS_Store
+
+# Docs and compose file aren't needed inside the image
+*.md
+docker-compose.yml

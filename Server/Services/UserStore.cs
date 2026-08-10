@@ -5,8 +5,9 @@ using Server.Models;
 namespace Server.Services;
 
 /// <summary>
-/// File-backed user store (Server/users.json), mirroring the devices.json pattern used
-/// elsewhere in this project. No database — fine for a small, self-hosted user list.
+/// File-backed user store (users.json in the data directory — see <see cref="DataPaths"/>),
+/// mirroring the devices.json pattern used elsewhere in this project. No database — fine
+/// for a small, self-hosted user list.
 /// </summary>
 public class UserStore
 {
@@ -14,9 +15,9 @@ public class UserStore
     private readonly PasswordHasher<AppUser> _hasher = new();
     private readonly SemaphoreSlim _lock = new(1, 1);
 
-    public UserStore(IWebHostEnvironment env)
+    public UserStore(DataPaths paths)
     {
-        _filePath = Path.Combine(env.ContentRootPath, "users.json");
+        _filePath = paths.UsersFile;
     }
 
     public async Task<List<AppUser>> GetAllAsync()

@@ -1,7 +1,7 @@
 @using Blazor.Diagrams.Components.Renderers
 @using Blazor.Diagrams.Core.Models
 
-<div class="lf-node" style="background:@Node.BackgroundColor;border-color:@Node.BorderColor;color:@Node.TextColor;">
+<div class="lf-node @(Page?.TraceClassFor(Node))" style="background:@Node.BackgroundColor;border-color:@Node.BorderColor;color:@Node.TextColor;">
     @if (Node.Selected)
     {
         <div class="lf-node-style-row" @onmousedown:stopPropagation="true" @onclick:stopPropagation="true">
