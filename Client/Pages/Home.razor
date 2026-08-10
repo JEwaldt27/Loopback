@@ -131,9 +131,11 @@
                     <div class="device-item-model">@device.Model</div>
                     <div class="device-item-mfr">@device.Manufacturer</div>
                     <div class="device-item-actions">
-                        <button class="device-action-btn" @onclick:stopPropagation="true"
+                        <button class="device-action-btn" title="Duplicate device" @onclick:stopPropagation="true"
+                                @onclick="() => DuplicateDevice(idx)">⧉</button>
+                        <button class="device-action-btn" title="Edit device" @onclick:stopPropagation="true"
                                 @onclick="() => StartEditDevice(idx)">✏</button>
-                        <button class="device-action-btn device-action-delete" @onclick:stopPropagation="true"
+                        <button class="device-action-btn device-action-delete" title="Delete device" @onclick:stopPropagation="true"
                                 @onclick="() => DeleteDevice(idx)">🗑</button>
                     </div>
                 </div>
@@ -1502,6 +1504,20 @@
         _editingIndex = index;
         _newManufacturer = d.Manufacturer;
         _newModel = d.Model;
+        _newCategory = d.Category;
+        _newPorts = d.Ports.Select(p => new PortDefinition { Name = p.Name, Type = p.Type, Direction = p.Direction }).ToList();
+        _deviceModalOpen = true;
+        StateHasChanged();
+    }
+
+    // Opens the Add-Device modal pre-filled with a copy of an existing device (ports
+    // deep-copied), so a near-identical device can be created by tweaking one field.
+    private void DuplicateDevice(int index)
+    {
+        var d = _devices[index];
+        _editingIndex = -1;                 // add-new mode → "+ Add Device" saves a new one
+        _newManufacturer = d.Manufacturer;
+        _newModel = $"{d.Model} Copy";
         _newCategory = d.Category;
         _newPorts = d.Ports.Select(p => new PortDefinition { Name = p.Name, Type = p.Type, Direction = p.Direction }).ToList();
         _deviceModalOpen = true;

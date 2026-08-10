@@ -99,8 +99,11 @@ Click **"+ Add Device"** at the bottom of the panel. A dialog opens:
 
 Click **"+ Add Device"** in the dialog to save it to the shared library.
 
-### Editing or deleting a device
-Each device card has **✏ (edit)** and **🗑 (delete)** buttons. Editing opens the same dialog pre-filled. Deleting removes it from the library — devices already placed on diagrams are not affected.
+### Duplicating, editing, or deleting a device
+Each device card has three buttons: **⧉ (duplicate)**, **✏ (edit)**, and **🗑 (delete)**.
+- **Duplicate** opens the Add-Device dialog pre-filled with a copy of that device — same manufacturer, category, and ports, with "Copy" added to the model name. Great when a new device is just one port different from an existing one: duplicate it, tweak the model name and that one port, and save.
+- **Edit** opens the same dialog on the existing device.
+- **Delete** removes it from the library — devices already placed on diagrams are not affected.
 
 ### Copying and duplicating on the canvas
 Once devices (or annotations) are on the canvas, you can duplicate them instead of dragging fresh ones out:

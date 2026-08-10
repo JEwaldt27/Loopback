@@ -399,7 +399,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Right-click context menu: delete node, delete connection, add/remove bends
 - ✅ Delete key removes selected nodes/links
 - ✅ New / Save (.lf) / Open (.lf) diagram files, with multi-vertex routing persisted and legacy single-`midX` files still loading correctly
-- ✅ Server-side device library with add, edit, and delete devices, via a centered modal dialog (not inline in the side panel)
+- ✅ Server-side device library with add, edit, delete, and **duplicate** devices, via a centered modal dialog (not inline in the side panel); duplicating opens the Add-Device modal pre-filled with a copy of the device (ports included, model suffixed "Copy") so a near-identical device is a couple of edits away
 - ✅ Device list sorting by Type or Manufacturer, case-insensitive grouping
 - ✅ Cable types — define your own cabling types (name + on-screen color + optional label prefix, part number, and physical cable/jacket color) in the right-side **Cable Types** panel; drawing a connection prompts you to pick one (required, with an unassigned/neutral fallback if none exist yet), and you can reassign via right-click → 🔌 Cable Type. Editing a type's color live-recolors every connection using it. Ports render black; connection color comes from the assigned cable type. Per-diagram, saved in `.lf`.
 - ✅ Auto-label connections — **Tools → 🔢 Auto-Label Connections** labels every connection by its cable type's prefix, numbered from 1 (e.g. `VID-1`, `VID-2`), in cable-schedule order; regenerates on each run and leaves the manual right-click → Add/Edit Label available for tweaks
@@ -424,7 +424,6 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Build version display — shown in the toolbar next to the app title and stamped into the PDF export header, sourced from `Client/AppVersion.cs`, so you can always confirm which build a server is running (see Confirming a deploy landed above)
 
 ## Features Planned / Not Yet Implemented
-- ⬜ Duplicate device in the library (new devices are often one port different from an existing one)
 - ⬜ Docker image published to GitHub Container Registry for one-command self-hosting (needs volume-mount planning for `devices.json`/`users.json`)
 - ⬜ Conection line "break" - Would split the connection line in two with a tag on the end of each segment. Attempt to make complicated system flows more readable.
 
