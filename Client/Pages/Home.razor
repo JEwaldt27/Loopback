@@ -210,10 +210,14 @@
             }
             @if (_contextTarget == "link")
             {
-                <div class="context-menu-item" @onclick="AddBend">➕ Add Bend</div>
-                @if (_contextLink is ElbowLinkModel elm && elm.Vertices.Count > 1)
+                @* Bends apply to the visible line, so hide them while the connection is broken. *@
+                @if ((_contextLink as ElbowLinkModel)?.IsBroken != true)
                 {
-                    <div class="context-menu-item" @onclick="RemoveLastBend">➖ Remove Last Bend</div>
+                    <div class="context-menu-item" @onclick="AddBend">➕ Add Bend</div>
+                    @if (_contextLink is ElbowLinkModel elm && elm.Vertices.Count > 1)
+                    {
+                        <div class="context-menu-item" @onclick="RemoveLastBend">➖ Remove Last Bend</div>
+                    }
                 }
                 <div class="context-menu-item" @onclick="OpenCableTypeForContextLink">🔌 Cable Type…</div>
                 <div class="context-menu-item" @onclick="ToggleBreakContextLink">🔗 @((_contextLink as ElbowLinkModel)?.IsBroken == true ? "Rejoin Connection" : "Break Connection")</div>
@@ -489,12 +493,17 @@
         _diagram.RegisterComponent<LineNode, LineNodeWidget>();
         _diagram.RegisterComponent<TextNode, TextNodeWidget>();
         _diagram.RegisterComponent<ConnectionLabelNode, ConnectionLabelWidget>();
+        _diagram.RegisterComponent<BreakTagNode, BreakTagWidget>();
         _diagram.PointerDown += OnDiagramPointerDown;
         _diagram.Links.Added += (link) => OnLinkAdded((LinkModel)link);
         _diagram.Links.Removed += (link) =>
         {
-            if (link is ElbowLinkModel elbow && elbow.LabelNode != null)
-                _diagram.Nodes.Remove(elbow.LabelNode);
+            if (link is ElbowLinkModel elbow)
+            {
+                if (elbow.LabelNode != null)
+                    _diagram.Nodes.Remove(elbow.LabelNode);
+                RemoveBreakVisuals(elbow);   // deleting a broken connection takes its tag blocks too
+            }
         };
         _diagram.Nodes.Removed += (node) =>
         {
@@ -502,6 +511,17 @@
             {
                 cln.OwnerLink.LabelText = null;
                 cln.OwnerLink.LabelNode = null;
+            }
+            // Deleting a tag block directly (Delete key) rejoins its connection — the twin
+            // block and both stubs go with it. Guarded so bulk clears/load don't cascade.
+            if (node is BreakTagNode tag && !_removingBreakVisuals && !_loadingDiagram &&
+                tag.OwnerLink is { IsBroken: true } owner)
+            {
+                owner.IsBroken = false;
+                RemoveBreakVisuals(owner);
+                ApplyCableColor(owner);
+                owner.Refresh();
+                owner.LabelNode?.Refresh();
             }
         };
 
@@ -673,6 +693,8 @@
 
     private void OnLinkAdded(LinkModel link)
     {
+        if (link is BreakStubLink) return;   // programmatic visuals, no setup/validation
+
         if (link is ElbowLinkModel elbowLink)
         {
             SetupElbowLink(elbowLink);
@@ -801,18 +823,7 @@
             }
             else
             {
-                elbow.LabelText = text;
-                if (elbow.LabelNode == null)
-                {
-                    var node = new ConnectionLabelNode(ComputeLinkMidpoint(elbow)) { Text = text, OwnerLink = elbow };
-                    elbow.LabelNode = node;
-                    _diagram.Nodes.Add(node);
-                }
-                else
-                {
-                    elbow.LabelNode.Text = text;
-                    elbow.LabelNode.Refresh();
-                }
+                ApplyLabelToLink(elbow, text);
 
                 // If this label was requested in order to break the connection, break it now.
                 if (_breakAfterLabel)
@@ -841,6 +852,7 @@
             _diagram.Nodes.Remove(elbow.LabelNode);
             elbow.LabelNode = null;
         }
+        SyncBreakTagText(elbow);
     }
 
     private void CloseLabelModal()
@@ -911,35 +923,28 @@
     // + tags render in the device-node widget instead.
     private void ApplyCableColor(ElbowLinkModel link)
     {
+        var visColor = CableColorFor(link);
+
+        // Keep the broken-state visuals (tag blocks + stubs) on the cable color too.
+        if (link.SrcTagNode != null) { link.SrcTagNode.Color = visColor; link.SrcTagNode.Refresh(); }
+        if (link.TgtTagNode != null) { link.TgtTagNode.Color = visColor; link.TgtTagNode.Refresh(); }
+        if (link.SrcStub != null) { link.SrcStub.Color = visColor; link.SrcStub.SelectedColor = visColor; link.SrcStub.Refresh(); }
+        if (link.TgtStub != null) { link.TgtStub.Color = visColor; link.TgtStub.SelectedColor = visColor; link.TgtStub.Refresh(); }
+
         if (link.IsBroken)
         {
             link.Color = "transparent";
             link.SelectedColor = "transparent";
             return;
         }
-        var ct = _cableTypes.FirstOrDefault(c => c.Name == link.CableTypeName);
-        var color = ct?.Color ?? NeutralLinkColor;
-        link.Color = color;
-        link.SelectedColor = color;
+        link.Color = visColor;
+        link.SelectedColor = visColor;
     }
 
     // The on-screen color for a link's cable type (used for stubs, which stay colored even
     // though the broken link's own stroke is transparent).
     private string CableColorFor(ElbowLinkModel link)
         => _cableTypes.FirstOrDefault(c => c.Name == link.CableTypeName)?.Color ?? NeutralLinkColor;
-
-    // If this port is an endpoint of a broken connection, returns the tag text + color to
-    // render as a stub beside the port; otherwise null.
-    public (string Tag, string Color)? GetBrokenPortTag(PortModel port)
-    {
-        foreach (var link in _diagram.Links.OfType<ElbowLinkModel>())
-        {
-            if (!link.IsBroken) continue;
-            if (link.Source.Model == port || link.Target?.Model == port)
-                return (link.LabelText ?? "", CableColorFor(link));
-        }
-        return null;
-    }
 
     private void RefreshAllLinkColors()
     {
@@ -1059,6 +1064,15 @@
             elbow.LabelNode.Text = text;
             elbow.LabelNode.Refresh();
         }
+        SyncBreakTagText(elbow);
+    }
+
+    // Keeps a broken connection's two tag blocks showing the current label.
+    private void SyncBreakTagText(ElbowLinkModel elbow)
+    {
+        var text = elbow.LabelText ?? "";
+        if (elbow.SrcTagNode != null) { elbow.SrcTagNode.Text = text; elbow.SrcTagNode.Refresh(); }
+        if (elbow.TgtTagNode != null) { elbow.TgtTagNode.Text = text; elbow.TgtTagNode.Refresh(); }
     }
 
     // Tools -> Auto-Label Connections: labels every connection that has a cable type with a
@@ -1217,7 +1231,23 @@
 
         if (args.Button == 2)
         {
-            if (model is NodeModel node)
+            // A tag block or its stub stands in for the (invisible) broken connection —
+            // right-clicking either opens the connection's own menu (Rejoin, Label, …).
+            if (model is BreakTagNode tag && tag.OwnerLink != null)
+            {
+                _contextTarget = "link";
+                _contextLink = tag.OwnerLink;
+                _contextNode = null;
+                ShowContextMenu(args.ClientX, args.ClientY);
+            }
+            else if (model is BreakStubLink stub && stub.Owner != null)
+            {
+                _contextTarget = "link";
+                _contextLink = stub.Owner;
+                _contextNode = null;
+                ShowContextMenu(args.ClientX, args.ClientY);
+            }
+            else if (model is NodeModel node)
             {
                 _contextTarget = "node";
                 _contextNode = node;
@@ -1234,29 +1264,114 @@
         }
     }
 
-    // Right-clicking a broken connection's stub tag opens the link context menu (Rejoin),
-    // since the full line is invisible and can't be clicked.
-    public void OnBrokenTagContext(PortModel port, MouseEventArgs e)
-    {
-        var link = _diagram.Links.OfType<ElbowLinkModel>()
-            .FirstOrDefault(l => l.IsBroken && (l.Source.Model == port || l.Target?.Model == port));
-        if (link == null) return;
-        _contextTarget = "link";
-        _contextLink = link;
-        _contextNode = null;
-        ShowContextMenu(e.ClientX, e.ClientY);
-    }
+    // --- Connection "break": two label blocks + stub connections drawn to them ---
 
-    // --- Connection "break" (render as two stubs + tags for readability) ---
+    private bool _removingBreakVisuals;
+    private bool _loadingDiagram;
+
     private void SetLinkBroken(ElbowLinkModel link, bool broken)
     {
         link.IsBroken = broken;
         ApplyCableColor(link);   // transparent line when broken, cable color when rejoined
+        if (broken) { StashVertices(link); CreateBreakVisuals(link); }
+        else { RemoveBreakVisuals(link); RestoreVertices(link); }
         link.Refresh();
-        // Re-render the endpoint device nodes so their port stubs appear/disappear.
-        (link.Source.Model as PortModel)?.Parent?.Refresh();
-        (link.Target?.Model as PortModel)?.Parent?.Refresh();
+        link.LabelNode?.Refresh();   // center label hides while broken, returns on rejoin
     }
+
+    // Park/unpark a link's bends around the broken state so their grab handles don't
+    // render as stray dots along the invisible line.
+    private static void StashVertices(ElbowLinkModel link)
+    {
+        if (link.Vertices.Count == 0) return;
+        link.StashedVertices = link.Vertices.Select(v => v.Position).ToList();
+        link.Vertices.Clear();
+    }
+
+    private static void RestoreVertices(ElbowLinkModel link)
+    {
+        if (link.StashedVertices is { Count: > 0 } saved)
+            foreach (var p in saved)
+                link.Vertices.Add(new LinkVertexModel(link, p));
+        link.StashedVertices = null;
+    }
+
+    // Builds the broken-connection visuals: an identical tag block at each end plus a
+    // locked stub connection from each port to its block.
+    private void CreateBreakVisuals(ElbowLinkModel link, Point? srcPos = null, Point? tgtPos = null)
+    {
+        if (link.SrcTagNode != null || link.TgtTagNode != null) return;
+        if (link.Source.Model is not PortModel srcPort || link.Target?.Model is not PortModel tgtPort) return;
+
+        var color = CableColorFor(link);
+        var text = link.LabelText ?? "";
+
+        link.SrcTagNode = AddBreakTag(link, true, srcPos ?? DefaultTagPosition(srcPort, text), text, color);
+        link.TgtTagNode = AddBreakTag(link, false, tgtPos ?? DefaultTagPosition(tgtPort, text), text, color);
+        link.SrcStub = AddBreakStub(link, srcPort, link.SrcTagNode, color);
+        link.TgtStub = AddBreakStub(link, tgtPort, link.TgtTagNode, color);
+    }
+
+    private BreakTagNode AddBreakTag(ElbowLinkModel link, bool isSource, Point pos, string text, string color)
+    {
+        var tag = new BreakTagNode(pos) { Text = text, Color = color, OwnerLink = link, IsSource = isSource };
+        _diagram.Nodes.Add(tag);
+        return tag;
+    }
+
+    private BreakStubLink AddBreakStub(ElbowLinkModel owner, PortModel port, BreakTagNode tag, string color)
+    {
+        var stub = new BreakStubLink(
+            new Blazor.Diagrams.Core.Anchors.SinglePortAnchor(port),
+            new Blazor.Diagrams.Core.Anchors.ShapeIntersectionAnchor(tag))
+        {
+            Owner = owner,
+            Color = color,
+            SelectedColor = color,
+            Locked = true,
+        };
+        _diagram.Links.Add(stub);
+        return stub;
+    }
+
+    private void RemoveBreakVisuals(ElbowLinkModel link)
+    {
+        if (_removingBreakVisuals) return;
+        _removingBreakVisuals = true;
+        try
+        {
+            if (link.SrcStub != null) _diagram.Links.Remove(link.SrcStub);
+            if (link.TgtStub != null) _diagram.Links.Remove(link.TgtStub);
+            if (link.SrcTagNode != null) _diagram.Nodes.Remove(link.SrcTagNode);
+            if (link.TgtTagNode != null) _diagram.Nodes.Remove(link.TgtTagNode);
+        }
+        finally
+        {
+            link.SrcStub = link.TgtStub = null;
+            link.SrcTagNode = link.TgtTagNode = null;
+            _removingBreakVisuals = false;
+        }
+    }
+
+    // Default spot for a fresh tag block: just outside its port, stepped a little further
+    // out for each block already sitting on the same side of the same device so new tags
+    // start clear of each other. They're ordinary nodes — drag them anywhere after.
+    private Point DefaultTagPosition(PortModel port, string text)
+    {
+        double cx = (port.Position?.X ?? port.Parent.Position.X) + (port.Size?.Width / 2 ?? 0);
+        double cy = (port.Position?.Y ?? port.Parent.Position.Y + 40) + (port.Size?.Height / 2 ?? 0);
+        bool left = port.Alignment == PortAlignment.Left;
+        int stagger = _diagram.Nodes.OfType<BreakTagNode>()
+            .Count(t => TagPort(t) is { } p && p.Parent == port.Parent && p.Alignment == port.Alignment);
+        double gap = 46 + 26 * stagger;
+        double estW = 18 + 6.5 * text.Length;   // rough block width, for left-side placement only
+        return new Point(left ? cx - gap - estW : cx + gap, cy - 10);
+    }
+
+    private static PortModel? TagPort(BreakTagNode tag) =>
+        tag.OwnerLink == null ? null
+        : tag.IsSource ? tag.OwnerLink.Source.Model as PortModel
+        : tag.OwnerLink.Target?.Model as PortModel;
 
     private void ToggleBreakContextLink()
     {
@@ -1705,8 +1820,13 @@
     {
         if (_diagram.Nodes.Count > 0 || _diagram.Links.Count > 0)
             PushUndoSnapshot();
-        _diagram.Nodes.Clear();
-        _diagram.Links.Clear();
+        _loadingDiagram = true;
+        try
+        {
+            _diagram.Nodes.Clear();
+            _diagram.Links.Clear();
+        }
+        finally { _loadingDiagram = false; }
         _cableTypes.Clear();
         _createdBy = "";
         _createdAt = null;
@@ -1739,13 +1859,21 @@
         targetNodeId = (l.Target!.Model as PortModel)?.Parent.Id,
         targetPortIndex = (l.Target.Model as PortModel) is PortModel tp
             ? tp.Parent.Ports.ToList().IndexOf(tp) : 0,
-        vertices = l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y }),
+        // A broken link's bends are parked in StashedVertices — save those so the bends
+        // survive save/open while broken and reappear on rejoin.
+        vertices = (l as ElbowLinkModel)?.StashedVertices is { Count: > 0 } sv
+            ? sv.Select(p => new { x = p.X, y = p.Y })
+            : l.Vertices.Select(v => new { x = v.Position.X, y = v.Position.Y }),
         label = (l as ElbowLinkModel)?.LabelText ?? "",
         labelX = (l as ElbowLinkModel)?.LabelNode?.Position.X,
         labelY = (l as ElbowLinkModel)?.LabelNode?.Position.Y,
         labelRotation = (l as ElbowLinkModel)?.LabelNode?.Rotation ?? 0,
         cableType = (l as ElbowLinkModel)?.CableTypeName,
-        broken = (l as ElbowLinkModel)?.IsBroken ?? false
+        broken = (l as ElbowLinkModel)?.IsBroken ?? false,
+        srcTagX = (l as ElbowLinkModel)?.SrcTagNode?.Position.X,
+        srcTagY = (l as ElbowLinkModel)?.SrcTagNode?.Position.Y,
+        tgtTagX = (l as ElbowLinkModel)?.TgtTagNode?.Position.X,
+        tgtTagY = (l as ElbowLinkModel)?.TgtTagNode?.Position.Y
     };
 
     private object BoxToJson(BoxNode b) => new
@@ -1899,6 +2027,13 @@
                     link.CableTypeName = lctEl.GetString();
                 if (linkEl.TryGetProperty("broken", out var lbrEl) && (lbrEl.ValueKind == JsonValueKind.True || lbrEl.ValueKind == JsonValueKind.False))
                     link.IsBroken = lbrEl.GetBoolean();
+                Point? srcTagPos = null, tgtTagPos = null;
+                if (linkEl.TryGetProperty("srcTagX", out var stx) && stx.ValueKind == JsonValueKind.Number &&
+                    linkEl.TryGetProperty("srcTagY", out var sty) && sty.ValueKind == JsonValueKind.Number)
+                    srcTagPos = new Point(stx.GetDouble() + off, sty.GetDouble() + off);
+                if (linkEl.TryGetProperty("tgtTagX", out var ttx) && ttx.ValueKind == JsonValueKind.Number &&
+                    linkEl.TryGetProperty("tgtTagY", out var tty) && tty.ValueKind == JsonValueKind.Number)
+                    tgtTagPos = new Point(ttx.GetDouble() + off, tty.GetDouble() + off);
 
                 if (linkEl.TryGetProperty("vertices", out var vertsEl))
                 {
@@ -1925,6 +2060,14 @@
                         link.LabelNode = labelNode;
                         _diagram.Nodes.Add(labelNode);
                     }
+                }
+
+                // After the label exists, so the tag blocks carry its text. Loaded bends are
+                // parked so their handles don't render along the invisible line.
+                if (link.IsBroken)
+                {
+                    StashVertices(link);
+                    CreateBreakVisuals(link, srcTagPos, tgtTagPos);
                 }
             }
         }
@@ -2039,8 +2182,14 @@
     {
         var doc = JsonDocument.Parse(json);
 
-        _diagram.Nodes.Clear();
-        _diagram.Links.Clear();
+        // Guarded so the tag-block rejoin hook doesn't fire while everything is torn down.
+        _loadingDiagram = true;
+        try
+        {
+            _diagram.Nodes.Clear();
+            _diagram.Links.Clear();
+        }
+        finally { _loadingDiagram = false; }
 
         _cableTypes.Clear();
         if (doc.RootElement.TryGetProperty("cableTypes", out var ctsEl) && ctsEl.ValueKind == JsonValueKind.Array)
@@ -2112,6 +2261,13 @@
                     link.CableTypeName = lctEl.GetString();
                 if (linkEl.TryGetProperty("broken", out var lbrEl) && (lbrEl.ValueKind == JsonValueKind.True || lbrEl.ValueKind == JsonValueKind.False))
                     link.IsBroken = lbrEl.GetBoolean();
+                Point? srcTagPos = null, tgtTagPos = null;
+                if (linkEl.TryGetProperty("srcTagX", out var stx) && stx.ValueKind == JsonValueKind.Number &&
+                    linkEl.TryGetProperty("srcTagY", out var sty) && sty.ValueKind == JsonValueKind.Number)
+                    srcTagPos = new Point(stx.GetDouble(), sty.GetDouble());
+                if (linkEl.TryGetProperty("tgtTagX", out var ttx) && ttx.ValueKind == JsonValueKind.Number &&
+                    linkEl.TryGetProperty("tgtTagY", out var tty) && tty.ValueKind == JsonValueKind.Number)
+                    tgtTagPos = new Point(ttx.GetDouble(), tty.GetDouble());
 
                 // Restore vertices (new format)
                 if (linkEl.TryGetProperty("vertices", out var vertsEl))
@@ -2143,6 +2299,15 @@
                         link.LabelNode = labelNode;
                         _diagram.Nodes.Add(labelNode);
                     }
+                }
+
+                // After the label exists, so the tag blocks carry its text. Legacy broken
+                // files without saved positions fall back to the default outward placement.
+                // Loaded bends are parked so their handles don't render along the invisible line.
+                if (link.IsBroken)
+                {
+                    StashVertices(link);
+                    CreateBreakVisuals(link, srcTagPos, tgtTagPos);
                 }
             }
         }
@@ -2498,16 +2663,23 @@
 
             if (link is ElbowLinkModel brokenLink && brokenLink.IsBroken)
             {
-                // Broken: two short stubs (pointing at each other) with the tag at each end.
+                // Broken: a stub from each port to its tag block, tag text at the block —
+                // mirroring the on-screen layout (blocks may have been dragged anywhere).
                 var s = pts[0];
                 var t = pts[^1];
                 var tag = brokenLink.LabelText ?? "";
-                double stub = 12;
-                double dir = (t.x >= s.x) ? 1 : -1;
-                DxfLine(s.x, s.y, s.x + stub * dir, s.y, "CONNECTIONS");
-                DxfText(s.x + (stub + 1) * dir, s.y, tag, 2.0, "CONNECTIONS", dir > 0 ? 0 : 2);
-                DxfLine(t.x - stub * dir, t.y, t.x, t.y, "CONNECTIONS");
-                DxfText(t.x - (stub + 1) * dir, t.y, tag, 2.0, "CONNECTIONS", dir > 0 ? 2 : 0);
+                if (brokenLink.SrcTagNode != null)
+                {
+                    var p = ToDxf(brokenLink.SrcTagNode.Position.X, brokenLink.SrcTagNode.Position.Y);
+                    DxfLine(s.x, s.y, p.x, p.y, "CONNECTIONS");
+                    DxfText(p.x, p.y, tag, 2.0, "CONNECTIONS", 0);
+                }
+                if (brokenLink.TgtTagNode != null)
+                {
+                    var p = ToDxf(brokenLink.TgtTagNode.Position.X, brokenLink.TgtTagNode.Position.Y);
+                    DxfLine(t.x, t.y, p.x, p.y, "CONNECTIONS");
+                    DxfText(p.x, p.y, tag, 2.0, "CONNECTIONS", 0);
+                }
             }
             else
             {
@@ -2620,9 +2792,22 @@
         public ConnectionLabelNode? LabelNode { get; set; }
         // Name of the assigned CableType (null = unassigned → neutral color).
         public string? CableTypeName { get; set; }
-        // When true, the connection renders as two short stubs+tags (its label) instead of
-        // a full line — a readability aid for busy diagrams. Purely visual; still one link.
+        // When true, the connection's long line is hidden and it renders as two "label
+        // blocks" (one per end, carrying the connection's label) each tied to its port by a
+        // short stub connection — a readability aid for busy diagrams. Still one logical
+        // connection in the schedule/legend.
         public bool IsBroken { get; set; }
+        // Runtime visuals for the broken state: the two tag blocks and their stub links.
+        // Derived state — never serialized as first-class nodes/links; rebuilt from
+        // IsBroken + the saved block positions on load/undo.
+        public BreakTagNode? SrcTagNode { get; set; }
+        public BreakTagNode? TgtTagNode { get; set; }
+        public BreakStubLink? SrcStub { get; set; }
+        public BreakStubLink? TgtStub { get; set; }
+        // Bend positions parked while broken — vertex grab handles would render as stray
+        // dots along the invisible line, so the bends are cleared on break and rebuilt
+        // from here on rejoin. Serialized as the link's ordinary "vertices".
+        public List<Point>? StashedVertices { get; set; }
         public ElbowLinkModel(PortModel source, PortModel target) : base(source, target) { }
 
         public static string ColorForType(string type) => type switch
@@ -2636,6 +2821,29 @@
             "COM"     => "#fff176",
             _         => "#e94560",
         };
+    }
+
+    // A broken connection's end tag: a small free-standing "label block" node tied to its
+    // port by a BreakStubLink. It's an ordinary diagram node, so dragging, selection,
+    // undo capture, and PDF/DXF bounds all come from the diagram engine — the device
+    // block itself is never touched. Recreated from the owning link's data on load.
+    public class BreakTagNode : NodeModel
+    {
+        public string Text { get; set; } = "";
+        public string Color { get; set; } = "#808080";   // border color = cable color
+        public ElbowLinkModel? OwnerLink { get; set; }
+        public bool IsSource { get; set; }               // which end of the owner this tag marks
+        public BreakTagNode(Point position) : base(position) { }
+    }
+
+    // The short visible connection drawn from a port to its BreakTagNode. ElbowRouter
+    // ignores links whose target isn't a port, so these render as plain straight lines.
+    // Locked — the tag block is the thing users grab, not the stub.
+    public class BreakStubLink : LinkModel
+    {
+        public ElbowLinkModel? Owner { get; set; }
+        public BreakStubLink(Blazor.Diagrams.Core.Anchors.Anchor source, Blazor.Diagrams.Core.Anchors.Anchor target)
+            : base(source, target) { }
     }
 
     // Plain HTML node (not an SVG foreignObject) so it renders correctly in html2canvas-based

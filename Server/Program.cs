@@ -96,8 +96,24 @@ app.UseAuthorization();
 app.MapGet("/login", () => Results.Content(LoginPage.Html, "text/html"));
 
 app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
+// Serve entry-point assets (html/css/js) as no-cache so browsers revalidate them on every
+// load — with ETags that's a cheap 304 unless the file actually changed. Without this,
+// deploys left clients on stale index.html/app.css until a hard refresh. Framework files
+// under _framework keep their own hash-based caching (handled by Blazor's boot manifest).
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        var name = ctx.File.Name;
+        if (name.EndsWith(".html") || name.EndsWith(".css") || name.EndsWith(".js"))
+            ctx.Context.Response.Headers.CacheControl = "no-cache";
+    }
+});
 app.MapControllers();
-app.MapFallbackToFile("index.html");
+// The root page ("/") is served by this fallback, not UseStaticFiles — same no-cache rule.
+app.MapFallbackToFile("index.html", new StaticFileOptions
+{
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache"
+});
 
 app.Run();

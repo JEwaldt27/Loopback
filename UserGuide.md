@@ -185,10 +185,12 @@ Labels are included in both PDF and DXF exports.
 Instead of labeling each connection by hand, you can label them all at once from their cable types. First give each cable type a **label prefix** in the Cable Types panel (e.g. `DATA`), then choose **Tools → 🔢 Auto-Label Connections**. Every connection gets a label like `DATA-1`, `DATA-2`, … — numbered per prefix starting at 1, in the same order as the Cable Schedule (by source device). Connections with no cable type (or no prefix) are left alone. Run it again anytime to renumber. The results are ordinary labels, so you can still right-click any connection to tweak its label, and drag/rotate the tags as usual.
 
 ### Breaking connections (for readability)
-On busy diagrams, a line running all the way across the page can be hard to follow. You can **break** a connection so that, instead of one long line, it shows a short stub at each end with a **matching tag** (the connection's label) — the reader knows they're the same cable because the tags match, like signal references on a real schematic.
+On busy diagrams, a line running all the way across the page can be hard to follow. You can **break** a connection so that, instead of one long line, each end gets a small **label block** (both showing the connection's label) joined to its port by a short stub — the reader knows they're the same cable because the labels match, like signal references on a real schematic.
 
-- **One connection:** right-click it → **🔗 Break Connection** (and **Rejoin Connection** to bring the line back). If the connection has no label yet, you'll be asked for a tag first. Right-click the stub's tag to rejoin it later.
+- **One connection:** right-click it → **🔗 Break Connection** (and **Rejoin Connection** to bring the line back). If the connection has no label yet, you'll be asked for a tag first.
 - **All at once:** **Tools → 🔗 Break All Connections** auto-labels everything first, then breaks it all. **Tools → 🔗 Rejoin All Connections** puts every line back.
+- **Moving the blocks:** they're ordinary diagram blocks — **drag one anywhere** and its stub line follows. New blocks appear just outside their port, stepping outward when several land on the same side of a device. Positions are saved with the diagram.
+- **Getting back to the connection:** the long line is invisible while broken, so right-click a **label block or its stub** — that opens the connection's own menu (Rejoin, Edit Label, Cable Type…). Deleting a block also rejoins the connection.
 
 Breaking is purely visual — the connection still counts as one cable everywhere (Cable Schedule, legend, direction rules, color). The broken view is saved with your diagram and shows in PDF and DXF exports.
 
