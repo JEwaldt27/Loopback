@@ -50,7 +50,7 @@ Once signed in, you'll see four main areas:
 
 - **Toolbar (top)** — the app menus and controls (a small version number next to the "Loopback" title shows which build the server is running):
   - **File** → 🆕 New, 💾 Save, 📂 Open
-  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 🔢 Auto-Label Connections
+  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 🔢 Auto-Label Connections, 🔗 Break All / Rejoin All Connections
   - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV)
   - **Help** → 📖 User Guide (opens this guide on GitHub in a new tab)
   - **↩ Undo / ↪ Redo** — step backward/forward through your changes (also **Ctrl+Z** / **Ctrl+Y** when the canvas has focus). Covers everything: placing and deleting devices, connections, bends, labels, moves, resizes, and text edits. Up to 50 steps.
@@ -183,6 +183,14 @@ Labels are included in both PDF and DXF exports.
 
 ### Auto-labeling every connection
 Instead of labeling each connection by hand, you can label them all at once from their cable types. First give each cable type a **label prefix** in the Cable Types panel (e.g. `DATA`), then choose **Tools → 🔢 Auto-Label Connections**. Every connection gets a label like `DATA-1`, `DATA-2`, … — numbered per prefix starting at 1, in the same order as the Cable Schedule (by source device). Connections with no cable type (or no prefix) are left alone. Run it again anytime to renumber. The results are ordinary labels, so you can still right-click any connection to tweak its label, and drag/rotate the tags as usual.
+
+### Breaking connections (for readability)
+On busy diagrams, a line running all the way across the page can be hard to follow. You can **break** a connection so that, instead of one long line, it shows a short stub at each end with a **matching tag** (the connection's label) — the reader knows they're the same cable because the tags match, like signal references on a real schematic.
+
+- **One connection:** right-click it → **🔗 Break Connection** (and **Rejoin Connection** to bring the line back). If the connection has no label yet, you'll be asked for a tag first. Right-click the stub's tag to rejoin it later.
+- **All at once:** **Tools → 🔗 Break All Connections** auto-labels everything first, then breaks it all. **Tools → 🔗 Rejoin All Connections** puts every line back.
+
+Breaking is purely visual — the connection still counts as one cable everywhere (Cable Schedule, legend, direction rules, color). The broken view is saved with your diagram and shows in PDF and DXF exports.
 
 ---
 

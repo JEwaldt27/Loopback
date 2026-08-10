@@ -719,6 +719,7 @@ html, body {
     align-items: center;
     gap: 4px;
     margin-left: -9px;
+    position: relative;
 }
 
 .lf-port-row-right {
@@ -726,6 +727,42 @@ html, body {
     align-items: center;
     gap: 4px;
     margin-right: -9px;
+    position: relative;
+}
+
+/* Broken-connection stub + tag rendered just outside a port */
+.lf-break-stub {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.lf-break-stub-right { left: 100%; }
+.lf-break-stub-left { right: 100%; }
+
+.lf-break-line {
+    display: inline-block;
+    width: 34px;
+    height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.lf-break-tag {
+    padding: 1px 6px;
+    font-size: 10px;
+    line-height: 1.5;
+    color: #fff;
+    background: #16213e;
+    border: 1px solid #e94560;
+    border-radius: 3px;
+    pointer-events: auto;
+    cursor: context-menu;
 }
 
 .lf-port-label-left {

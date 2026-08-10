@@ -35,6 +35,15 @@
                 <div class="lf-port-row-left">
                     <PortRenderer Port="port" Class="lf-port-dot" Style="@($"background:{dotColor} !important;")" />
                     <span class="lf-port-label-left" style="color:@Node.TextColor;">@port.Definition.Name</span>
+                    @{ var brkL = Page?.GetBrokenPortTag(port); }
+                    @if (brkL != null)
+                    {
+                        <span class="lf-break-stub lf-break-stub-left" @oncontextmenu:preventDefault="true"
+                              @oncontextmenu="e => Page?.OnBrokenTagContext(port, e)">
+                            <span class="lf-break-tag" style="border-color:@brkL.Value.Color;">@brkL.Value.Tag</span>
+                            <span class="lf-break-line" style="background:@brkL.Value.Color;"></span>
+                        </span>
+                    }
                 </div>
             }
         </div>
@@ -46,6 +55,15 @@
                 <div class="lf-port-row-right">
                     <span class="lf-port-label-right" style="color:@Node.TextColor;">@port.Definition.Name</span>
                     <PortRenderer Port="port" Class="lf-port-dot" Style="@($"background:{dotColor} !important;")" />
+                    @{ var brkR = Page?.GetBrokenPortTag(port); }
+                    @if (brkR != null)
+                    {
+                        <span class="lf-break-stub lf-break-stub-right" @oncontextmenu:preventDefault="true"
+                              @oncontextmenu="e => Page?.OnBrokenTagContext(port, e)">
+                            <span class="lf-break-line" style="background:@brkR.Value.Color;"></span>
+                            <span class="lf-break-tag" style="border-color:@brkR.Value.Color;">@brkR.Value.Tag</span>
+                        </span>
+                    }
                 </div>
             }
         </div>

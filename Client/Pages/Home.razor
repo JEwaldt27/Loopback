@@ -35,6 +35,8 @@
                 <div class="lf-dropdown-item @(_placementMode == "text" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("text"); CloseMenus(); }'>T Text</div>
                 <div class="lf-dropdown-item" @onclick="() => { OpenDeviceColors(); CloseMenus(); }">🎨 Device Colors…</div>
                 <div class="lf-dropdown-item" @onclick="() => { AutoLabelConnections(); CloseMenus(); }">🔢 Auto-Label Connections</div>
+                <div class="lf-dropdown-item" @onclick="() => { BreakAllConnections(); CloseMenus(); }">🔗 Break All Connections</div>
+                <div class="lf-dropdown-item" @onclick="() => { RejoinAllConnections(); CloseMenus(); }">🔗 Rejoin All Connections</div>
             </div>
         }
     </div>
@@ -214,6 +216,7 @@
                     <div class="context-menu-item" @onclick="RemoveLastBend">➖ Remove Last Bend</div>
                 }
                 <div class="context-menu-item" @onclick="OpenCableTypeForContextLink">🔌 Cable Type…</div>
+                <div class="context-menu-item" @onclick="ToggleBreakContextLink">🔗 @((_contextLink as ElbowLinkModel)?.IsBroken == true ? "Rejoin Connection" : "Break Connection")</div>
                 <div class="context-menu-item" @onclick="OpenLabelModal">🏷 @(!string.IsNullOrEmpty((_contextLink as ElbowLinkModel)?.LabelText) ? "Edit Label" : "Add Label")</div>
                 <div class="context-menu-item" @onclick="DeleteContextLink">🗑 Delete Connection</div>
             }
@@ -408,6 +411,7 @@
     private bool _labelModalOpen = false;
     private ElbowLinkModel? _labelTargetLink = null;
     private string _labelText = "";
+    private bool _breakAfterLabel = false;   // break the link once its label is saved
 
     private bool _deviceColorModalOpen = false;
 
@@ -809,6 +813,10 @@
                     elbow.LabelNode.Text = text;
                     elbow.LabelNode.Refresh();
                 }
+
+                // If this label was requested in order to break the connection, break it now.
+                if (_breakAfterLabel)
+                    SetLinkBroken(elbow, true);
             }
         }
         CloseLabelModal();
@@ -840,6 +848,7 @@
         _labelModalOpen = false;
         _labelTargetLink = null;
         _labelText = "";
+        _breakAfterLabel = false;
     }
 
     // --- Bulk device recolor (Tools -> Device Colors) ---
@@ -898,12 +907,38 @@
     // --- Cable types (right-side panel + per-connection assignment) ---
 
     // Sets a link's color from its assigned cable type (neutral gray if unassigned/unknown).
+    // A broken connection draws no full line — its stroke is transparent; the visible stubs
+    // + tags render in the device-node widget instead.
     private void ApplyCableColor(ElbowLinkModel link)
     {
+        if (link.IsBroken)
+        {
+            link.Color = "transparent";
+            link.SelectedColor = "transparent";
+            return;
+        }
         var ct = _cableTypes.FirstOrDefault(c => c.Name == link.CableTypeName);
         var color = ct?.Color ?? NeutralLinkColor;
         link.Color = color;
         link.SelectedColor = color;
+    }
+
+    // The on-screen color for a link's cable type (used for stubs, which stay colored even
+    // though the broken link's own stroke is transparent).
+    private string CableColorFor(ElbowLinkModel link)
+        => _cableTypes.FirstOrDefault(c => c.Name == link.CableTypeName)?.Color ?? NeutralLinkColor;
+
+    // If this port is an endpoint of a broken connection, returns the tag text + color to
+    // render as a stub beside the port; otherwise null.
+    public (string Tag, string Color)? GetBrokenPortTag(PortModel port)
+    {
+        foreach (var link in _diagram.Links.OfType<ElbowLinkModel>())
+        {
+            if (!link.IsBroken) continue;
+            if (link.Source.Model == port || link.Target?.Model == port)
+                return (link.LabelText ?? "", CableColorFor(link));
+        }
+        return null;
     }
 
     private void RefreshAllLinkColors()
@@ -1197,6 +1232,74 @@
                 ShowContextMenu(args.ClientX, args.ClientY);
             }
         }
+    }
+
+    // Right-clicking a broken connection's stub tag opens the link context menu (Rejoin),
+    // since the full line is invisible and can't be clicked.
+    public void OnBrokenTagContext(PortModel port, MouseEventArgs e)
+    {
+        var link = _diagram.Links.OfType<ElbowLinkModel>()
+            .FirstOrDefault(l => l.IsBroken && (l.Source.Model == port || l.Target?.Model == port));
+        if (link == null) return;
+        _contextTarget = "link";
+        _contextLink = link;
+        _contextNode = null;
+        ShowContextMenu(e.ClientX, e.ClientY);
+    }
+
+    // --- Connection "break" (render as two stubs + tags for readability) ---
+    private void SetLinkBroken(ElbowLinkModel link, bool broken)
+    {
+        link.IsBroken = broken;
+        ApplyCableColor(link);   // transparent line when broken, cable color when rejoined
+        link.Refresh();
+        // Re-render the endpoint device nodes so their port stubs appear/disappear.
+        (link.Source.Model as PortModel)?.Parent?.Refresh();
+        (link.Target?.Model as PortModel)?.Parent?.Refresh();
+    }
+
+    private void ToggleBreakContextLink()
+    {
+        _contextMenuVisible = false;
+        if (_contextLink is not ElbowLinkModel elbow) { _contextLink = null; return; }
+        if (elbow.IsBroken)
+        {
+            PushUndoSnapshot();
+            SetLinkBroken(elbow, false);
+        }
+        else if (string.IsNullOrEmpty(elbow.LabelText))
+        {
+            // A broken connection needs a tag — open the label modal, break once it's saved.
+            _breakAfterLabel = true;
+            _labelTargetLink = elbow;
+            _labelText = "";
+            _labelModalOpen = true;
+        }
+        else
+        {
+            PushUndoSnapshot();
+            SetLinkBroken(elbow, true);
+        }
+        _contextLink = null;
+    }
+
+    // Tools -> Break All: auto-label everything, then break every labeled connection.
+    private void BreakAllConnections()
+    {
+        AutoLabelConnections();   // fills in prefix tags where a cable type has one
+        var toBreak = _diagram.Links.OfType<ElbowLinkModel>()
+            .Where(l => !l.IsBroken && !string.IsNullOrEmpty(l.LabelText)).ToList();
+        if (toBreak.Count == 0) return;
+        PushUndoSnapshot();
+        foreach (var l in toBreak) SetLinkBroken(l, true);
+    }
+
+    private void RejoinAllConnections()
+    {
+        var broken = _diagram.Links.OfType<ElbowLinkModel>().Where(l => l.IsBroken).ToList();
+        if (broken.Count == 0) return;
+        PushUndoSnapshot();
+        foreach (var l in broken) SetLinkBroken(l, false);
     }
 
     private void ShowContextMenu(double x, double y)
@@ -1641,7 +1744,8 @@
         labelX = (l as ElbowLinkModel)?.LabelNode?.Position.X,
         labelY = (l as ElbowLinkModel)?.LabelNode?.Position.Y,
         labelRotation = (l as ElbowLinkModel)?.LabelNode?.Rotation ?? 0,
-        cableType = (l as ElbowLinkModel)?.CableTypeName
+        cableType = (l as ElbowLinkModel)?.CableTypeName,
+        broken = (l as ElbowLinkModel)?.IsBroken ?? false
     };
 
     private object BoxToJson(BoxNode b) => new
@@ -1793,6 +1897,8 @@
                 // Preserve the pasted link's cable type (color resolves from current types).
                 if (linkEl.TryGetProperty("cableType", out var lctEl) && lctEl.ValueKind == JsonValueKind.String)
                     link.CableTypeName = lctEl.GetString();
+                if (linkEl.TryGetProperty("broken", out var lbrEl) && (lbrEl.ValueKind == JsonValueKind.True || lbrEl.ValueKind == JsonValueKind.False))
+                    link.IsBroken = lbrEl.GetBoolean();
 
                 if (linkEl.TryGetProperty("vertices", out var vertsEl))
                 {
@@ -2004,6 +2110,8 @@
                 // Cable type set before Add so SetupElbowLink colors it from the cable type.
                 if (linkEl.TryGetProperty("cableType", out var lctEl) && lctEl.ValueKind == JsonValueKind.String)
                     link.CableTypeName = lctEl.GetString();
+                if (linkEl.TryGetProperty("broken", out var lbrEl) && (lbrEl.ValueKind == JsonValueKind.True || lbrEl.ValueKind == JsonValueKind.False))
+                    link.IsBroken = lbrEl.GetBoolean();
 
                 // Restore vertices (new format)
                 if (linkEl.TryGetProperty("vertices", out var vertsEl))
@@ -2388,18 +2496,34 @@
                 pts.Add(tgtPos);
             }
 
-            for (int i = 0; i < pts.Count - 1; i++)
-                DxfLine(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y, "CONNECTIONS");
-
-            if (link is ElbowLinkModel elbowLink && !string.IsNullOrEmpty(elbowLink.LabelText))
+            if (link is ElbowLinkModel brokenLink && brokenLink.IsBroken)
             {
-                var labelPos = elbowLink.LabelNode != null
-                    ? ToDxf(elbowLink.LabelNode.Position.X, elbowLink.LabelNode.Position.Y)
-                    : PolylineMidpoint(pts);
-                // Screen rotation is clockwise; the DXF Y-axis is flipped, which turns that
-                // into the counterclockwise-positive angle DXF's group code 50 expects.
-                double labelRot = elbowLink.LabelNode?.Rotation ?? 0;
-                DxfText(labelPos.x, labelPos.y, elbowLink.LabelText, 2.0, "CONNECTIONS", 1, labelRot);
+                // Broken: two short stubs (pointing at each other) with the tag at each end.
+                var s = pts[0];
+                var t = pts[^1];
+                var tag = brokenLink.LabelText ?? "";
+                double stub = 12;
+                double dir = (t.x >= s.x) ? 1 : -1;
+                DxfLine(s.x, s.y, s.x + stub * dir, s.y, "CONNECTIONS");
+                DxfText(s.x + (stub + 1) * dir, s.y, tag, 2.0, "CONNECTIONS", dir > 0 ? 0 : 2);
+                DxfLine(t.x - stub * dir, t.y, t.x, t.y, "CONNECTIONS");
+                DxfText(t.x - (stub + 1) * dir, t.y, tag, 2.0, "CONNECTIONS", dir > 0 ? 2 : 0);
+            }
+            else
+            {
+                for (int i = 0; i < pts.Count - 1; i++)
+                    DxfLine(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y, "CONNECTIONS");
+
+                if (link is ElbowLinkModel elbowLink && !string.IsNullOrEmpty(elbowLink.LabelText))
+                {
+                    var labelPos = elbowLink.LabelNode != null
+                        ? ToDxf(elbowLink.LabelNode.Position.X, elbowLink.LabelNode.Position.Y)
+                        : PolylineMidpoint(pts);
+                    // Screen rotation is clockwise; the DXF Y-axis is flipped, which turns that
+                    // into the counterclockwise-positive angle DXF's group code 50 expects.
+                    double labelRot = elbowLink.LabelNode?.Rotation ?? 0;
+                    DxfText(labelPos.x, labelPos.y, elbowLink.LabelText, 2.0, "CONNECTIONS", 1, labelRot);
+                }
             }
         }
 
@@ -2496,6 +2620,9 @@
         public ConnectionLabelNode? LabelNode { get; set; }
         // Name of the assigned CableType (null = unassigned → neutral color).
         public string? CableTypeName { get; set; }
+        // When true, the connection renders as two short stubs+tags (its label) instead of
+        // a full line — a readability aid for busy diagrams. Purely visual; still one link.
+        public bool IsBroken { get; set; }
         public ElbowLinkModel(PortModel source, PortModel target) : base(source, target) { }
 
         public static string ColorForType(string type) => type switch
