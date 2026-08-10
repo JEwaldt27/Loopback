@@ -312,64 +312,6 @@ Cookie authentication (`Microsoft.AspNetCore.Authentication.Cookies`) and passwo
 @using Blazor.Diagrams.Core.Models.Base
 ```
 
-## Running with Docker
-
-Docker packages the app, the .NET runtime, and a minimal Linux into one **image**. A server that has Docker installed can then run Loopback without installing .NET or setting up systemd — and upgrades become "pull the new image, restart".
-
-Terms, once: an **image** is the frozen snapshot; a **container** is a running copy of it (delete it and everything inside is gone); a **volume** is a Docker-managed folder that lives outside the container so data survives.
-
-### Run it
-
-```bash
-docker compose up -d
-```
-
-That reads [`docker-compose.yml`](docker-compose.yml), pulls the published image, and starts it in the background on <http://localhost:8080>. First visit lands on the create-admin-account screen, same as any fresh install.
-
-```bash
-docker compose logs -f                      # watch output (Ctrl+C stops watching, not the app)
-docker compose down                         # stop and remove the container; data survives
-docker compose pull && docker compose up -d # upgrade to the newest image
-```
-
-To serve on a different port, change only the **left** number in the compose `ports` line (`"5052:8080"` → host 5052). The container always listens on 8080 internally.
-
-To build from this source tree instead of pulling, comment out `image:` in the compose file and uncomment `build: .`, then `docker compose up -d --build`.
-
-### Where the data lives
-
-The device library and user accounts are stored in a named volume mounted at **`/data`** inside the container, so they survive `docker compose down`, image upgrades, and container recreation. Only `docker volume rm loopback-data` erases them.
-
-This is why `Server/Services/DataPaths.cs` exists: the app normally writes `devices.json`/`users.json` into its own content root, which in a container is the app directory — mounting a volume there would hide the application itself. Setting `LINEFLOW_DATA_DIR` (the image sets it to `/data`) relocates both files. Leave the variable unset and behavior is exactly as before, so the systemd deploy below is unaffected.
-
-On first start against an empty volume, the device library shipped in the image is **copied in as a seed**, so a new install begins with the stock device list. `users.json` is deliberately not seeded — a fresh install should land on the first-run admin setup. The seed source is `AppContext.BaseDirectory` rather than the content root, because the latter follows the working directory and silently finds nothing when the app is launched from elsewhere.
-
-Back up the data by copying it out of the volume:
-
-```bash
-docker cp loopback:/data ./loopback-backup
-```
-
-### Publishing the image
-
-[`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml) builds and pushes to GitHub Container Registry:
-
-| Trigger | Tags published |
-|---|---|
-| push to `master` | `:edge` |
-| push of a `v*` tag | `:2.0`, `:latest` |
-| pull request | *builds only, never publishes* |
-| "Run workflow" button | per the branch/tag it runs on |
-
-No secrets to set up — `GITHUB_TOKEN` plus the workflow's `packages: write` permission is enough. **New GHCR packages default to private**, so after the first successful publish, open the package on GitHub → *Package settings* → *Change visibility* to make `docker compose up -d` work without a login.
-
-### Notes and gotchas
-
-- **Image contents.** The `.dockerignore` excludes `Server/users.json`. That matters: the Web SDK publishes every `*.json` in the project, so without it your local password hashes would be baked into any image you share. TLS material and the MAUI `Desktop/` project (which cannot build on Linux) are excluded too.
-- **Non-root.** The container runs as the .NET image's built-in non-root user. A *named volume* inherits the right ownership automatically. If you instead bind-mount a host folder (`-v /srv/loopback:/data`) and hit "permission denied", `chown 64198:64198` that folder on the host.
-- **HTTPS.** The container serves plain HTTP. Put a reverse proxy in front of it for TLS, or keep using the local-CA setup described above for a fully-local network.
-- **Which deploy to use.** Docker and the systemd path below are alternatives, not partners — pick one per server. The existing systemd deploy is untouched by any of this.
-
 ## Deploying to Ubuntu Linux
 
 ### Quick path — `deploy/deploy.ps1`
@@ -504,7 +446,6 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 
 - ✅ Signal path trace — right-click a device or connection → 🔦 **Trace Signal Path**: walks the connection graph and lights everything electrically reachable (traced connections go full-color + thick, traced devices get an amber glow; everything else fades to ~15%). Broken connections are still single logical links, so a trace flows straight through them and lights their tag blocks. Pure view state — never saved, never on the undo stack, cleared by Esc, clicking empty canvas, the floating "✕ clear" chip, or any sheet switch/load
 
-- ✅ Docker image published to GitHub Container Registry — `docker compose up -d` for one-command self-hosting, with the device library and user accounts kept in a `/data` volume so they survive upgrades (see Running with Docker above)
 
 ## Features Planned / Not Yet Implemented
 - ⬜ PDF title block — a proper drawing-style title block on the PDF export (project, client, drawn by, revision, sheet number) instead of the simple header line

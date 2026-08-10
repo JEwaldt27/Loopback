@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Server.Services;
 
 namespace Server.Controllers;
 
@@ -9,9 +8,9 @@ public class DevicesController : ControllerBase
 {
     private readonly string _filePath;
 
-    public DevicesController(DataPaths paths)
+    public DevicesController(IWebHostEnvironment env)
     {
-        _filePath = paths.DevicesFile;
+        _filePath = Path.Combine(env.ContentRootPath, "devices.json");
     }
 
     [HttpGet]
