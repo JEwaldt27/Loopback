@@ -3014,6 +3014,55 @@
         await JS.InvokeVoidAsync("exportToPdf", pdfTitle, AppVersion.Version, bx, by, bw, bh);
     }
 
+    // Text style written into the DXF and referenced by every TEXT entity. The font is the
+    // file name CAD resolves at open time, so it must exist on the machine opening the
+    // drawing — Arial ships with Windows and is mapped on macOS/Linux CAD too. Swap for
+    // another .ttf (or an .shx) here if a project standard calls for something else.
+    private const string DxfTextStyle = "LOOPBACK";
+    private const string DxfTextFont = "arial.ttf";
+
+    // Cable type name -> DXF layer name. R12 layer names are uppercase, max 31 characters,
+    // and can't contain spaces or < > / \ " : ; ? * | = ' — so anything outside
+    // letters/digits/$-_ becomes an underscore. The CABLE- prefix keeps them grouped
+    // together in CAD's layer list, next to each other and away from NODES/ANNOTATIONS.
+    private static string DxfLayerForCable(string cableTypeName)
+    {
+        var cleaned = new string((cableTypeName ?? "").Trim().ToUpperInvariant()
+            .Select(c => char.IsLetterOrDigit(c) || c is '$' or '-' or '_' ? c : '_')
+            .ToArray()).Trim('_');
+        if (cleaned.Length == 0) cleaned = "UNNAMED";
+        if (cleaned.Length > 25) cleaned = cleaned[..25];   // 6 for "CABLE-" + 25 = the 31 cap
+        return "CABLE-" + cleaned;
+    }
+
+    // Nearest AutoCAD Color Index for a #rrggbb cable color. R12 predates true color
+    // (code 420, R2000+), so layer colors come from the ACI palette; this matches against
+    // the six primaries plus white and two grays. It's only a starting point — the reason
+    // each cable type gets its own layer is so these can be restyled in CAD.
+    private static int DxfAciColor(string? hex)
+    {
+        if (hex == null || hex.Length != 7 || hex[0] != '#'
+            || !int.TryParse(hex.AsSpan(1), System.Globalization.NumberStyles.HexNumber, null, out var rgb))
+            return 7;
+
+        (int Aci, int R, int G, int B)[] palette =
+        {
+            (1, 255, 0, 0), (2, 255, 255, 0), (3, 0, 255, 0), (4, 0, 255, 255),
+            (5, 0, 0, 255), (6, 255, 0, 255), (7, 255, 255, 255),
+            (8, 128, 128, 128), (9, 192, 192, 192)
+        };
+
+        int r = (rgb >> 16) & 0xFF, g = (rgb >> 8) & 0xFF, b = rgb & 0xFF;
+        int best = 7;
+        long bestDistance = long.MaxValue;
+        foreach (var (aci, pr, pg, pb) in palette)
+        {
+            long d = (long)(r - pr) * (r - pr) + (long)(g - pg) * (g - pg) + (long)(b - pb) * (b - pb);
+            if (d < bestDistance) { bestDistance = d; best = aci; }
+        }
+        return best;
+    }
+
     private async Task ExportDxf()
     {
         var sb = new System.Text.StringBuilder();
@@ -3030,27 +3079,71 @@
         sb.AppendLine("1\nAC1009");
         sb.AppendLine("0\nENDSEC");
 
+        // Each cabling type used on this sheet gets its own layer, so colors, lineweights,
+        // and visibility can be set per cable type in CAD (the layer's initial color is the
+        // nearest ACI match to the on-screen color). Types with no connections on this sheet
+        // are skipped, matching how the legend only lists what's actually used. Connections
+        // with no cable type fall back to the generic CONNECTIONS layer.
+        var cableLayers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var takenLayers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "0", "NODES", "CONNECTIONS", "ANNOTATIONS", "LEGEND" };
+        foreach (var ctName in _diagram.Links.OfType<ElbowLinkModel>()
+                     .Where(l => l.Source.Model is PortModel && l.Target?.Model is PortModel
+                                 && !string.IsNullOrWhiteSpace(l.CableTypeName))
+                     .Select(l => l.CableTypeName!)
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var baseName = DxfLayerForCable(ctName);
+            var layer = baseName;
+            // Two type names can sanitize to the same layer ("Cat 6" / "Cat-6") — suffix dupes.
+            for (int i = 2; !takenLayers.Add(layer); i++)
+                layer = $"{baseName[..Math.Min(baseName.Length, 28)]}-{i}";
+            cableLayers[ctName] = layer;
+        }
+
+        var layers = new List<(string Name, int Color)>
+        {
+            ("NODES", 7), ("CONNECTIONS", 7), ("ANNOTATIONS", 7), ("LEGEND", 7)
+        };
+        foreach (var (typeName, layerName) in cableLayers)
+            layers.Add((layerName, DxfAciColor(_cableTypes.FirstOrDefault(c => c.Name == typeName)?.Color)));
+
         sb.AppendLine("0\nSECTION");
         sb.AppendLine("2\nTABLES");
         sb.AppendLine("0\nTABLE");
         sb.AppendLine("2\nLAYER");
-        sb.AppendLine("70\n3");
-        sb.AppendLine("0\nLAYER");
-        sb.AppendLine("2\nNODES");
-        sb.AppendLine("70\n0");
-        sb.AppendLine("62\n7");
-        sb.AppendLine("6\nCONTINUOUS");
-        sb.AppendLine("0\nLAYER");
-        sb.AppendLine("2\nCONNECTIONS");
-        sb.AppendLine("70\n0");
-        sb.AppendLine("62\n7");
-        sb.AppendLine("6\nCONTINUOUS");
-        sb.AppendLine("0\nLAYER");
-        sb.AppendLine("2\nANNOTATIONS");
-        sb.AppendLine("70\n0");
-        sb.AppendLine("62\n7");
-        sb.AppendLine("6\nCONTINUOUS");
+        sb.AppendLine($"70\n{layers.Count}");
+        foreach (var (layerName, layerColor) in layers)
+        {
+            sb.AppendLine("0\nLAYER");
+            sb.AppendLine($"2\n{layerName}");
+            sb.AppendLine("70\n0");
+            sb.AppendLine($"62\n{layerColor}");
+            sb.AppendLine("6\nCONTINUOUS");
+        }
         sb.AppendLine("0\nENDTAB");
+
+        // Text style. Without a STYLE table (and a 7 group on each TEXT naming it), CAD
+        // falls back to the "Standard" style, whose default font is the txt.shx monoline
+        // stick font — legible but ugly. Group code 3 is the primary font file; naming a
+        // TrueType file there ("arial.ttf") gets a normal-looking font instead. A custom
+        // style name is used rather than redefining "Standard", so importing this drawing
+        // into an existing one doesn't restyle that drawing's own text.
+        sb.AppendLine("0\nTABLE");
+        sb.AppendLine("2\nSTYLE");
+        sb.AppendLine("70\n1");
+        sb.AppendLine("0\nSTYLE");
+        sb.AppendLine($"2\n{DxfTextStyle}");
+        sb.AppendLine("70\n0");
+        sb.AppendLine("40\n0.0");   // 0 = height comes from each TEXT entity, not fixed here
+        sb.AppendLine("41\n1.0");   // width factor
+        sb.AppendLine("50\n0.0");   // oblique angle
+        sb.AppendLine("71\n0");
+        sb.AppendLine("42\n2.5");
+        sb.AppendLine($"3\n{DxfTextFont}");
+        sb.AppendLine("4\n");       // bigfont file: none
+        sb.AppendLine("0\nENDTAB");
+
         sb.AppendLine("0\nENDSEC");
 
         sb.AppendLine("0\nSECTION");
@@ -3075,6 +3168,20 @@
             sb.AppendLine("31\n0.0");
         }
 
+        // Filled quad, used for the legend's color swatches.
+        void DxfSolid(double x1, double y1, double x2, double y2, string layer)
+        {
+            sb.AppendLine("0\nSOLID");
+            sb.AppendLine($"8\n{layer}");
+            // SOLID corner order is bottom-left, bottom-right, TOP-LEFT, TOP-RIGHT — the
+            // third and fourth points are swapped versus a normal quad winding. Ordering
+            // them the "obvious" way renders an hourglass instead of a rectangle.
+            sb.AppendLine($"10\n{F(x1)}"); sb.AppendLine($"20\n{F(y1)}"); sb.AppendLine("30\n0.0");
+            sb.AppendLine($"11\n{F(x2)}"); sb.AppendLine($"21\n{F(y1)}"); sb.AppendLine("31\n0.0");
+            sb.AppendLine($"12\n{F(x1)}"); sb.AppendLine($"22\n{F(y2)}"); sb.AppendLine("32\n0.0");
+            sb.AppendLine($"13\n{F(x2)}"); sb.AppendLine($"23\n{F(y2)}"); sb.AppendLine("33\n0.0");
+        }
+
         void DxfText(double tx, double ty, string text, double height = 2.5, string layer = "NODES", int halign = 0, double rotation = 0)
         {
             sb.AppendLine("0\nTEXT");
@@ -3086,6 +3193,7 @@
             sb.AppendLine($"1\n{text ?? ""}");
             if (rotation != 0)
                 sb.AppendLine($"50\n{F(rotation)}");
+            sb.AppendLine($"7\n{DxfTextStyle}");
             sb.AppendLine($"72\n{halign}");
             sb.AppendLine($"11\n{F(tx)}");
             sb.AppendLine($"21\n{F(ty)}");
@@ -3209,6 +3317,12 @@
                 pts.Add(tgtPos);
             }
 
+            // Everything belonging to this cable — line, label, break stubs and tags — goes
+            // on its cable type's layer; unassigned connections stay on CONNECTIONS.
+            var cableLayer = link is ElbowLinkModel typed && typed.CableTypeName != null
+                             && cableLayers.TryGetValue(typed.CableTypeName, out var cl)
+                ? cl : "CONNECTIONS";
+
             if (link is ElbowLinkModel brokenLink && brokenLink.IsBroken)
             {
                 // Broken: a stub from each port to its tag block, tag text at the block —
@@ -3219,20 +3333,20 @@
                 if (brokenLink.SrcTagNode != null)
                 {
                     var p = ToDxf(brokenLink.SrcTagNode.Position.X, brokenLink.SrcTagNode.Position.Y);
-                    DxfLine(s.x, s.y, p.x, p.y, "CONNECTIONS");
-                    DxfText(p.x, p.y, tag, 2.0, "CONNECTIONS", 0);
+                    DxfLine(s.x, s.y, p.x, p.y, cableLayer);
+                    DxfText(p.x, p.y, tag, 2.0, cableLayer, 0);
                 }
                 if (brokenLink.TgtTagNode != null)
                 {
                     var p = ToDxf(brokenLink.TgtTagNode.Position.X, brokenLink.TgtTagNode.Position.Y);
-                    DxfLine(t.x, t.y, p.x, p.y, "CONNECTIONS");
-                    DxfText(p.x, p.y, tag, 2.0, "CONNECTIONS", 0);
+                    DxfLine(t.x, t.y, p.x, p.y, cableLayer);
+                    DxfText(p.x, p.y, tag, 2.0, cableLayer, 0);
                 }
             }
             else
             {
                 for (int i = 0; i < pts.Count - 1; i++)
-                    DxfLine(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y, "CONNECTIONS");
+                    DxfLine(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y, cableLayer);
 
                 if (link is ElbowLinkModel elbowLink && !string.IsNullOrEmpty(elbowLink.LabelText))
                 {
@@ -3242,7 +3356,7 @@
                     // Screen rotation is clockwise; the DXF Y-axis is flipped, which turns that
                     // into the counterclockwise-positive angle DXF's group code 50 expects.
                     double labelRot = elbowLink.LabelNode?.Rotation ?? 0;
-                    DxfText(labelPos.x, labelPos.y, elbowLink.LabelText, 2.0, "CONNECTIONS", 1, labelRot);
+                    DxfText(labelPos.x, labelPos.y, elbowLink.LabelText, 2.0, cableLayer, 1, labelRot);
                 }
             }
         }
@@ -3276,6 +3390,82 @@
             double y = -(text.Position.Y * scale);
 
             DxfText(x, y, text.Text, Math.Max(text.FontSize * scale, 1.0), "ANNOTATIONS", 0);
+        }
+
+        // Legend, redrawn as a real CAD table (the on-screen one is an HTML table, which
+        // has no DXF equivalent). Column widths are measured from the actual content so
+        // nothing overlaps, and the Part #/Color columns appear only when in use — same
+        // rule the on-screen legend follows.
+        foreach (var legend in _diagram.Nodes.OfType<LegendNode>())
+        {
+            if (legend.Entries.Count == 0) continue;
+
+            const double rowH = 5.5, textH = 2.0, cellPad = 1.6, swatchW = 5.0, swatchH = 2.6;
+            // Generous per-character advance: real Arial is narrower, but over-estimating
+            // only pads the cells, whereas under-estimating runs one column into the next.
+            static double TextW(string? s, double h) => (s ?? "").Length * h * 0.78;
+
+            bool anyPart = legend.Entries.Any(e => !string.IsNullOrWhiteSpace(e.PartNumber));
+            bool anyColor = legend.Entries.Any(e => !string.IsNullOrWhiteSpace(e.CableColor));
+
+            // Column widths: widest of header vs. content, plus padding on both sides.
+            double Col(string header, Func<(string Name, string Color, string PartNumber, string CableColor), string?> pick)
+                => Math.Max(TextW(header, textH), legend.Entries.Max(e => TextW(pick(e), textH))) + cellPad * 2;
+
+            var colWidths = new List<double> { swatchW + cellPad * 2, Col("Cable Type", e => e.Name) };
+            if (anyPart) colWidths.Add(Col("Part #", e => e.PartNumber));
+            if (anyColor) colWidths.Add(Col("Color", e => e.CableColor));
+
+            // Cell boundaries — the grid is drawn from these, so lines and text can't disagree.
+            double lx = legend.Position.X * scale;
+            double ly = -(legend.Position.Y * scale);   // top edge; DXF Y grows upward
+            var colX = new List<double> { lx };
+            foreach (var w in colWidths) colX.Add(colX[^1] + w);
+            double right = colX[^1];
+
+            int rowCount = legend.Entries.Count;
+            double bottom = ly - rowH * (rowCount + 1);   // +1 for the header row
+            int nameCol = 1;
+            int partCol = anyPart ? 2 : -1;
+            int colorCol = anyColor ? (anyPart ? 3 : 2) : -1;
+
+            // Full grid: a horizontal rule at every row boundary, a vertical at every
+            // column boundary — including the outer edges, which form the frame.
+            for (int r = 0; r <= rowCount + 1; r++)
+            {
+                double gy = ly - rowH * r;
+                DxfLine(lx, gy, right, gy, "LEGEND");
+            }
+            foreach (var gx in colX)
+                DxfLine(gx, ly, gx, bottom, "LEGEND");
+
+            // Header row
+            double headerBaseline = ly - rowH + (rowH - textH) / 2;
+            DxfText(colX[nameCol] + cellPad, headerBaseline, "Cable Type", textH, "LEGEND", 0);
+            if (anyPart) DxfText(colX[partCol] + cellPad, headerBaseline, "Part #", textH, "LEGEND", 0);
+            if (anyColor) DxfText(colX[colorCol] + cellPad, headerBaseline, "Color", textH, "LEGEND", 0);
+
+            for (int i = 0; i < rowCount; i++)
+            {
+                var entry = legend.Entries[i];
+                double rowBottom = ly - rowH * (i + 2);
+                double baseline = rowBottom + (rowH - textH) / 2;
+
+                // The swatch sits on its cable type's own layer, so recoloring that layer
+                // in CAD updates the legend key to match instead of leaving it stale.
+                var swatchLayer = cableLayers.TryGetValue(entry.Name ?? "", out var sl) ? sl : "LEGEND";
+                double sx = colX[0] + cellPad, sy = rowBottom + (rowH - swatchH) / 2;
+                DxfSolid(sx, sy, sx + swatchW, sy + swatchH, swatchLayer);
+                // Outline on LEGEND so a pale swatch is still visible against white paper.
+                DxfLine(sx, sy, sx + swatchW, sy, "LEGEND");
+                DxfLine(sx + swatchW, sy, sx + swatchW, sy + swatchH, "LEGEND");
+                DxfLine(sx + swatchW, sy + swatchH, sx, sy + swatchH, "LEGEND");
+                DxfLine(sx, sy + swatchH, sx, sy, "LEGEND");
+
+                DxfText(colX[nameCol] + cellPad, baseline, entry.Name, textH, "LEGEND", 0);
+                if (anyPart) DxfText(colX[partCol] + cellPad, baseline, entry.PartNumber, textH, "LEGEND", 0);
+                if (anyColor) DxfText(colX[colorCol] + cellPad, baseline, entry.CableColor, textH, "LEGEND", 0);
+            }
         }
 
         sb.AppendLine("0\nENDSEC");

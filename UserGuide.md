@@ -273,8 +273,12 @@ Captures the **sheet you're viewing** onto a landscape A4 page with a header sho
 Generates an AutoCAD-compatible DXF with content organized on layers:
 
 - **NODES** — device boxes, titles, and port names
-- **CONNECTIONS** — every connection's full multi-bend path, plus connection labels
+- **CABLE-\<TYPE\>** — one layer per cabling type used on the sheet (e.g. `CABLE-HDMI`), holding that type's connections, labels, and any break tags. Each layer starts in the closest CAD color to its on-screen color, so you can recolor, set lineweights, or hide a whole cable type at once from the CAD layer manager.
+- **CONNECTIONS** — connections that haven't been assigned a cable type
 - **ANNOTATIONS** — boxes, lines, and text you added
+- **LEGEND** — the legend, if you've added one, redrawn as a real CAD table (frame, column headers, and a filled color swatch per row). Each swatch sits on its own cable type's layer, so recoloring a cable type in CAD updates the legend key to match.
+
+All text comes through in **Arial** rather than CAD's default stick font. (The drawing asks for the font by name, so it uses whatever Arial is installed on the machine opening it — standard on Windows.)
 
 Useful for dropping the diagram into CAD workflows or as a starting point for formal drawings.
 
