@@ -50,8 +50,8 @@ Once signed in, you'll see four main areas:
 
 - **Toolbar (top)** — the app menus and controls (a small version number next to the "Loopback" title shows which build the server is running):
   - **File** → 🆕 New, 💾 Save, 📂 Open
-  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 🔢 Auto-Label Connections, 🔗 Break All / Rejoin All Connections
-  - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV)
+  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 🔢 Auto-Label Connections, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
+  - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV), 📦 Device Schedule (CSV)
   - **Help** → 📖 User Guide (opens this guide on GitHub in a new tab)
   - **↩ Undo / ↪ Redo** — step backward/forward through your changes (also **Ctrl+Z** / **Ctrl+Y** when the canvas has focus). Covers everything: placing and deleting devices, connections, bends, labels, moves, resizes, and text edits. Up to 50 steps.
   - **Delete Selected** — removes whatever is currently selected on the canvas
@@ -68,7 +68,7 @@ When a diagram that has been saved before is open, a thin info bar under the too
 ## 3. Working with Devices
 
 ### The device library
-The left panel lists every device your team has defined. The library is **shared and server-side** — when anyone adds or edits a device, everyone sees it. Devices are grouped under category headers; use the **"Sort by"** dropdown to group by **Type** (category) or **Manufacturer** instead.
+The left panel lists every device your team has defined. The library is **shared and server-side** — when anyone adds or edits a device, everyone sees it. Devices are grouped under category headers; use the **"Sort by"** dropdown to group by **Type** (category) or **Manufacturer** instead. As the library grows, the **🔍 search box** at the top filters as you type, matching manufacturer, model, or category — click **✕** to clear.
 
 ### Placing a device on the canvas
 Two ways — both give the same result:
@@ -114,6 +114,12 @@ Once devices (or annotations) are on the canvas, you can duplicate them instead 
 - **Connections come along** — if you copy two devices that are wired together, the connection between them (and its label) is copied too. This makes it quick to duplicate a whole sub-system (e.g. a repeated rack layout).
 
 > Copies are new independent objects — editing a copy doesn't affect the original. This clipboard only works within this browser tab.
+
+### Lining things up
+Hand-aligned blocks are most of what makes a drawing look messy — two tools fix that:
+
+- **Align / distribute** — select 2+ blocks, then **Tools → ⇤ Align Left / ⇥ Align Right / ⤒ Align Top / ⤓ Align Bottom**. With 3+ selected, **↔ Distribute Horizontally / ↕ Distribute Vertically** spreads the middle blocks so everything is evenly spaced (the outermost two stay put). Works on devices, annotations — anything selectable. Each action is one undo step.
+- **Keyboard nudge** — with blocks selected and the canvas focused, the **arrow keys** move them 1px per press; hold **Shift** for 10px. A quick burst of presses counts as a single undo step.
 
 ---
 
@@ -259,6 +265,14 @@ Generates a **cable schedule / pull sheet** — a spreadsheet listing every conn
 - Rows are grouped/sorted by the source device, so all the cables coming off one box are listed together.
 
 It downloads as `cable-schedule.csv` and opens directly in Excel or Google Sheets — handy for handing a wiring list to installers. Tip: label your connections (right-click → Add Label) before exporting so each cable has an ID in the schedule.
+
+### 📦 Device Schedule (CSV)
+The other half of the paperwork: a **BOM-style device list** of everything on the canvas, one row per manufacturer + model with a quantity:
+
+| Qty | Manufacturer | Model | Category |
+|-----|--------------|-------|----------|
+
+Rows are sorted by category, then manufacturer. Three of the same speaker on the canvas become one row with Qty 3. Downloads as `device-schedule.csv` — pair it with the cable schedule for quoting and ordering.
 
 ---
 

@@ -142,6 +142,12 @@ html, body {
     white-space: nowrap;
 }
 
+.lf-dropdown-sep {
+    height: 1px;
+    margin: 4px 8px;
+    background: rgba(255, 255, 255, 0.15);
+}
+
     .lf-dropdown-item:hover {
         background: #e94560;
     }
@@ -247,6 +253,21 @@ html, body {
     letter-spacing: 1px;
     padding: 8px 4px 4px;
 }
+
+.lf-search-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 4px 6px;
+}
+
+.lf-search-input {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+}
+
+.lf-search-clear { flex-shrink: 0; }
 
 .lf-sort-row {
     display: flex;

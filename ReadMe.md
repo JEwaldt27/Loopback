@@ -425,9 +425,16 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Per-block fill, outline & text color — select a device block to reveal a small style bar with **Fill** (+ a transparent toggle), **Line** (outline), and **Text** color pickers; all are saved in `.lf` files and captured in PDF export. Default to navy fill / coral outline / white text.
 - ✅ Bulk device recolor — **Tools → 🎨 Device Colors** opens Fill/Line/Text pickers (with a transparent-fill option) that apply to **every** device block on the canvas at once; each change is a single undo step (`OpenDeviceColors`/`ApplyToAllDevices` in `Home.razor`)
 - ✅ Build version display — shown in the toolbar next to the app title and stamped into the PDF export header, sourced from `Client/AppVersion.cs`, so you can always confirm which build a server is running (see Confirming a deploy landed above)
+- ✅ Device library search — a filter-as-you-type box above the palette matching manufacturer, model, or category (case-insensitive), with a one-click clear
+- ✅ Align & distribute — **Tools → Align Left/Right/Top/Bottom** (2+ selected blocks) and **Distribute Horizontally/Vertically** (3+ selected; outermost blocks stay put, the middle ones spread to even center spacing); works on any selectable blocks, one undo step per action
+- ✅ Keyboard nudge — arrow keys move the selected blocks 1px, **Shift+arrow** 10px (canvas focused); a burst of presses coalesces into a single undo step
+- ✅ Device schedule export (Export → Device Schedule) — BOM-style CSV of the devices on the canvas, one row per manufacturer+model with quantity and category; sorted by category then manufacturer, UTF-8 BOM for Excel
 
 ## Features Planned / Not Yet Implemented
 - ⬜ Docker image published to GitHub Container Registry for one-command self-hosting (needs volume-mount planning for `devices.json`/`users.json`)
+- ⬜ Multi-sheet diagrams — one canvas per sheet (per room/floor) with tabs, shared cable types, and a combined cable schedule; broken connections become natural off-page references between sheets
+- ⬜ Signal path highlight — click a connection or device to light up the whole signal path, hopping across broken-connection pairs by matching label
+- ⬜ PDF title block — a proper drawing-style title block on the PDF export (project, client, drawn by, revision, sheet number) instead of the simple header line
 
 ## License
 [PolyForm Noncommercial 1.0.0](LICENSE) — free to use, modify, and share for any noncommercial purpose. Commercial use requires separate permission from the copyright holder. Note this is a "source-available" license, not an OSI-approved open source license — the Open Source Definition explicitly prohibits restricting commercial use, which is exactly the restriction this project needs.

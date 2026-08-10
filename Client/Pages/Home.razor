@@ -37,6 +37,13 @@
                 <div class="lf-dropdown-item" @onclick="() => { AutoLabelConnections(); CloseMenus(); }">🔢 Auto-Label Connections</div>
                 <div class="lf-dropdown-item" @onclick="() => { BreakAllConnections(); CloseMenus(); }">🔗 Break All Connections</div>
                 <div class="lf-dropdown-item" @onclick="() => { RejoinAllConnections(); CloseMenus(); }">🔗 Rejoin All Connections</div>
+                <div class="lf-dropdown-sep"></div>
+                <div class="lf-dropdown-item" @onclick='() => { AlignSelected("left"); CloseMenus(); }'>⇤ Align Left</div>
+                <div class="lf-dropdown-item" @onclick='() => { AlignSelected("right"); CloseMenus(); }'>⇥ Align Right</div>
+                <div class="lf-dropdown-item" @onclick='() => { AlignSelected("top"); CloseMenus(); }'>⤒ Align Top</div>
+                <div class="lf-dropdown-item" @onclick='() => { AlignSelected("bottom"); CloseMenus(); }'>⤓ Align Bottom</div>
+                <div class="lf-dropdown-item" @onclick="() => { DistributeSelected(true); CloseMenus(); }">↔ Distribute Horizontally</div>
+                <div class="lf-dropdown-item" @onclick="() => { DistributeSelected(false); CloseMenus(); }">↕ Distribute Vertically</div>
             </div>
         }
     </div>
@@ -49,6 +56,7 @@
                 <div class="lf-dropdown-item" @onclick="async () => { await ExportPdf(); CloseMenus(); }">📄 Export PDF</div>
                 <div class="lf-dropdown-item" @onclick="async () => { await ExportDxf(); CloseMenus(); }">📐 Export DXF</div>
                 <div class="lf-dropdown-item" @onclick="async () => { await ExportCableSchedule(); CloseMenus(); }">🧾 Cable Schedule (CSV)</div>
+                <div class="lf-dropdown-item" @onclick="async () => { await ExportDeviceSchedule(); CloseMenus(); }">📦 Device Schedule (CSV)</div>
             </div>
         }
     </div>
@@ -113,6 +121,15 @@
     <div class="side-panel">
         <div class="side-panel-header">Devices</div>
 
+        <div class="lf-search-row">
+            <input class="device-input lf-search-input" type="search" id="device-search" name="device-search"
+                   placeholder="🔍 Search devices…" @bind="_deviceSearch" @bind:event="oninput" />
+            @if (!string.IsNullOrEmpty(_deviceSearch))
+            {
+                <button class="device-action-btn lf-search-clear" title="Clear search" @onclick='() => _deviceSearch = ""'>✕</button>
+            }
+        </div>
+
         <div class="lf-sort-row">
             <span class="lf-sort-label">Sort by</span>
             <select class="device-input lf-sort-select" id="device-sort-mode" name="device-sort-mode" @bind="_deviceSortMode">
@@ -120,6 +137,11 @@
                 <option value="manufacturer">Manufacturer</option>
             </select>
         </div>
+
+        @if (!string.IsNullOrEmpty(_deviceSearch) && !GroupedDevices.Any())
+        {
+            <div class="cable-type-empty">No devices match "@_deviceSearch".</div>
+        }
 
         @foreach (var group in GroupedDevices)
         {
@@ -456,12 +478,20 @@
     private string? _clipboardJson = null; // in-app clipboard for copy/paste of nodes
     private int _pasteSequence = 0; // grows per paste so repeats don't stack exactly
     private string _deviceSortMode = "category"; // "category" or "manufacturer"
+    private string _deviceSearch = "";
+
+    // Case-insensitive match against manufacturer, model, or category.
+    private bool MatchesSearch(DeviceDefinition d) =>
+        string.IsNullOrWhiteSpace(_deviceSearch)
+        || d.Manufacturer.Contains(_deviceSearch, StringComparison.OrdinalIgnoreCase)
+        || d.Model.Contains(_deviceSearch, StringComparison.OrdinalIgnoreCase)
+        || d.Category.Contains(_deviceSearch, StringComparison.OrdinalIgnoreCase);
 
     private IEnumerable<IGrouping<string, DeviceDefinition>> GroupedDevices =>
         _deviceSortMode == "manufacturer"
-            ? _devices.OrderBy(d => d.Manufacturer, StringComparer.OrdinalIgnoreCase).ThenBy(d => d.Model)
+            ? _devices.Where(MatchesSearch).OrderBy(d => d.Manufacturer, StringComparer.OrdinalIgnoreCase).ThenBy(d => d.Model)
                 .GroupBy(d => d.Manufacturer, StringComparer.OrdinalIgnoreCase)
-            : _devices.OrderBy(d => d.Category, StringComparer.OrdinalIgnoreCase).ThenBy(d => d.Model)
+            : _devices.Where(MatchesSearch).OrderBy(d => d.Category, StringComparer.OrdinalIgnoreCase).ThenBy(d => d.Model)
                 .GroupBy(d => d.Category, StringComparer.OrdinalIgnoreCase);
 
     private string _currentUsername = "";
@@ -540,6 +570,14 @@
             shortcuts.SetShortcut("y", ctrl: true, shift: false, alt: false, _ => { Redo(); return ValueTask.CompletedTask; });
             shortcuts.SetShortcut("c", ctrl: true, shift: false, alt: false, _ => { CopySelection(); return ValueTask.CompletedTask; });
             shortcuts.SetShortcut("v", ctrl: true, shift: false, alt: false, _ => { PasteClipboard(); return ValueTask.CompletedTask; });
+
+            // Arrow-key nudge: 1px per press, 10px with Shift.
+            foreach (var (key, dx, dy) in new[] { ("ArrowLeft", -1.0, 0.0), ("ArrowRight", 1.0, 0.0), ("ArrowUp", 0.0, -1.0), ("ArrowDown", 0.0, 1.0) })
+            {
+                var (ndx, ndy) = (dx, dy);
+                shortcuts.SetShortcut(key, ctrl: false, shift: false, alt: false, _ => { NudgeSelection(ndx, ndy); return ValueTask.CompletedTask; });
+                shortcuts.SetShortcut(key, ctrl: false, shift: true, alt: false, _ => { NudgeSelection(ndx * 10, ndy * 10); return ValueTask.CompletedTask; });
+            }
         }
 
         await LoadDevices();
@@ -1415,6 +1453,80 @@
         if (broken.Count == 0) return;
         PushUndoSnapshot();
         foreach (var l in broken) SetLinkBroken(l, false);
+    }
+
+    // --- Align / distribute the selected blocks (Tools menu) ---
+
+    private List<NodeModel> SelectedNodes() => _diagram.Nodes.Where(n => n.Selected).ToList();
+
+    private void AlignSelected(string edge)
+    {
+        var nodes = SelectedNodes();
+        if (nodes.Count < 2) return;
+        PushUndoSnapshot();
+        double W(NodeModel n) => n.Size?.Width ?? 0;
+        double H(NodeModel n) => n.Size?.Height ?? 0;
+        switch (edge)
+        {
+            case "left":
+                double minX = nodes.Min(n => n.Position.X);
+                foreach (var n in nodes) n.SetPosition(minX, n.Position.Y);
+                break;
+            case "right":
+                double maxR = nodes.Max(n => n.Position.X + W(n));
+                foreach (var n in nodes) n.SetPosition(maxR - W(n), n.Position.Y);
+                break;
+            case "top":
+                double minY = nodes.Min(n => n.Position.Y);
+                foreach (var n in nodes) n.SetPosition(n.Position.X, minY);
+                break;
+            case "bottom":
+                double maxB = nodes.Max(n => n.Position.Y + H(n));
+                foreach (var n in nodes) n.SetPosition(n.Position.X, maxB - H(n));
+                break;
+        }
+        foreach (var n in nodes) n.Refresh();
+    }
+
+    // Spreads the middle blocks so all selected centers are evenly spaced between the
+    // outermost two (which stay put).
+    private void DistributeSelected(bool horizontal)
+    {
+        var nodes = SelectedNodes();
+        if (nodes.Count < 3) return;
+        PushUndoSnapshot();
+        double Cx(NodeModel n) => n.Position.X + (n.Size?.Width ?? 0) / 2;
+        double Cy(NodeModel n) => n.Position.Y + (n.Size?.Height ?? 0) / 2;
+        var ordered = (horizontal ? nodes.OrderBy(Cx) : nodes.OrderBy(Cy)).ToList();
+        double first = horizontal ? Cx(ordered[0]) : Cy(ordered[0]);
+        double last = horizontal ? Cx(ordered[^1]) : Cy(ordered[^1]);
+        double step = (last - first) / (ordered.Count - 1);
+        for (int i = 1; i < ordered.Count - 1; i++)
+        {
+            var n = ordered[i];
+            double target = first + step * i;
+            if (horizontal) n.SetPosition(target - (n.Size?.Width ?? 0) / 2, n.Position.Y);
+            else n.SetPosition(n.Position.X, target - (n.Size?.Height ?? 0) / 2);
+        }
+        foreach (var n in nodes) n.Refresh();
+    }
+
+    // Arrow-key nudge: 1px per press, 10px with Shift. A burst of presses lands on the
+    // undo stack as a single step.
+    private DateTime _lastNudgeUtc = DateTime.MinValue;
+
+    private void NudgeSelection(double dx, double dy)
+    {
+        var nodes = SelectedNodes();
+        if (nodes.Count == 0) return;
+        if (DateTime.UtcNow - _lastNudgeUtc > TimeSpan.FromSeconds(1.5))
+            PushUndoSnapshot();
+        _lastNudgeUtc = DateTime.UtcNow;
+        foreach (var n in nodes)
+        {
+            n.SetPosition(n.Position.X + dx, n.Position.Y + dy);
+            n.Refresh();
+        }
     }
 
     private void ShowContextMenu(double x, double y)
@@ -2422,6 +2534,36 @@
         }
 
         await JS.InvokeVoidAsync("saveAsFile", "cable-schedule.csv", sb.ToString());
+    }
+
+    // Export -> Device Schedule: a BOM of the devices on the canvas, grouped into one row
+    // per manufacturer+model with a quantity — the companion to the cable schedule for
+    // quoting/ordering. Sorted by category then manufacturer, like the palette.
+    private async Task ExportDeviceSchedule()
+    {
+        static string Csv(string? s)
+        {
+            s ??= "";
+            return s.Contains(',') || s.Contains('"') || s.Contains('\n') || s.Contains('\r')
+                ? "\"" + s.Replace("\"", "\"\"") + "\""
+                : s;
+        }
+
+        var rows = _diagram.Nodes.OfType<LineFlowNode>()
+            .GroupBy(n => (n.Device.Manufacturer, n.Device.Model, n.Device.Category))
+            .Select(g => new { Qty = g.Count(), g.Key.Manufacturer, g.Key.Model, g.Key.Category })
+            .OrderBy(r => r.Category, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Manufacturer, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Model, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append((char)0xFEFF); // BOM so Excel opens the CSV with correct (UTF-8) encoding
+        sb.AppendLine("Qty,Manufacturer,Model,Category");
+        foreach (var r in rows)
+            sb.AppendLine(string.Join(",", r.Qty.ToString(), Csv(r.Manufacturer), Csv(r.Model), Csv(r.Category)));
+
+        await JS.InvokeVoidAsync("saveAsFile", "device-schedule.csv", sb.ToString());
     }
 
     private async Task ExportPdf()
