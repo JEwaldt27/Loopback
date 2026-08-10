@@ -15,7 +15,7 @@
         @if (_openMenu == "file")
         {
             <div class="lf-dropdown-menu">
-                <div class="lf-dropdown-item" @onclick="() => { NewDiagram(); CloseMenus(); }">🆕 New</div>
+                <div class="lf-dropdown-item" @onclick="async () => { CloseMenus(); await NewDiagram(); }">🆕 New</div>
                 <div class="lf-dropdown-item" @onclick="async () => { await SaveDiagram(); CloseMenus(); }">💾 Save</div>
                 <label class="lf-dropdown-item">
                     📂 Open <InputFile id="open-file-input" name="open-file-input" OnChange="async e => { await OpenDiagram(e); CloseMenus(); }" accept=".lf" />
@@ -169,18 +169,48 @@
         <button class="add-device-btn" style="margin-top:16px;" @onclick="OpenAddDeviceModal">+ Add Device</button>
     </div>
 
-    <div class="canvas-area @(_placementMode != "" ? "canvas-placing" : "")"
-         @ondragover:preventDefault="true"
-         @ondrop="OnCanvasDrop"
-         @onclick="OnCanvasClick"
-         @onmousemove="OnCanvasMouseMove"
-         @onmouseup="OnCanvasMouseUp"
-         @oncontextmenu:preventDefault="true">
-        <CascadingValue Value="this" IsFixed="true">
-            <CascadingValue Value="_diagram">
-                <DiagramCanvas />
+    <div class="canvas-column">
+        <div class="canvas-area @(_placementMode != "" ? "canvas-placing" : "")"
+             @ondragover:preventDefault="true"
+             @ondrop="OnCanvasDrop"
+             @onclick="OnCanvasClick"
+             @onmousemove="OnCanvasMouseMove"
+             @onmouseup="OnCanvasMouseUp"
+             @oncontextmenu:preventDefault="true">
+            <CascadingValue Value="this" IsFixed="true">
+                <CascadingValue Value="_diagram">
+                    <DiagramCanvas />
+                </CascadingValue>
             </CascadingValue>
-        </CascadingValue>
+        </div>
+        <div class="lf-sheet-bar">
+            @for (int i = 0; i < _sheets.Count; i++)
+            {
+                var si = i;
+                <div class="lf-sheet-tab @(si == _activeSheetIndex ? "lf-sheet-tab-active" : "")"
+                     title="Double-click to rename"
+                     @onclick="() => SwitchSheet(si)" @ondblclick="() => StartRenameSheet(si)">
+                    @if (_renamingSheetIndex == si)
+                    {
+                        <input class="lf-sheet-rename" id="sheet-rename" name="sheet-rename"
+                               @bind="_renameSheetText" @bind:event="oninput"
+                               @onblur="CommitRenameSheet"
+                               @onclick:stopPropagation="true"
+                               @onkeydown='e => { if (e.Key == "Enter") CommitRenameSheet(); else if (e.Key == "Escape") _renamingSheetIndex = -1; }' />
+                    }
+                    else
+                    {
+                        <span class="lf-sheet-name">@_sheets[si].Name</span>
+                        @if (_sheets.Count > 1)
+                        {
+                            <span class="lf-sheet-close" title="Delete sheet" @onclick:stopPropagation="true"
+                                  @onclick="() => DeleteSheet(si)">✕</span>
+                        }
+                    }
+                </div>
+            }
+            <button class="lf-sheet-add" title="Add sheet" @onclick="AddSheet">＋</button>
+        </div>
     </div>
 
     <div class="cable-panel">
@@ -469,6 +499,25 @@
 
     private readonly List<string> _undoStack = new();
     private readonly List<string> _redoStack = new();
+
+    // --- Multi-sheet support ---
+    // Each sheet is an independent canvas (devices, connections, annotations, legend, and
+    // its own undo history); cable types, title, and file meta are shared document-wide.
+    // Only the active sheet lives in _diagram — inactive sheets are parked as serialized
+    // JSON, the same round-trip format undo/redo and .lf files already use.
+    private class Sheet
+    {
+        public string Name { get; set; } = "Sheet 1";
+        public string? Json { get; set; }              // parked state (null while active)
+        public List<string> UndoStack { get; } = new();
+        public List<string> RedoStack { get; } = new();
+    }
+
+    private const string EmptySheetJson = "{\"nodes\":[],\"links\":[]}";
+    private List<Sheet> _sheets = new() { new Sheet() };
+    private int _activeSheetIndex = 0;
+    private int _renamingSheetIndex = -1;
+    private string _renameSheetText = "";
     private const int MaxUndoDepth = 50;
     private string? _pendingPointerSnapshot = null;
     private bool _restoringState = false;
@@ -1244,6 +1293,106 @@
         InvokeAsync(StateHasChanged);
     }
 
+    // --- Sheet operations (tab bar under the canvas) ---
+
+    // Serializes the live canvas + undo history into the active Sheet record.
+    private void ParkActiveSheet()
+    {
+        var s = _sheets[_activeSheetIndex];
+        s.Json = SerializeDiagramState();
+        s.UndoStack.Clear(); s.UndoStack.AddRange(_undoStack);
+        s.RedoStack.Clear(); s.RedoStack.AddRange(_redoStack);
+    }
+
+    // Loads a parked sheet into the live canvas. The shared cable types survive the swap:
+    // LoadDiagramJson replaces them from whatever the sheet JSON embeds (or clears them
+    // when absent), so the document-wide set is restored afterwards and links recolored.
+    private void ActivateSheet(int index)
+    {
+        _activeSheetIndex = index;
+        var s = _sheets[index];
+        var sharedTypes = _cableTypes.ToList();
+        _pendingPointerSnapshot = null;
+        _restoringState = true;
+        try { LoadDiagramJson(s.Json ?? EmptySheetJson); }
+        finally { _restoringState = false; }
+        _cableTypes.Clear();
+        _cableTypes.AddRange(sharedTypes);
+        RefreshAllLinkColors();
+        _undoStack.Clear(); _undoStack.AddRange(s.UndoStack);
+        _redoStack.Clear(); _redoStack.AddRange(s.RedoStack);
+        s.Json = null; s.UndoStack.Clear(); s.RedoStack.Clear();
+    }
+
+    private void SwitchSheet(int index)
+    {
+        if (index == _activeSheetIndex || index < 0 || index >= _sheets.Count) return;
+        _renamingSheetIndex = -1;
+        ParkActiveSheet();
+        ActivateSheet(index);
+        StateHasChanged();
+    }
+
+    private void AddSheet()
+    {
+        _renamingSheetIndex = -1;
+        ParkActiveSheet();
+        _sheets.Add(new Sheet { Name = NextSheetName() });
+        ActivateSheet(_sheets.Count - 1);
+        MarkDirty();
+    }
+
+    private string NextSheetName()
+    {
+        for (int n = _sheets.Count + 1; ; n++)
+        {
+            var name = $"Sheet {n}";
+            if (!_sheets.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                return name;
+        }
+    }
+
+    private async Task DeleteSheet(int index)
+    {
+        if (_sheets.Count <= 1 || index < 0 || index >= _sheets.Count) return;
+        var name = _sheets[index].Name;
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete sheet \"{name}\" and everything on it? This cannot be undone."))
+            return;
+        _renamingSheetIndex = -1;
+        if (index == _activeSheetIndex)
+        {
+            _sheets.RemoveAt(index);
+            ActivateSheet(Math.Max(0, index - 1));
+        }
+        else
+        {
+            _sheets.RemoveAt(index);
+            if (index < _activeSheetIndex) _activeSheetIndex--;
+        }
+        MarkDirty();
+        StateHasChanged();
+    }
+
+    private void StartRenameSheet(int index)
+    {
+        _renamingSheetIndex = index;
+        _renameSheetText = _sheets[index].Name;
+    }
+
+    private void CommitRenameSheet()
+    {
+        if (_renamingSheetIndex >= 0 && _renamingSheetIndex < _sheets.Count)
+        {
+            var name = _renameSheetText.Trim();
+            if (name.Length > 0 && name != _sheets[_renamingSheetIndex].Name)
+            {
+                _sheets[_renamingSheetIndex].Name = name;
+                MarkDirty();
+            }
+        }
+        _renamingSheetIndex = -1;
+    }
+
     // Drag-style edits (node moves, bend drags, resizes, text edits) capture a snapshot
     // when the gesture starts and commit it as an undo step only if the diagram actually
     // changed by the time the gesture ends.
@@ -1928,10 +2077,18 @@
         StateHasChanged();
     }
 
-    private void NewDiagram()
+    private async Task NewDiagram()
     {
-        if (_diagram.Nodes.Count > 0 || _diagram.Links.Count > 0)
-            PushUndoSnapshot();
+        // New replaces the whole document (all sheets) — confirm instead of relying on
+        // undo, which is per sheet and never spans documents.
+        if (_isDirty && !await JS.InvokeAsync<bool>("confirm", "Start a new diagram? Unsaved changes will be lost."))
+            return;
+        _undoStack.Clear();
+        _redoStack.Clear();
+        _pendingPointerSnapshot = null;
+        _sheets = new List<Sheet> { new Sheet() };
+        _activeSheetIndex = 0;
+        _renamingSheetIndex = -1;
         _loadingDiagram = true;
         try
         {
@@ -2242,6 +2399,19 @@
         PasteClipboard();
     }
 
+    // Extracts a sheet's canvas content from parked JSON as {name, nodes, links, boxes,
+    // lines, texts, legend} — shared properties (cableTypes/meta) are written once at the
+    // document root instead.
+    private static Dictionary<string, object?> SheetContentFromJson(string name, string json)
+    {
+        var dict = new Dictionary<string, object?> { ["name"] = name };
+        using var doc = JsonDocument.Parse(json);
+        foreach (var prop in doc.RootElement.EnumerateObject())
+            if (prop.Name is "nodes" or "links" or "boxes" or "lines" or "texts" or "legend")
+                dict[prop.Name] = prop.Value.Clone();
+        return dict;
+    }
+
     private async Task SaveDiagram()
     {
         var now = DateTimeOffset.UtcNow;
@@ -2253,13 +2423,19 @@
         _modifiedBy = _currentUsername;
         _modifiedAt = now;
 
-        var data = BuildDiagramData();
-        data["meta"] = new
+        ParkActiveSheet();   // sync the active sheet's parked JSON
+        var data = new Dictionary<string, object?>
         {
-            createdBy = _createdBy,
-            createdAt = _createdAt,
-            modifiedBy = _modifiedBy,
-            modifiedAt = _modifiedAt
+            ["sheets"] = _sheets.Select(s => SheetContentFromJson(s.Name, s.Json ?? EmptySheetJson)).ToList(),
+            ["activeSheet"] = _activeSheetIndex,
+            ["cableTypes"] = _cableTypes.Select(c => new { name = c.Name, color = c.Color, prefix = c.Prefix, partNumber = c.PartNumber, cableColor = c.CableColor }).ToList(),
+            ["meta"] = new
+            {
+                createdBy = _createdBy,
+                createdAt = _createdAt,
+                modifiedBy = _modifiedBy,
+                modifiedAt = _modifiedAt
+            }
         };
 
         var json = JsonSerializer.Serialize(data,
@@ -2275,8 +2451,10 @@
         using var reader = new System.IO.StreamReader(stream);
         var json = await reader.ReadToEndAsync();
 
-        if (_diagram.Nodes.Count > 0 || _diagram.Links.Count > 0)
-            PushUndoSnapshot();
+        // Opening replaces the whole document (all sheets), so cross-document undo would
+        // be unsound — guard with a confirm instead when there are unsaved changes.
+        if (_isDirty && !await JS.InvokeAsync<bool>("confirm", "Open this file? Unsaved changes will be lost."))
+            return;
 
         // Older files saved before metadata tracking simply leave these reset.
         _createdBy = "";
@@ -2284,8 +2462,73 @@
         _modifiedBy = "";
         _modifiedAt = null;
 
-        LoadDiagramJson(json);
+        LoadDocumentJson(json);
         MarkClean();
+    }
+
+    // Loads a whole .lf document. New-format files carry a "sheets" array with shared
+    // cableTypes/meta at the root; older single-sheet files ARE the sheet, so they load
+    // as "Sheet 1" through the same per-sheet path. Undo history resets — it's per sheet
+    // and never spans documents.
+    private void LoadDocumentJson(string json)
+    {
+        _undoStack.Clear();
+        _redoStack.Clear();
+        _pendingPointerSnapshot = null;
+
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        if (root.TryGetProperty("sheets", out var sheetsEl) && sheetsEl.ValueKind == JsonValueKind.Array)
+        {
+            _sheets = sheetsEl.EnumerateArray()
+                .Select((el, i) => new Sheet
+                {
+                    Name = el.TryGetProperty("name", out var nEl) && nEl.ValueKind == JsonValueKind.String
+                        ? nEl.GetString() ?? $"Sheet {i + 1}"
+                        : $"Sheet {i + 1}",
+                    Json = el.GetRawText()
+                })
+                .ToList();
+            if (_sheets.Count == 0) _sheets = new List<Sheet> { new Sheet() };
+
+            int active = root.TryGetProperty("activeSheet", out var aEl) && aEl.ValueKind == JsonValueKind.Number
+                ? Math.Clamp(aEl.GetInt32(), 0, _sheets.Count - 1)
+                : 0;
+
+            // Meta lives at the document root in the sheets format.
+            if (root.TryGetProperty("meta", out var metaEl) && metaEl.ValueKind == JsonValueKind.Object)
+            {
+                _createdBy = metaEl.TryGetProperty("createdBy", out var cb) ? cb.GetString() ?? "" : "";
+                _createdAt = metaEl.TryGetProperty("createdAt", out var ca) && ca.ValueKind != JsonValueKind.Null ? ca.GetDateTimeOffset() : null;
+                _modifiedBy = metaEl.TryGetProperty("modifiedBy", out var mb) ? mb.GetString() ?? "" : "";
+                _modifiedAt = metaEl.TryGetProperty("modifiedAt", out var ma) && ma.ValueKind != JsonValueKind.Null ? ma.GetDateTimeOffset() : null;
+            }
+
+            // Load the active sheet's canvas, then install the shared cable types (the
+            // sheet JSON has none of its own) and recolor.
+            ActivateSheet(active);
+            _cableTypes.Clear();
+            if (root.TryGetProperty("cableTypes", out var ctsEl) && ctsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var ctEl in ctsEl.EnumerateArray())
+                    _cableTypes.Add(new CableType
+                    {
+                        Name = ctEl.TryGetProperty("name", out var cn) ? cn.GetString() ?? "" : "",
+                        Color = ctEl.TryGetProperty("color", out var cc) ? cc.GetString() ?? "#e94560" : "#e94560",
+                        Prefix = ctEl.TryGetProperty("prefix", out var cp) ? cp.GetString() ?? "" : "",
+                        PartNumber = ctEl.TryGetProperty("partNumber", out var cpn) ? cpn.GetString() ?? "" : "",
+                        CableColor = ctEl.TryGetProperty("cableColor", out var ccl) ? ccl.GetString() ?? "" : ""
+                    });
+            }
+            RefreshAllLinkColors();
+        }
+        else
+        {
+            // Legacy single-sheet file: the root IS the sheet (including its cableTypes).
+            _sheets = new List<Sheet> { new Sheet() };
+            _activeSheetIndex = 0;
+            LoadDiagramJson(json);
+        }
     }
 
     // Rebuilds the entire canvas from serialized diagram JSON. Used by both file open
@@ -2486,72 +2729,106 @@
         StateHasChanged();
     }
 
-    // Exports a cable schedule (pull sheet) as CSV: one row per connection with its label,
-    // signal type, and the source/destination device + port. Sorted by source device then
-    // source port so cables from the same box group together.
+    private static string Csv(string? s)
+    {
+        s ??= "";
+        return s.Contains(',') || s.Contains('"') || s.Contains('\n') || s.Contains('\r')
+            ? "\"" + s.Replace("\"", "\"\"") + "\""
+            : s;
+    }
+
+    // Both schedule exports cover EVERY sheet, so they read from each sheet's parked JSON
+    // (the active sheet is parked first) instead of the live diagram. Yields (sheet name,
+    // sheet root) pairs; consume each before advancing \u2014 the backing JsonDocument is
+    // disposed when the iterator moves on.
+    private IEnumerable<(string Name, JsonElement Root)> AllSheetRoots()
+    {
+        ParkActiveSheet();
+        foreach (var s in _sheets)
+        {
+            using var doc = JsonDocument.Parse(s.Json ?? EmptySheetJson);
+            yield return (s.Name, doc.RootElement);
+        }
+    }
+
+    // Exports a cable schedule (pull sheet) as CSV: one row per connection across ALL
+    // sheets, with its sheet, label, signal type, and source/destination device + port.
+    // Sheets appear in tab order; within a sheet, rows sort by source device then source
+    // port so cables from the same box group together.
     private async Task ExportCableSchedule()
     {
-        static string Csv(string? s)
-        {
-            s ??= "";
-            return s.Contains(',') || s.Contains('"') || s.Contains('\n') || s.Contains('\r')
-                ? "\"" + s.Replace("\"", "\"\"") + "\""
-                : s;
-        }
+        var rows = new List<(string Sheet, string Cable, string CableType, string Signal, string FromDevice, string FromPort, string ToDevice, string ToPort)>();
 
-        var rows = _diagram.Links
-            .Where(l => l.Source.Model is LineFlowPort && l.Target?.Model is LineFlowPort)
-            .Select(l =>
+        foreach (var (sheetName, root) in AllSheetRoots())
+        {
+            // id -> (title, ports) lookup for this sheet's devices
+            var nodes = new Dictionary<string, (string Title, List<PortDefinition> Ports)>();
+            foreach (var n in root.GetProperty("nodes").EnumerateArray())
             {
-                var sp = (LineFlowPort)l.Source.Model!;
-                var tp = (LineFlowPort)l.Target!.Model!;
-                return new
-                {
-                    Cable = (l as ElbowLinkModel)?.LabelText ?? "",
-                    CableType = (l as ElbowLinkModel)?.CableTypeName ?? "",
-                    PartNumber = _cableTypes.FirstOrDefault(c => c.Name == (l as ElbowLinkModel)?.CableTypeName)?.PartNumber ?? "",
-                    CableColor = _cableTypes.FirstOrDefault(c => c.Name == (l as ElbowLinkModel)?.CableTypeName)?.CableColor ?? "",
-                    Signal = sp.Definition.Type,
-                    FromDevice = sp.Parent.Title ?? "",
-                    FromPort = sp.Definition.Name,
-                    ToDevice = tp.Parent.Title ?? "",
-                    ToPort = tp.Definition.Name
-                };
-            })
-            .OrderBy(r => r.FromDevice, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(r => r.FromPort, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+                var mfr = n.TryGetProperty("manufacturer", out var mEl) ? mEl.GetString() ?? "" : "";
+                var model = n.TryGetProperty("model", out var moEl) ? moEl.GetString() ?? "" : "";
+                var ports = n.TryGetProperty("ports", out var pEl) ? pEl.Deserialize<List<PortDefinition>>() ?? new() : new();
+                nodes[n.GetProperty("id").GetString()!] = ($"{mfr} {model}".Trim(), ports);
+            }
+
+            var sheetRows = new List<(string Sheet, string Cable, string CableType, string Signal, string FromDevice, string FromPort, string ToDevice, string ToPort, int PortIdx)>();
+            foreach (var l in root.GetProperty("links").EnumerateArray())
+            {
+                if (!nodes.TryGetValue(l.GetProperty("sourceNodeId").GetString() ?? "", out var src)) continue;
+                if (!nodes.TryGetValue(l.GetProperty("targetNodeId").GetString() ?? "", out var tgt)) continue;
+                int spi = l.GetProperty("sourcePortIndex").GetInt32();
+                int tpi = l.GetProperty("targetPortIndex").GetInt32();
+                if (spi >= src.Ports.Count || tpi >= tgt.Ports.Count) continue;
+                sheetRows.Add((
+                    sheetName,
+                    l.TryGetProperty("label", out var lbEl) ? lbEl.GetString() ?? "" : "",
+                    l.TryGetProperty("cableType", out var ctEl) && ctEl.ValueKind == JsonValueKind.String ? ctEl.GetString() ?? "" : "",
+                    src.Ports[spi].Type,
+                    src.Title, src.Ports[spi].Name,
+                    tgt.Title, tgt.Ports[tpi].Name,
+                    spi));
+            }
+            rows.AddRange(sheetRows
+                .OrderBy(r => r.FromDevice, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(r => r.PortIdx)
+                .Select(r => (r.Sheet, r.Cable, r.CableType, r.Signal, r.FromDevice, r.FromPort, r.ToDevice, r.ToPort)));
+        }
 
         var sb = new System.Text.StringBuilder();
         sb.Append('\uFEFF'); // BOM so Excel opens the CSV with correct (UTF-8) encoding
-        sb.AppendLine("#,Cable,Cable Type,Part Number,Cable Color,Signal,From Device,From Port,To Device,To Port");
+        sb.AppendLine("#,Sheet,Cable,Cable Type,Part Number,Cable Color,Signal,From Device,From Port,To Device,To Port");
         int i = 1;
         foreach (var r in rows)
         {
+            var ct = _cableTypes.FirstOrDefault(c => c.Name == r.CableType);
             sb.AppendLine(string.Join(",",
-                i++.ToString(), Csv(r.Cable), Csv(r.CableType), Csv(r.PartNumber), Csv(r.CableColor), Csv(r.Signal),
-                Csv(r.FromDevice), Csv(r.FromPort), Csv(r.ToDevice), Csv(r.ToPort)));
+                i++.ToString(), Csv(r.Sheet), Csv(r.Cable), Csv(r.CableType), Csv(ct?.PartNumber ?? ""), Csv(ct?.CableColor ?? ""),
+                Csv(r.Signal), Csv(r.FromDevice), Csv(r.FromPort), Csv(r.ToDevice), Csv(r.ToPort)));
         }
 
         await JS.InvokeVoidAsync("saveAsFile", "cable-schedule.csv", sb.ToString());
     }
 
-    // Export -> Device Schedule: a BOM of the devices on the canvas, grouped into one row
-    // per manufacturer+model with a quantity — the companion to the cable schedule for
-    // quoting/ordering. Sorted by category then manufacturer, like the palette.
+    // Export -> Device Schedule: a BOM of the devices across ALL sheets, grouped into one
+    // row per manufacturer+model with a quantity — the companion to the cable schedule
+    // for quoting/ordering. Sorted by category then manufacturer, like the palette.
     private async Task ExportDeviceSchedule()
     {
-        static string Csv(string? s)
+        var counts = new Dictionary<(string Mfr, string Model, string Cat), int>();
+        foreach (var (_, root) in AllSheetRoots())
         {
-            s ??= "";
-            return s.Contains(',') || s.Contains('"') || s.Contains('\n') || s.Contains('\r')
-                ? "\"" + s.Replace("\"", "\"\"") + "\""
-                : s;
+            foreach (var n in root.GetProperty("nodes").EnumerateArray())
+            {
+                var key = (
+                    n.TryGetProperty("manufacturer", out var mEl) ? mEl.GetString() ?? "" : "",
+                    n.TryGetProperty("model", out var moEl) ? moEl.GetString() ?? "" : "",
+                    n.TryGetProperty("category", out var cEl) ? cEl.GetString() ?? "" : "");
+                counts[key] = counts.GetValueOrDefault(key) + 1;
+            }
         }
 
-        var rows = _diagram.Nodes.OfType<LineFlowNode>()
-            .GroupBy(n => (n.Device.Manufacturer, n.Device.Model, n.Device.Category))
-            .Select(g => new { Qty = g.Count(), g.Key.Manufacturer, g.Key.Model, g.Key.Category })
+        var rows = counts
+            .Select(kv => new { Qty = kv.Value, Manufacturer = kv.Key.Mfr, kv.Key.Model, Category = kv.Key.Cat })
             .OrderBy(r => r.Category, StringComparer.OrdinalIgnoreCase)
             .ThenBy(r => r.Manufacturer, StringComparer.OrdinalIgnoreCase)
             .ThenBy(r => r.Model, StringComparer.OrdinalIgnoreCase)
@@ -2605,7 +2882,11 @@
             bh = (maxY - minY) + 2 * margin;
         }
 
-        await JS.InvokeVoidAsync("exportToPdf", _diagramTitle, AppVersion.Version, bx, by, bw, bh);
+        // PDF captures the ACTIVE sheet; with several sheets the header names which one.
+        var pdfTitle = _sheets.Count > 1
+            ? $"{(string.IsNullOrWhiteSpace(_diagramTitle) ? "Line Flow Diagram" : _diagramTitle)} — {_sheets[_activeSheetIndex].Name}"
+            : _diagramTitle;
+        await JS.InvokeVoidAsync("exportToPdf", pdfTitle, AppVersion.Version, bx, by, bw, bh);
     }
 
     private async Task ExportDxf()

@@ -445,11 +445,85 @@ html, body {
         background: #e94560;
     }
 
+.canvas-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
 .canvas-area {
     flex: 1;
     overflow: hidden;
     background: #f0f0f0;
 }
+
+/* Sheet tabs under the canvas (Excel-style) */
+.lf-sheet-bar {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 3px 6px 4px;
+    background: #16213e;
+    border-top: 1px solid #0f3460;
+    overflow-x: auto;
+    flex-shrink: 0;
+}
+
+.lf-sheet-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #bbb;
+    background: #0f3460;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+
+.lf-sheet-tab:hover { color: #fff; }
+
+.lf-sheet-tab-active {
+    color: #fff;
+    background: #1a1a2e;
+    border-color: #e94560;
+}
+
+.lf-sheet-close {
+    font-size: 10px;
+    color: #888;
+    padding: 0 2px;
+}
+
+.lf-sheet-close:hover { color: #e94560; }
+
+.lf-sheet-rename {
+    width: 110px;
+    font-size: 12px;
+    padding: 1px 4px;
+    background: #1a1a2e;
+    color: #fff;
+    border: 1px solid #e94560;
+    border-radius: 3px;
+    outline: none;
+}
+
+.lf-sheet-add {
+    padding: 0 10px;
+    font-size: 13px;
+    color: #bbb;
+    background: transparent;
+    border: 1px dashed #446;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.lf-sheet-add:hover { color: #fff; border-color: #e94560; }
 
 .canvas-placing {
     cursor: crosshair;

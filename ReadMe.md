@@ -63,7 +63,7 @@ dotnet run --project Server
 ## Key Architecture Decisions
 
 ### File Format (.lf)
-Diagrams save as `.lf` files — JSON under the hood with this structure:
+Diagrams save as `.lf` files — JSON under the hood. A document is a set of **sheets** (one canvas each — tabs under the canvas in the app) plus document-wide shared data: `cableTypes`, `meta`, and `activeSheet` (which tab was open at save time):
 ```json
 {
   "meta": {
@@ -72,6 +72,16 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
     "modifiedBy": "asmith",
     "modifiedAt": "2026-07-06T19:05:00Z"
   },
+  "activeSheet": 0,
+  "cableTypes": [ ... ],
+  "sheets": [
+    { "name": "Room 101", "nodes": [ ... ], "links": [ ... ], "boxes": [ ... ], "lines": [ ... ], "texts": [ ... ], "legend": { ... } }
+  ]
+}
+```
+Files saved before multi-sheet existed have no `sheets` property — the root itself is the sheet content (including its own `cableTypes`); they open as a single "Sheet 1" untouched. Sheet content looks like:
+```json
+{
   "nodes": [
     {
       "id": "guid",
@@ -101,18 +111,21 @@ Diagrams save as `.lf` files — JSON under the hood with this structure:
       "broken": false,
       "srcTagX": 460.0, "srcTagY": 210.0, "tgtTagX": 610.0, "tgtTagY": 290.0
     }
-  ],
-  "cableTypes": [
-    { "name": "HDMI", "color": "#22cc44", "prefix": "VID", "partNumber": "Belden 1694A", "cableColor": "Black" },
-    { "name": "Audio", "color": "#ff8800", "prefix": "AUD", "partNumber": "Belden 8451", "cableColor": "Blue" }
   ]
 }
+```
+The shared `cableTypes` array (document root) looks like:
+```json
+"cableTypes": [
+  { "name": "HDMI", "color": "#22cc44", "prefix": "VID", "partNumber": "Belden 1694A", "cableColor": "Black" },
+  { "name": "Audio", "color": "#ff8800", "prefix": "AUD", "partNumber": "Belden 8451", "cableColor": "Blue" }
+]
 ```
 `vertices` holds every bend point along the connection, in order from source to target. Older files saved a single `midX` value instead — these still load fine (see Backward Compatibility below).
 
 `label`/`labelX`/`labelY` are omitted (or `label` is `""`) for connections with no label. `labelX`/`labelY` record the label's actual on-canvas position (which the user can drag independently — see Connection Labels below); if they're missing on an older file that only has `label`, the position is recomputed from the connection's route midpoint on open. `labelRotation` is the label's clockwise angle in degrees (0/90/180/270); it defaults to 0 when absent. Each device node also carries a `backgroundColor` (a hex string or `"transparent"`) for its block fill, a `borderColor` (hex) for its outline, and a `textColor` (hex) for its title + port labels; they default to navy `#16213e` / coral `#e94560` / white `#ffffff` when absent.
 
-`cableTypes` is the per-diagram palette of user-defined cabling types (`name` + on-screen `color` + optional `prefix`, `partNumber`, and `cableColor` — the physical jacket color as free text), managed in the right-side **Cable Types** panel. The part number and cable color appear in each **legend** row (after the name) and as columns in the **Cable Schedule** CSV. The `prefix` feeds auto-labeling: **Tools → Auto-Label Connections** numbers every connection per its cable type's prefix, starting at 1 (e.g. `VID-1`, `VID-2`), in cable-schedule order (by source device/port); connections with no cable type or no prefix are left untouched, and the generated labels are ordinary labels you can still edit or move. Each link's `cableType` names the type it's assigned (omitted/`null` = unassigned → neutral gray). `broken: true` hides the connection's long middle line and instead shows two identical **label blocks** — one per end, carrying the connection's label — each tied to its port by a short stub connection (a readability aid for busy diagrams; it's purely visual — still one logical connection in the schedule/legend). The blocks are ordinary diagram nodes: drag them anywhere and the stub follows; right-click one for the connection's menu (Rejoin etc.). New blocks start just outside their port, stepped outward when others already sit on the same device side. `srcTagX/Y` + `tgtTagX/Y` record each block's canvas position (absent = default placement on load); the blocks and stubs themselves are derived state, rebuilt from these fields rather than saved as first-class nodes. A connection's on-screen color comes from its cable type's color; port dots are always black. This replaces the old auto-coloring by signal type — the port `Type` field is retained as data (shown in the Cable Schedule "Signal" column) but no longer drives any color, and the legend now lists cable types.
+`cableTypes` is the **document-wide** (shared across all sheets) palette of user-defined cabling types (`name` + on-screen `color` + optional `prefix`, `partNumber`, and `cableColor` — the physical jacket color as free text), managed in the right-side **Cable Types** panel. The part number and cable color appear in each **legend** row (after the name) and as columns in the **Cable Schedule** CSV. The `prefix` feeds auto-labeling: **Tools → Auto-Label Connections** numbers every connection per its cable type's prefix, starting at 1 (e.g. `VID-1`, `VID-2`), in cable-schedule order (by source device/port); connections with no cable type or no prefix are left untouched, and the generated labels are ordinary labels you can still edit or move. Each link's `cableType` names the type it's assigned (omitted/`null` = unassigned → neutral gray). `broken: true` hides the connection's long middle line and instead shows two identical **label blocks** — one per end, carrying the connection's label — each tied to its port by a short stub connection (a readability aid for busy diagrams; it's purely visual — still one logical connection in the schedule/legend). The blocks are ordinary diagram nodes: drag them anywhere and the stub follows; right-click one for the connection's menu (Rejoin etc.). New blocks start just outside their port, stepped outward when others already sit on the same device side. `srcTagX/Y` + `tgtTagX/Y` record each block's canvas position (absent = default placement on load); the blocks and stubs themselves are derived state, rebuilt from these fields rather than saved as first-class nodes. A connection's on-screen color comes from its cable type's color; port dots are always black. This replaces the old auto-coloring by signal type — the port `Type` field is retained as data (shown in the Cable Schedule "Signal" column) but no longer drives any color, and the legend now lists cable types.
 
 `meta` is stamped automatically on Save: the first save of a new diagram sets `createdBy`/`createdAt` to the signed-in user and current time; every save (including the first) updates `modifiedBy`/`modifiedAt`. It's read back on Open and shown in a thin info bar under the toolbar (e.g. "Created by jdoe on Jul 6, 2026 3:12 PM · Last modified by asmith on Jul 6, 2026 4:05 PM"). Files saved before this feature existed simply have no `meta` block — they open fine, the info bar just stays hidden until the next save.
 
@@ -202,9 +215,9 @@ Right-click a connection → **🏷 Add Label** / **Edit Label** opens a small m
 - Included in DXF export as a centered `TEXT` entity on the `CONNECTIONS` layer, positioned at the label node's actual (possibly user-dragged) position — not recomputed — for consistency with what's on screen. Its rotation is emitted via DXF group code `50`; the screen's clockwise angle maps directly to DXF's counterclockwise-positive convention because the export flips the Y axis.
 
 ### Undo/Redo
-Snapshot-based, not command-based: every mutation pushes a full serialized-diagram JSON snapshot (via `SerializeDiagramState()`, which shares `BuildDiagramData()` with `.lf` saves) onto `_undoStack` (capped at 50); undo/redo restore by rebuilding the whole canvas through `LoadDiagramJson()` — the same code path as file open, so restore fidelity is guaranteed to match save/open fidelity. Snapshots exclude the `meta` block so undo never rewrites the created-by/modified-by info bar.
+Snapshot-based, not command-based: every mutation pushes a full serialized-diagram JSON snapshot (via `SerializeDiagramState()`, which shares `BuildDiagramData()` with `.lf` saves) onto `_undoStack` (capped at 50); undo/redo restore by rebuilding the whole canvas through `LoadDiagramJson()` — the same code path as file open, so restore fidelity is guaranteed to match save/open fidelity. Snapshots exclude the `meta` block so undo never rewrites the created-by/modified-by info bar. History is **per sheet** (each sheet parks its own stacks when inactive); New and Open replace the whole document, so they confirm when there are unsaved changes rather than going on the stack.
 
-- **Discrete operations** (place device/annotation, draw connection, add/remove bend, label changes, deletes, New, Open, legend) call `PushUndoSnapshot()` *before* mutating.
+- **Discrete operations** (place device/annotation, draw connection, add/remove bend, label changes, deletes, align/distribute, legend) call `PushUndoSnapshot()` *before* mutating.
 - **Drag-style edits** (node moves, bend-handle drags, box resizes, line-endpoint drags, text edits, text font/color changes) use a capture/commit pair: `CapturePointerSnapshot()` stores state when the gesture starts (diagram `PointerDown` on a model, `StartResize`, text-edit begin), and `CommitPointerSnapshot()` (canvas `mouseup`, text-edit end) pushes it **only if the serialized state actually changed** — so plain clicks and selections never pollute the stack.
 - **Delete key**: the library's default Delete shortcut is re-registered with a wrapper that snapshots first, then calls `KeyboardShortcutsDefaults.DeleteSelection`.
 - **Shortcuts**: Ctrl+Z / Ctrl+Y, registered on the library's `KeyboardShortcutsBehavior` — they only fire when the diagram canvas has focus, so they don't hijack text-field undo in inputs. Toolbar ↩/↪ buttons mirror them, disabled when their stack is empty.
@@ -409,7 +422,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Legend node — click "Legend" to add a draggable canvas node with a column-headed **table** of the cable types actually used in the current diagram (swatch · Cable Type · Part # · Color; the Part #/Color columns appear only when set)
 - ✅ PDF export (white background, title + date + version header, direct download) — captures the **entire** diagram regardless of size or where the user has panned/zoomed, without ever touching the live view. How: `ExportPdf` computes the diagram's raw-coordinate bounds (node boxes **plus connection routing vertices** — elbow bends can extend far beyond the nodes they join) and passes them to `exportToPdf`, which restyles the **clone** html2canvas renders (`onclone`): the canvas area and layers are resized to the full bounds, the SVG layer gets a matching `viewBox`, and the HTML layer a matching translate. The `viewBox` is the load-bearing part: **html2canvas rasterizes inline SVGs clipped to the SVG element's own box**, and the connection lines live in an SVG layer sized to the visible viewport while using raw diagram coordinates — so any line geometry beyond the viewport's pixel size was silently cut from captures (while rendering fine live via `overflow: visible`). No zoom-the-diagram-first approach can fix that, which is why earlier attempts kept clipping lines; remapping coordinates with a `viewBox` in the rasterized clone does. Output is capped at ~8000px per side and placed on the page preserving aspect ratio.
 - ✅ DXF export (AutoCAD compatible, NODES + CONNECTIONS layers), generating the same multi-segment path as the live app's routing
-- ✅ Cable schedule export (Export → Cable Schedule) — CSV pull sheet with one row per connection: cable label, cable type, part number, cable color, signal type, source device + port, destination device + port; sorted by source device, CSV-escaped, UTF-8 BOM so Excel opens it cleanly
+- ✅ Cable schedule export (Export → Cable Schedule) — CSV pull sheet with one row per connection **across every sheet** (Sheet column included): cable label, cable type, part number, cable color, signal type, source device + port, destination device + port; sheets in tab order, sorted by source device within a sheet, CSV-escaped, UTF-8 BOM so Excel opens it cleanly
 - ✅ Zoom and pan on canvas
 - ✅ Freeform annotations — Box (resizable rectangle, no fill), Line (2-point freeform line with draggable endpoints, not attached to ports), and Text (click-to-place, editable, with font size/color controls); all three are selectable/deletable, saved in `.lf` files, and included in PDF and DXF exports (DXF `ANNOTATIONS` layer)
 - ✅ Per-user authentication — cookie-based login gating the entire app, first-run admin setup, Admin/User roles, in-app "Manage Users" page, account menu with Logout (see Authentication & User Management above)
@@ -418,7 +431,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Connection labels — right-click a connection to add/edit a text label (e.g. "VID-005"); draggable, rotatable in 90° increments (right-click the label → ↻ Rotate Label 90°), saved in `.lf` files, included in DXF export, and PDF-export-safe (see Connection Labels above for why that needed a custom rendering path)
 - ✅ Windows desktop wrapper (`Desktop/`, .NET MAUI) — native window shell with a configurable server address (Settings page, persisted via `Preferences`), not tied to a hardcoded URL (see Desktop Wrapper above)
 - ✅ Zoom-to-fit — double-click the middle mouse button (mouse wheel) anywhere on the canvas to frame the entire diagram in the viewport; a recovery gesture for when you've zoomed/panned the content out of view (`ZoomToFitContent` in `Home.razor`, wired via `registerMiddleDblClickZoom` in `index.html`)
-- ✅ Undo/redo — Ctrl+Z / Ctrl+Y (canvas focused) or toolbar ↩/↪ buttons; covers placements, connections, bends, labels, moves, resizes, text edits, deletes, New, and Open (see Undo/Redo above)
+- ✅ Undo/redo — Ctrl+Z / Ctrl+Y (canvas focused) or toolbar ↩/↪ buttons; covers placements, connections, bends, labels, moves, resizes, text edits, and deletes. History is **per sheet**; New and Open are guarded by an unsaved-changes confirm instead of undo (see Undo/Redo above)
 - ✅ Legend persistence — legends are now saved in `.lf` files and restored on open
 - ✅ Unsaved-changes warning — browser prompt before closing the tab with unsaved work, plus an amber "● Unsaved" toolbar badge (see Unsaved-Changes Warning above)
 - ✅ Copy/paste & duplicate — Ctrl+C / Ctrl+V or right-click → Duplicate; copies selected nodes plus the connections (and labels) between them (see Copy / Paste above)
@@ -428,11 +441,11 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Device library search — a filter-as-you-type box above the palette matching manufacturer, model, or category (case-insensitive), with a one-click clear
 - ✅ Align & distribute — **Tools → Align Left/Right/Top/Bottom** (2+ selected blocks) and **Distribute Horizontally/Vertically** (3+ selected; outermost blocks stay put, the middle ones spread to even center spacing); works on any selectable blocks, one undo step per action
 - ✅ Keyboard nudge — arrow keys move the selected blocks 1px, **Shift+arrow** 10px (canvas focused); a burst of presses coalesces into a single undo step
-- ✅ Device schedule export (Export → Device Schedule) — BOM-style CSV of the devices on the canvas, one row per manufacturer+model with quantity and category; sorted by category then manufacturer, UTF-8 BOM for Excel
+- ✅ Device schedule export (Export → Device Schedule) — BOM-style CSV of the devices **across every sheet**, one row per manufacturer+model with quantity and category; sorted by category then manufacturer, UTF-8 BOM for Excel
+- ✅ Multi-sheet diagrams — Excel-style tabs under the canvas: click to switch, ＋ to add, double-click to rename, ✕ (with confirm) to delete. Each sheet is an independent canvas with its own undo history; **cable types, title, and file meta are shared document-wide**. Only the active sheet is live — inactive sheets are parked as serialized JSON (the same round-trip format undo and `.lf` files use) and swapped in on switch. Saved as a `sheets` array in `.lf` (older single-sheet files open as "Sheet 1"); both schedule CSVs span all sheets, PDF/DXF export the active sheet (the PDF header names the sheet when there's more than one), and copy/paste works across sheets. Since New/Open replace the whole document, they now **confirm when there are unsaved changes** instead of relying on undo (undo history is per sheet and never spans documents)
 
 ## Features Planned / Not Yet Implemented
 - ⬜ Docker image published to GitHub Container Registry for one-command self-hosting (needs volume-mount planning for `devices.json`/`users.json`)
-- ⬜ Multi-sheet diagrams — one canvas per sheet (per room/floor) with tabs, shared cable types, and a combined cable schedule; broken connections become natural off-page references between sheets
 - ⬜ Signal path highlight — click a connection or device to light up the whole signal path, hopping across broken-connection pairs by matching label
 - ⬜ PDF title block — a proper drawing-style title block on the PDF export (project, client, drawn by, revision, sheet number) instead of the simple header line
 

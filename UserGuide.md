@@ -16,11 +16,12 @@ This guide covers everything you need as a user. (If you're looking for install/
 6. [Connection Labels](#6-connection-labels)
 7. [Annotations: Boxes, Lines, and Text](#7-annotations-boxes-lines-and-text)
 8. [The Legend](#8-the-legend)
-9. [Saving and Opening Diagrams](#9-saving-and-opening-diagrams)
-10. [Exporting](#10-exporting)
-11. [Managing Users (Admins)](#11-managing-users-admins)
-12. [The Desktop App](#12-the-desktop-app)
-13. [Tips & Troubleshooting](#13-tips--troubleshooting)
+9. [Sheets (Multi-Page Diagrams)](#9-sheets-multi-page-diagrams)
+10. [Saving and Opening Diagrams](#10-saving-and-opening-diagrams)
+11. [Exporting](#11-exporting)
+12. [Managing Users (Admins)](#12-managing-users-admins)
+13. [The Desktop App](#13-the-desktop-app)
+14. [Tips & Troubleshooting](#14-tips--troubleshooting)
 
 ---
 
@@ -38,9 +39,9 @@ Enter your username and password on the sign-in screen. Your session lasts 30 da
 Click the **👤 account button** at the top-right of the toolbar, then **🚪 Logout**.
 
 ### Changing your password
-Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#11-managing-users-admins)).
+Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#12-managing-users-admins)).
 
-> **Don't have an account?** Accounts are created by an administrator — there is no self-signup. Ask your admin to add you (see [Managing Users](#11-managing-users-admins)).
+> **Don't have an account?** Accounts are created by an administrator — there is no self-signup. Ask your admin to add you (see [Managing Users](#12-managing-users-admins)).
 
 ---
 
@@ -59,7 +60,7 @@ Once signed in, you'll see four main areas:
   - **👤 account menu** — your username, Manage Users (admins only), and Logout
 - **Devices panel (left)** — the shared device library, grouped by category, with a sort control and an "+ Add Device" button at the bottom.
 - **Cable Types panel (right)** — define the cabling types used in this diagram (color, prefix, part number, cable color); connections are colored and labeled from these (see Cable types under Making Connections).
-- **Canvas (middle)** — where the diagram lives. Scroll to zoom, drag empty space to pan. **Lost your diagram after zooming too far?** Double-click the middle mouse button (press the scroll wheel twice quickly) anywhere on the canvas to snap the whole diagram back into view.
+- **Canvas (middle)** — where the diagram lives. Scroll to zoom, drag empty space to pan. **Lost your diagram after zooming too far?** Double-click the middle mouse button (press the scroll wheel twice quickly) anywhere on the canvas to snap the whole diagram back into view. Along the bottom sits the **sheet tab bar** — multi-page diagrams, Excel-style (see [Sheets](#9-sheets-multi-page-diagrams)).
 
 When a diagram that has been saved before is open, a thin info bar under the toolbar shows **who created the file and when, and who last modified it** — e.g. *"Created by jsmith on Jul 6, 2026 3:12 PM · Last modified by mjones on Jul 8, 2026 9:41 AM."*
 
@@ -76,7 +77,7 @@ Two ways — both give the same result:
 1. **Drag and drop** — drag a device card from the panel onto the canvas.
 2. **Click-to-place** — click a device card once (it highlights coral to show it's armed), then click anywhere on the canvas to place it there. Click the highlighted card again to cancel without placing.
 
-> If you're using the **desktop app**, use click-to-place — drag-and-drop doesn't work there due to a Windows platform bug (see [The Desktop App](#12-the-desktop-app)).
+> If you're using the **desktop app**, use click-to-place — drag-and-drop doesn't work there due to a Windows platform bug (see [The Desktop App](#13-the-desktop-app)).
 
 A placed device appears as a node with its **input ports on the left edge** and its **output/universal ports on the right edge**, each with a black port dot. (Connection color now comes from the cable type you assign — see Cable types below.)
 
@@ -220,13 +221,32 @@ All annotations can be selected, moved, and deleted like anything else, are save
 
 ---
 
-## 9. Saving and Opening Diagrams
+## 9. Sheets (Multi-Page Diagrams)
+
+Big projects rarely fit on one page. The **tab bar under the canvas** works like sheet tabs in Excel — one canvas per sheet, e.g. a sheet per room or floor:
+
+- **＋** adds a sheet; **click** a tab to switch to it.
+- **Double-click** a tab to rename it (Enter saves, Esc cancels).
+- **✕** on a tab deletes that sheet — everything on it — after a confirmation. (There's always at least one sheet.)
+
+Each sheet is its own drawing: devices, connections, annotations, legend, and even its **own undo history**. What's shared across the whole document: the **diagram title**, the **Cable Types panel** (define `HDMI` once, use it on every sheet), and the file info bar.
+
+Handy pairings:
+- **Copy/paste works across sheets** — Ctrl+C on one sheet, switch tabs, Ctrl+V on another.
+- **Broken connections make natural off-page references** — give the run the same label on both sheets and break it on each; the matching label blocks tell the reader where it continues.
+- The **cable and device schedules cover every sheet** (see Exporting), while **PDF and DXF export the sheet you're viewing** — export each sheet for a full drawing package (the PDF header shows the sheet name).
+
+Everything saves together in one `.lf` file, including which sheet was active. Files saved before sheets existed open as a single "Sheet 1".
+
+---
+
+## 10. Saving and Opening Diagrams
 
 Diagrams save as **`.lf` files that download to your computer** — they are *not* stored on the server. Treat them like any other document: keep them in your project folders, email them, put them on the network share, etc.
 
-- **File → 💾 Save** downloads the current diagram as `diagram.lf`. Rename the file however you like.
-- **File → 📂 Open** loads a `.lf` file from your computer. **This replaces whatever is currently on the canvas**, so save first if you have unsaved work.
-- **File → 🆕 New** clears the canvas for a fresh start.
+- **File → 💾 Save** downloads the current diagram (**all sheets**) as `diagram.lf`. Rename the file however you like.
+- **File → 📂 Open** loads a `.lf` file from your computer. **This replaces the whole document — every sheet** — so you'll be asked to confirm if you have unsaved changes.
+- **File → 🆕 New** starts a fresh single-sheet document — also confirmed first if you have unsaved changes. (Undo can't bring back a replaced document: undo history is per sheet and never spans files.)
 
 Every save stamps the file with your username and the current time — the first save records you as the **creator**, and every later save (by you or anyone else) updates the **last modified by** info shown in the bar under the toolbar.
 
@@ -237,12 +257,12 @@ Whenever you have changes that haven't been saved to a `.lf` file, an amber **�
 
 ---
 
-## 10. Exporting
+## 11. Exporting
 
 All exports are in the **Export** menu and download directly, like Save does.
 
 ### 📄 PDF
-Captures the diagram onto a landscape A4 page with a header showing the **diagram title** (from the toolbar text box), today's date, and the app version. The export always includes your **entire** diagram — every device, connection, and label, even parts spread far off-screen — no matter where you're currently panned or zoomed. Your on-screen view isn't affected at all. (Very large diagrams naturally come out at a smaller scale so everything fits on the page.)
+Captures the **sheet you're viewing** onto a landscape A4 page with a header showing the **diagram title** (from the toolbar text box — plus the sheet name when the document has more than one sheet), today's date, and the app version. For a full drawing package, export each sheet in turn. The export always includes your **entire** diagram — every device, connection, and label, even parts spread far off-screen — no matter where you're currently panned or zoomed. Your on-screen view isn't affected at all. (Very large diagrams naturally come out at a smaller scale so everything fits on the page.)
 
 ### 📐 DXF
 Generates an AutoCAD-compatible DXF with content organized on layers:
@@ -254,20 +274,21 @@ Generates an AutoCAD-compatible DXF with content organized on layers:
 Useful for dropping the diagram into CAD workflows or as a starting point for formal drawings.
 
 ### 🧾 Cable Schedule (CSV)
-Generates a **cable schedule / pull sheet** — a spreadsheet listing every connection in the diagram, one per row, with these columns:
+Generates a **cable schedule / pull sheet** — a spreadsheet listing every connection **across every sheet**, one per row, with these columns:
 
-| # | Cable | Signal | From Device | From Port | To Device | To Port |
-|---|-------|--------|-------------|-----------|-----------|---------|
+| # | Sheet | Cable | Cable Type | Part Number | Cable Color | Signal | From Device | From Port | To Device | To Port |
+|---|-------|-------|------------|-------------|-------------|--------|-------------|-----------|-----------|---------|
 
+- **Sheet** is which sheet (tab) the connection lives on; sheets appear in tab order.
 - **Cable** is the connection's label (e.g. VID-001) — blank if you haven't labelled it.
 - **Cable Type**, **Part Number**, and **Cable Color** come from the cabling type you assigned to the connection (from the Cable Types panel).
 - **Signal** is the port's signal type (HDMI, Audio, etc.) — still recorded on each device port.
-- Rows are grouped/sorted by the source device, so all the cables coming off one box are listed together.
+- Within each sheet, rows are grouped/sorted by the source device, so all the cables coming off one box are listed together.
 
 It downloads as `cable-schedule.csv` and opens directly in Excel or Google Sheets — handy for handing a wiring list to installers. Tip: label your connections (right-click → Add Label) before exporting so each cable has an ID in the schedule.
 
 ### 📦 Device Schedule (CSV)
-The other half of the paperwork: a **BOM-style device list** of everything on the canvas, one row per manufacturer + model with a quantity:
+The other half of the paperwork: a **BOM-style device list** covering **every sheet**, one row per manufacturer + model with a quantity:
 
 | Qty | Manufacturer | Model | Category |
 |-----|--------------|-------|----------|
@@ -276,7 +297,7 @@ Rows are sorted by category, then manufacturer. Three of the same speaker on the
 
 ---
 
-## 11. Managing Users (Admins)
+## 12. Managing Users (Admins)
 
 Only accounts with the **Admin** role see this. Open the **👤 account menu → 👥 Manage Users**.
 
@@ -290,7 +311,7 @@ Only accounts with the **Admin** role see this. Open the **👤 account menu →
 
 ---
 
-## 12. The Desktop App
+## 13. The Desktop App
 
 Loopback also ships as a native **Windows desktop app** — the same interface in its own window, no browser needed.
 
@@ -313,7 +334,7 @@ Dragging devices from the panel onto the canvas **does not work in the desktop a
 
 ---
 
-## 13. Tips & Troubleshooting
+## 14. Tips & Troubleshooting
 
 **"I just see a login page / 'Create admin account' screen"**
 That's normal — the whole app is gated behind login. If you see the admin-creation screen, the server is brand new and no accounts exist yet.
