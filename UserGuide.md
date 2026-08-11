@@ -18,10 +18,11 @@ This guide covers everything you need as a user. (If you're looking for install/
 8. [The Legend](#8-the-legend)
 9. [Sheets (Multi-Page Diagrams)](#9-sheets-multi-page-diagrams)
 10. [Saving and Opening Diagrams](#10-saving-and-opening-diagrams)
-11. [Exporting](#11-exporting)
-12. [Managing Users (Admins)](#12-managing-users-admins)
-13. [The Desktop App](#13-the-desktop-app)
-14. [Tips & Troubleshooting](#14-tips--troubleshooting)
+11. [Title Block](#11-title-block)
+12. [Exporting](#12-exporting)
+13. [Managing Users (Admins)](#13-managing-users-admins)
+14. [The Desktop App](#14-the-desktop-app)
+15. [Tips & Troubleshooting](#15-tips--troubleshooting)
 
 ---
 
@@ -39,9 +40,9 @@ Enter your username and password on the sign-in screen. Your session lasts 30 da
 Click the **👤 account button** at the top-right of the toolbar, then **🚪 Logout**.
 
 ### Changing your password
-Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#12-managing-users-admins)).
+Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#13-managing-users-admins)).
 
-> **Don't have an account?** Accounts are created by an administrator — there is no self-signup. Ask your admin to add you (see [Managing Users](#12-managing-users-admins)).
+> **Don't have an account?** Accounts are created by an administrator — there is no self-signup. Ask your admin to add you (see [Managing Users](#13-managing-users-admins)).
 
 ---
 
@@ -51,7 +52,7 @@ Once signed in, you'll see four main areas:
 
 - **Toolbar (top)** — the app menus and controls (a small version number next to the "Loopback" title shows which build the server is running):
   - **File** → 🆕 New, 💾 Save, 📂 Open
-  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 🔢 Auto-Label Connections, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
+  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 📋 Title Block, 🔢 Auto-Label Connections, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
   - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV), 📦 Device Schedule (CSV)
   - **Help** → 📖 User Guide (opens this guide on GitHub in a new tab)
   - **↩ Undo / ↪ Redo** — step backward/forward through your changes (also **Ctrl+Z** / **Ctrl+Y** when the canvas has focus). Covers everything: placing and deleting devices, connections, bends, labels, moves, resizes, and text edits. Up to 50 steps.
@@ -77,7 +78,7 @@ Two ways — both give the same result:
 1. **Drag and drop** — drag a device card from the panel onto the canvas.
 2. **Click-to-place** — click a device card once (it highlights coral to show it's armed), then click anywhere on the canvas to place it there. Click the highlighted card again to cancel without placing.
 
-> If you're using the **desktop app**, use click-to-place — drag-and-drop doesn't work there due to a Windows platform bug (see [The Desktop App](#13-the-desktop-app)).
+> If you're using the **desktop app**, use click-to-place — drag-and-drop doesn't work there due to a Windows platform bug (see [The Desktop App](#14-the-desktop-app)).
 
 A placed device appears as a node with its **input ports on the left edge** and its **output/universal ports on the right edge**, each with a black port dot. (Connection color now comes from the cable type you assign — see Cable types below.)
 
@@ -262,7 +263,28 @@ Whenever you have changes that haven't been saved to a `.lf` file, an amber **�
 
 ---
 
-## 11. Exporting
+## 11. Title Block
+
+**Tools → 📋 Title Block** turns your exports into proper drawing sheets instead of a bare diagram — a bordered page with the familiar vertical title-block strip down the right-hand edge.
+
+Tick **"Print a title block on PDF and DXF exports"** to switch it on, then fill in what you need. Nothing is mandatory; blank fields are simply left out.
+
+- **Sheet size** — 11×17, Letter, or A4 (all landscape), saved with the diagram.
+- **This sheet** — the **drawing title** and **drawing number** (e.g. `AV-101`). These are **per sheet**, so every tab prints its own; everything else below is shared across the whole document.
+- **Project** — client, project name, location, discipline. These print large and rotated down the strip, like a CAD sheet.
+- **Issue** — project number, date, drawn by, checked by.
+- **Company** — your company name, address, phone, and website, printed right-aligned under the logo area.
+- **Revisions** — click **+ Add Revision** for each entry (#, date, description). They fill the revision grid from the top; the remaining rows print blank for marking up by hand.
+
+- **Logo** — click **⬆ Upload logo** and pick a PNG or JPEG (under 2 MB). It's scaled to fit the box at the top of the strip without distorting, and it's **shared across every diagram** — upload it once and it appears on all your drawings, for everyone. **🗑** removes it. With no logo the box simply prints as an empty outline, so you can still stamp one in by hand.
+
+> The logo prints on the **PDF only**. DXF (R12) predates embedded images, so the DXF keeps the empty box — which matters little, since in CAD you'd normally use your own title block anyway.
+
+The diagram itself is automatically scaled to fit the space left beside the title block, so turning it on never crops your drawing. In the DXF, the whole block is drawn on its own **TITLEBLOCK** layer, which you can freeze or edit independently in CAD.
+
+---
+
+## 12. Exporting
 
 All exports are in the **Export** menu and download directly, like Save does.
 
@@ -306,7 +328,7 @@ Rows are sorted by category, then manufacturer. Three of the same speaker on the
 
 ---
 
-## 12. Managing Users (Admins)
+## 13. Managing Users (Admins)
 
 Only accounts with the **Admin** role see this. Open the **👤 account menu → 👥 Manage Users**.
 
@@ -320,7 +342,7 @@ Only accounts with the **Admin** role see this. Open the **👤 account menu →
 
 ---
 
-## 13. The Desktop App
+## 14. The Desktop App
 
 Loopback also ships as a native **Windows desktop app** — the same interface in its own window, no browser needed.
 
@@ -343,7 +365,7 @@ Dragging devices from the panel onto the canvas **does not work in the desktop a
 
 ---
 
-## 14. Tips & Troubleshooting
+## 15. Tips & Troubleshooting
 
 **"I just see a login page / 'Create admin account' screen"**
 That's normal — the whole app is gated behind login. If you see the admin-creation screen, the server is brand new and no accounts exist yet.

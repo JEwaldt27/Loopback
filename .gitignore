@@ -376,3 +376,5 @@ scripts/
 deploy/certs/
 deploy/client-cert/*.crt
 Server/certs/
+# Uploaded title-block logo (user content, not source)
+Server/logo.txt

@@ -869,6 +869,96 @@ html, body {
     position: relative;
 }
 
+/* Title block editor */
+.lf-modal-wide {
+    width: 520px;
+    max-height: 82vh;
+    overflow-y: auto;
+}
+
+.lf-tb-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #ddd;
+    margin-bottom: 8px;
+}
+
+.lf-tb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.lf-tb-row .device-input { margin: 0; width: auto; flex: 0 0 auto; }
+
+.lf-tb-label { font-size: 12px; color: #bbb; }
+.lf-tb-hint { font-size: 11px; color: #888; }
+
+.lf-tb-section {
+    margin: 12px 0 6px;
+    padding-bottom: 3px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #e94560;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.lf-tb-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.lf-tb-grid .device-input { margin: 0; }
+
+.lf-tb-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.lf-tb-logo-preview {
+    max-width: 150px;
+    max-height: 46px;
+    padding: 4px 6px;
+    background: #fff;              /* logos are usually made for white paper */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 3px;
+    object-fit: contain;
+}
+
+/* The file input itself is hidden — the styled label is the clickable target. */
+.lf-tb-upload {
+    margin: 0;
+    width: auto;
+    cursor: pointer;
+}
+
+.lf-tb-upload input[type=file] {
+    display: none;
+}
+
+.lf-tb-error {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #ff6b81;
+}
+
+.lf-tb-rev {
+    display: grid;
+    grid-template-columns: 44px 84px 1fr auto;
+    gap: 6px;
+    margin-bottom: 5px;
+    align-items: center;
+}
+
+.lf-tb-rev .device-input { margin: 0; }
+
 /* A broken connection's label block: a small free-standing node (one per end) tied to
    its port by a stub connection. Border carries the cable color. */
 .lf-break-tag {

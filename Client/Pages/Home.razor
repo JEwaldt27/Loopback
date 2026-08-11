@@ -34,6 +34,7 @@
                 <div class="lf-dropdown-item @(_placementMode == "line" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("line"); CloseMenus(); }'>╱ Line</div>
                 <div class="lf-dropdown-item @(_placementMode == "text" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("text"); CloseMenus(); }'>T Text</div>
                 <div class="lf-dropdown-item" @onclick="() => { OpenDeviceColors(); CloseMenus(); }">🎨 Device Colors…</div>
+                <div class="lf-dropdown-item" @onclick="() => { _titleBlockModalOpen = true; CloseMenus(); }">📋 Title Block…</div>
                 <div class="lf-dropdown-item" @onclick="() => { AutoLabelConnections(); CloseMenus(); }">🔢 Auto-Label Connections</div>
                 <div class="lf-dropdown-item" @onclick="() => { BreakAllConnections(); CloseMenus(); }">🔗 Break All Connections</div>
                 <div class="lf-dropdown-item" @onclick="() => { RejoinAllConnections(); CloseMenus(); }">🔗 Rejoin All Connections</div>
@@ -360,6 +361,100 @@
     </div>
 }
 
+@if (_titleBlockModalOpen)
+{
+    <div class="lf-modal-overlay" @onclick="CloseTitleBlock"></div>
+    <div class="lf-modal lf-modal-wide" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>Title Block</span>
+            <button class="lf-modal-close" @onclick="CloseTitleBlock">✕</button>
+        </div>
+
+        <label class="lf-tb-check">
+            <input type="checkbox" @bind="_titleBlock.Enabled" />
+            Print a title block on PDF and DXF exports
+        </label>
+
+        <div class="lf-tb-row">
+            <span class="lf-tb-label">Sheet size</span>
+            <select class="device-input" id="tb-sheet-size" name="tb-sheet-size" @bind="_titleBlock.SheetSize">
+                <option value="11x17">11×17 (Tabloid)</option>
+                <option value="Letter">Letter (8.5×11)</option>
+                <option value="A4">A4</option>
+            </select>
+            <span class="lf-tb-hint">landscape</span>
+        </div>
+
+        <div class="lf-tb-section">This sheet — @_sheets[_activeSheetIndex].Name</div>
+        <div class="lf-tb-grid">
+            <input class="device-input" placeholder="Drawing title" @bind="_sheets[_activeSheetIndex].DrawingTitle" />
+            <input class="device-input" placeholder="Drawing number (e.g. AV-101)" @bind="_sheets[_activeSheetIndex].DrawingNumber" />
+        </div>
+
+        <div class="lf-tb-section">Project</div>
+        <div class="lf-tb-grid">
+            <input class="device-input" placeholder="Client (e.g. CLARK CONSTRUCTION)" @bind="_titleBlock.Client" />
+            <input class="device-input" placeholder="Project name" @bind="_titleBlock.ProjectName" />
+            <input class="device-input" placeholder="Location (e.g. WASHINGTON, DC)" @bind="_titleBlock.Location" />
+            <input class="device-input" placeholder="Discipline (e.g. TELECOM)" @bind="_titleBlock.Discipline" />
+        </div>
+
+        <div class="lf-tb-section">Issue</div>
+        <div class="lf-tb-grid">
+            <input class="device-input" placeholder="Project number" @bind="_titleBlock.ProjectNumber" />
+            <input class="device-input" placeholder="Date" @bind="_titleBlock.Date" />
+            <input class="device-input" placeholder="Drawn by" @bind="_titleBlock.DrawnBy" />
+            <input class="device-input" placeholder="Checked by" @bind="_titleBlock.CheckedBy" />
+        </div>
+
+        <div class="lf-tb-section">Logo</div>
+        <div class="lf-tb-logo">
+            @if (!string.IsNullOrEmpty(_logoDataUri))
+            {
+                <img class="lf-tb-logo-preview" src="@_logoDataUri" alt="Title block logo" />
+                <button class="device-action-btn device-action-delete" title="Remove logo" @onclick="RemoveLogo">🗑</button>
+            }
+            else
+            {
+                <span class="lf-tb-hint">No logo — the box prints empty.</span>
+            }
+            <label class="add-device-btn lf-tb-upload">
+                @(_logoBusy ? "Uploading…" : "⬆ Upload logo")
+                <InputFile OnChange="UploadLogo" accept="image/*" />
+            </label>
+        </div>
+        <div class="lf-tb-hint">Shared by every diagram, and printed on the PDF only — the DXF keeps an empty box.</div>
+        @if (!string.IsNullOrEmpty(_logoError))
+        {
+            <div class="lf-tb-error">@_logoError</div>
+        }
+
+        <div class="lf-tb-section">Company</div>
+        <div class="lf-tb-grid">
+            <input class="device-input" placeholder="Company name" @bind="_titleBlock.CompanyName" />
+            <input class="device-input" placeholder="Address" @bind="_titleBlock.CompanyAddress" />
+            <input class="device-input" placeholder="Phone" @bind="_titleBlock.CompanyPhone" />
+            <input class="device-input" placeholder="Website" @bind="_titleBlock.CompanyWeb" />
+        </div>
+
+        <div class="lf-tb-section">Revisions</div>
+        @foreach (var rev in _titleBlock.Revisions)
+        {
+            var r = rev;
+            <div class="lf-tb-rev">
+                <input class="device-input lf-tb-rev-num" placeholder="#" @bind="r.Number" />
+                <input class="device-input lf-tb-rev-date" placeholder="Date" @bind="r.Date" />
+                <input class="device-input" placeholder="Description" @bind="r.Description" />
+                <button class="device-action-btn device-action-delete" title="Remove revision"
+                        @onclick="() => _titleBlock.Revisions.Remove(r)">🗑</button>
+            </div>
+        }
+        <button class="add-device-btn" @onclick="AddRevision">+ Add Revision</button>
+
+        <button class="add-device-btn" style="margin-top:10px;" @onclick="CloseTitleBlock">✔ Done</button>
+    </div>
+}
+
 @if (_deviceColorModalOpen)
 {
     <div class="lf-modal-overlay" @onclick="CloseDeviceColors"></div>
@@ -521,8 +616,74 @@
     {
         public string Name { get; set; } = "Sheet 1";
         public string? Json { get; set; }              // parked state (null while active)
+        // Title block fields that differ per sheet — everything else is document-wide.
+        public string DrawingTitle { get; set; } = "";
+        public string DrawingNumber { get; set; } = "";
         public List<string> UndoStack { get; } = new();
         public List<string> RedoStack { get; } = new();
+    }
+
+    private TitleBlockInfo _titleBlock = new();
+    private bool _titleBlockModalOpen;
+
+    // Title block logo. Server-side and shared across every diagram, so it lives outside
+    // TitleBlockInfo (which is saved per .lf file) — see LogoController.
+    private string? _logoDataUri;
+    private string _logoError = "";
+    private bool _logoBusy;
+
+    private record LogoPayload(string DataUri);
+
+    private async Task LoadLogo()
+    {
+        try
+        {
+            var res = await Http.GetAsync("api/logo");
+            if (res.StatusCode == System.Net.HttpStatusCode.NoContent) { _logoDataUri = null; return; }
+            if (res.IsSuccessStatusCode)
+                _logoDataUri = (await res.Content.ReadFromJsonAsync<LogoPayload>())?.DataUri;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Failed to load logo: " + ex.Message);
+        }
+    }
+
+    private async Task UploadLogo(InputFileChangeEventArgs e)
+    {
+        _logoError = "";
+        var file = e.File;
+        if (file == null) return;
+
+        const long max = 2 * 1024 * 1024;
+        if (file.Size > max) { _logoError = "Image is too large — keep it under 2 MB."; return; }
+
+        _logoBusy = true;
+        try
+        {
+            using var stream = file.OpenReadStream(max);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var contentType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/png" : file.ContentType;
+            var dataUri = $"data:{contentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+
+            var res = await Http.PostAsJsonAsync("api/logo", new { dataUri });
+            if (res.IsSuccessStatusCode) _logoDataUri = dataUri;
+            else _logoError = "Upload failed — the server rejected the image.";
+        }
+        catch (Exception ex) { _logoError = ex.Message; }
+        finally { _logoBusy = false; }
+    }
+
+    private async Task RemoveLogo()
+    {
+        _logoError = "";
+        try
+        {
+            await Http.DeleteAsync("api/logo");
+            _logoDataUri = null;
+        }
+        catch (Exception ex) { _logoError = ex.Message; }
     }
 
     private const string EmptySheetJson = "{\"nodes\":[],\"links\":[]}";
@@ -645,6 +806,7 @@
 
         await LoadDevices();
         await LoadAuthStatus();
+        await LoadLogo();
     }
 
     private DotNetObjectReference<Home>? _selfRef;
@@ -962,6 +1124,18 @@
         _labelTargetLink = null;
         _labelText = "";
         _breakAfterLabel = false;
+    }
+
+    // --- Title block (Tools -> Title Block) ---
+    private void AddRevision() => _titleBlock.Revisions.Add(new TitleBlockRevision
+    {
+        Number = (_titleBlock.Revisions.Count + 1).ToString()
+    });
+
+    private void CloseTitleBlock()
+    {
+        _titleBlockModalOpen = false;
+        MarkDirty();   // title block content is saved with the diagram
     }
 
     // --- Bulk device recolor (Tools -> Device Colors) ---
@@ -2210,6 +2384,7 @@
         _sheets = new List<Sheet> { new Sheet() };
         _activeSheetIndex = 0;
         _renamingSheetIndex = -1;
+        _titleBlock = new TitleBlockInfo();
         _loadingDiagram = true;
         try
         {
@@ -2523,9 +2698,14 @@
     // Extracts a sheet's canvas content from parked JSON as {name, nodes, links, boxes,
     // lines, texts, legend} — shared properties (cableTypes/meta) are written once at the
     // document root instead.
-    private static Dictionary<string, object?> SheetContentFromJson(string name, string json)
+    private static Dictionary<string, object?> SheetContentFromJson(Sheet sheet, string json)
     {
-        var dict = new Dictionary<string, object?> { ["name"] = name };
+        var dict = new Dictionary<string, object?>
+        {
+            ["name"] = sheet.Name,
+            ["drawingTitle"] = sheet.DrawingTitle,
+            ["drawingNumber"] = sheet.DrawingNumber
+        };
         using var doc = JsonDocument.Parse(json);
         foreach (var prop in doc.RootElement.EnumerateObject())
             if (prop.Name is "nodes" or "links" or "boxes" or "lines" or "texts" or "legend")
@@ -2547,8 +2727,9 @@
         ParkActiveSheet();   // sync the active sheet's parked JSON
         var data = new Dictionary<string, object?>
         {
-            ["sheets"] = _sheets.Select(s => SheetContentFromJson(s.Name, s.Json ?? EmptySheetJson)).ToList(),
+            ["sheets"] = _sheets.Select(s => SheetContentFromJson(s, s.Json ?? EmptySheetJson)).ToList(),
             ["activeSheet"] = _activeSheetIndex,
+            ["titleBlock"] = _titleBlock,
             ["cableTypes"] = _cableTypes.Select(c => new { name = c.Name, color = c.Color, prefix = c.Prefix, partNumber = c.PartNumber, cableColor = c.CableColor }).ToList(),
             ["meta"] = new
             {
@@ -2599,6 +2780,11 @@
 
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
+
+        // Title block is document-wide; absent on older files, which just get an empty one.
+        _titleBlock = root.TryGetProperty("titleBlock", out var tbEl) && tbEl.ValueKind == JsonValueKind.Object
+            ? tbEl.Deserialize<TitleBlockInfo>() ?? new TitleBlockInfo()
+            : new TitleBlockInfo();
         if (root.TryGetProperty("sheets", out var sheetsEl) && sheetsEl.ValueKind == JsonValueKind.Array)
         {
             _sheets = sheetsEl.EnumerateArray()
@@ -2607,6 +2793,10 @@
                     Name = el.TryGetProperty("name", out var nEl) && nEl.ValueKind == JsonValueKind.String
                         ? nEl.GetString() ?? $"Sheet {i + 1}"
                         : $"Sheet {i + 1}",
+                    DrawingTitle = el.TryGetProperty("drawingTitle", out var dtEl) && dtEl.ValueKind == JsonValueKind.String
+                        ? dtEl.GetString() ?? "" : "",
+                    DrawingNumber = el.TryGetProperty("drawingNumber", out var dnEl) && dnEl.ValueKind == JsonValueKind.String
+                        ? dnEl.GetString() ?? "" : "",
                     Json = el.GetRawText()
                 })
                 .ToList();
@@ -3011,7 +3201,35 @@
         var pdfTitle = _sheets.Count > 1
             ? $"{(string.IsNullOrWhiteSpace(_diagramTitle) ? "Line Flow Diagram" : _diagramTitle)} — {_sheets[_activeSheetIndex].Name}"
             : _diagramTitle;
-        await JS.InvokeVoidAsync("exportToPdf", pdfTitle, AppVersion.Version, bx, by, bw, bh);
+
+        // The title block is document-wide except for the drawing title/number, which come
+        // from the sheet being exported. Falls back to the diagram title so a sheet with no
+        // explicit drawing title still prints something meaningful.
+        var sheet = _sheets[_activeSheetIndex];
+        var tb = new
+        {
+            enabled = _titleBlock.Enabled,
+            sheetSize = _titleBlock.SheetSize,
+            companyName = _titleBlock.CompanyName,
+            companyAddress = _titleBlock.CompanyAddress,
+            companyPhone = _titleBlock.CompanyPhone,
+            companyWeb = _titleBlock.CompanyWeb,
+            client = _titleBlock.Client,
+            projectName = _titleBlock.ProjectName,
+            location = _titleBlock.Location,
+            discipline = _titleBlock.Discipline,
+            projectNumber = _titleBlock.ProjectNumber,
+            drawnBy = _titleBlock.DrawnBy,
+            checkedBy = _titleBlock.CheckedBy,
+            date = _titleBlock.Date,
+            revisions = _titleBlock.Revisions.Select(r => new { number = r.Number, date = r.Date, description = r.Description }),
+            drawingTitle = string.IsNullOrWhiteSpace(sheet.DrawingTitle) ? _diagramTitle : sheet.DrawingTitle,
+            drawingNumber = sheet.DrawingNumber,
+            sheetName = sheet.Name,
+            logo = _logoDataUri
+        };
+
+        await JS.InvokeVoidAsync("exportToPdf", pdfTitle, AppVersion.Version, bx, by, bw, bh, tb);
     }
 
     // Text style written into the DXF and referenced by every TEXT entity. The font is the
@@ -3069,6 +3287,18 @@
 
         double scale = 0.3;
 
+        // Running extents of everything emitted, used to size the title-block sheet around
+        // the finished drawing (DXF is model space — there's no page until we draw one).
+        double exMinX = double.MaxValue, exMinY = double.MaxValue;
+        double exMaxX = double.MinValue, exMaxY = double.MinValue;
+        void Extend(double x, double y)
+        {
+            if (x < exMinX) exMinX = x;
+            if (y < exMinY) exMinY = y;
+            if (x > exMaxX) exMaxX = x;
+            if (y > exMaxY) exMaxY = y;
+        }
+
         // R12 (AC1009) is the most widely-compatible DXF flavor: unlike R2000+ (AC1015)
         // it needs no per-entity subclass markers (100 AcDbEntity/AcDbLine/...) or handles,
         // which this writer doesn't emit. Declaring AC1015 without them makes AutoCAD throw
@@ -3086,7 +3316,7 @@
         // with no cable type fall back to the generic CONNECTIONS layer.
         var cableLayers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var takenLayers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            { "0", "NODES", "CONNECTIONS", "ANNOTATIONS", "LEGEND" };
+            { "0", "NODES", "CONNECTIONS", "ANNOTATIONS", "LEGEND", "TITLEBLOCK" };
         foreach (var ctName in _diagram.Links.OfType<ElbowLinkModel>()
                      .Where(l => l.Source.Model is PortModel && l.Target?.Model is PortModel
                                  && !string.IsNullOrWhiteSpace(l.CableTypeName))
@@ -3103,7 +3333,7 @@
 
         var layers = new List<(string Name, int Color)>
         {
-            ("NODES", 7), ("CONNECTIONS", 7), ("ANNOTATIONS", 7), ("LEGEND", 7)
+            ("NODES", 7), ("CONNECTIONS", 7), ("ANNOTATIONS", 7), ("LEGEND", 7), ("TITLEBLOCK", 7)
         };
         foreach (var (typeName, layerName) in cableLayers)
             layers.Add((layerName, DxfAciColor(_cableTypes.FirstOrDefault(c => c.Name == typeName)?.Color)));
@@ -3158,6 +3388,7 @@
 
         void DxfLine(double x1, double y1, double x2, double y2, string layer = "NODES")
         {
+            if (layer != "TITLEBLOCK") { Extend(x1, y1); Extend(x2, y2); }
             sb.AppendLine("0\nLINE");
             sb.AppendLine($"8\n{layer}");
             sb.AppendLine($"10\n{F(x1)}");
@@ -3171,6 +3402,7 @@
         // Filled quad, used for the legend's color swatches.
         void DxfSolid(double x1, double y1, double x2, double y2, string layer)
         {
+            Extend(x1, y1); Extend(x2, y2);
             sb.AppendLine("0\nSOLID");
             sb.AppendLine($"8\n{layer}");
             // SOLID corner order is bottom-left, bottom-right, TOP-LEFT, TOP-RIGHT — the
@@ -3184,6 +3416,7 @@
 
         void DxfText(double tx, double ty, string text, double height = 2.5, string layer = "NODES", int halign = 0, double rotation = 0)
         {
+            if (layer != "TITLEBLOCK") Extend(tx, ty);
             sb.AppendLine("0\nTEXT");
             sb.AppendLine($"8\n{layer}");
             sb.AppendLine($"10\n{F(tx)}");
@@ -3468,6 +3701,149 @@
             }
         }
 
+        // Title block: a drawing sheet laid out around the finished geometry. DXF is model
+        // space with no notion of paper, so the sheet is sized to the chosen aspect ratio
+        // and scaled up until the content fits inside its drawing area, then centered there.
+        if (_titleBlock.Enabled && exMaxX > exMinX && exMaxY > exMinY)
+        {
+            var sheet = _sheets[_activeSheetIndex];
+            double paperW = _titleBlock.SheetSize switch
+            {
+                "11x17" => 431.8, "Letter" => 279.4, _ => 297.0     // landscape mm
+            };
+            double paperH = _titleBlock.SheetSize switch
+            {
+                "11x17" => 279.4, "Letter" => 215.9, _ => 210.0
+            };
+            double aspect = paperW / paperH;
+
+            const double stripFrac = 0.113, marginFrac = 0.02;
+            double drawWFrac = 1 - stripFrac - marginFrac * 2;
+            double drawHFrac = 1 - marginFrac * 2;
+
+            double contentW = (exMaxX - exMinX) * 1.06;   // breathing room
+            double contentH = (exMaxY - exMinY) * 1.06;
+            double sheetW = Math.Max(contentW / drawWFrac, contentH / drawHFrac * aspect);
+            double sheetH = sheetW / aspect;
+
+            // Centre the drawing area on the content.
+            double contentCX = (exMinX + exMaxX) / 2, contentCY = (exMinY + exMaxY) / 2;
+            double left = contentCX - sheetW * marginFrac - sheetW * drawWFrac / 2;
+            double bottom = contentCY - sheetH * marginFrac - sheetH * drawHFrac / 2;
+            double right = left + sheetW, top = bottom + sheetH;
+
+            const string TB = "TITLEBLOCK";
+            double t = sheetH * 0.011;                     // base text height
+            double pad = sheetH * 0.008;
+            void Rect(double ax, double ay, double bx2, double by2)
+            {
+                DxfLine(ax, ay, bx2, ay, TB); DxfLine(bx2, ay, bx2, by2, TB);
+                DxfLine(bx2, by2, ax, by2, TB); DxfLine(ax, by2, ax, ay, TB);
+            }
+
+            // Double border
+            Rect(left, bottom, right, top);
+            double ib = sheetH * 0.006;
+            Rect(left + ib, bottom + ib, right - ib, top - ib);
+
+            double sx = right - ib - sheetW * stripFrac;   // strip left edge
+            double sTop = top - ib, sBot = bottom + ib, sRight = right - ib;
+            DxfLine(sx, sBot, sx, sTop, TB);
+            void Rule(double ry) => DxfLine(sx, ry, sRight, ry, TB);
+
+            double y = sTop;
+
+            // Logo box (intentionally empty) + company details, right-aligned
+            double logoH = sheetH * 0.10;
+            Rect(sx + pad, y - logoH + pad, sRight - pad, y - pad);
+            y -= logoH;
+            foreach (var lineText in new[] { _titleBlock.CompanyName, _titleBlock.CompanyAddress,
+                                             _titleBlock.CompanyPhone, _titleBlock.CompanyWeb })
+            {
+                if (string.IsNullOrWhiteSpace(lineText)) continue;
+                y -= t * 1.6;
+                DxfText(sRight - pad, y, lineText, t * 0.8, TB, 2);
+            }
+            y -= pad; Rule(y);
+
+            // Everything from the revision grid down is ANCHORED TO THE BOTTOM of the strip,
+            // matching the PDF and how a real sheet reads: the drawing number sits in a short
+            // box in the bottom corner. Worked out first so the project and stamp blocks above
+            // can divide up exactly the space that's actually left.
+            const int revRows = 6;
+            double revH = sheetH * 0.022;
+            double numberBoxH = sheetH * 0.072, titleBoxH = sheetH * 0.072;
+            double pairLead = t * 1.7;
+            double pairsH = pairLead * 4 + pad;
+
+            double numberTop = sBot + numberBoxH;
+            double titleTop = numberTop + titleBoxH;
+            double pairsTop = titleTop + pairsH;
+            double revTop = Math.Min(pairsTop + revRows * revH, y - sheetH * 0.06);
+
+            // Project block — rotated 90°, largest first. Takes the larger share of the space
+            // between the company details and the revision grid; the stamp box gets the rest.
+            double projBottom = y - (y - revTop) * 0.70;
+            double px = sx + pad + t * 1.4;
+            foreach (var (text, size) in new[]
+            {
+                (_titleBlock.Client, t * 1.9), (_titleBlock.ProjectName, t * 1.4),
+                (_titleBlock.Location, t * 1.1), (_titleBlock.Discipline, t * 1.1)
+            })
+            {
+                if (!string.IsNullOrWhiteSpace(text))
+                    DxfText(px, projBottom + pad, text, size, TB, 0, 90);
+                px += size * 1.5;
+            }
+            Rule(projBottom);
+
+            // Stamp box: from the project block down to the revision grid.
+            DxfText(sx + pad, projBottom - t * 1.6, "STAMP", t * 0.85, TB, 0);
+            Rule(revTop);
+
+            // Revisions grid
+            double numW = sheetW * 0.014, dateW = sheetW * 0.030;
+            for (int r = 1; r <= revRows; r++) Rule(revTop - r * revH);
+            double revBottom = revTop - revRows * revH;
+            DxfLine(sx + numW, revBottom, sx + numW, revTop, TB);
+            DxfLine(sx + numW + dateW, revBottom, sx + numW + dateW, revTop, TB);
+            DxfText(sx + pad * 0.6, revTop - revH + pad * 0.6, "#", t * 0.75, TB, 0);
+            DxfText(sx + numW + pad * 0.6, revTop - revH + pad * 0.6, "DATE", t * 0.75, TB, 0);
+            DxfText(sx + numW + dateW + pad * 0.6, revTop - revH + pad * 0.6, "DESCRIPTION", t * 0.75, TB, 0);
+            for (int i = 0; i < _titleBlock.Revisions.Count && i < revRows - 1; i++)
+            {
+                var rev = _titleBlock.Revisions[i];
+                double ry = revTop - revH * (i + 2) + pad * 0.6;
+                DxfText(sx + pad * 0.6, ry, rev.Number, t * 0.8, TB, 0);
+                DxfText(sx + numW + pad * 0.6, ry, rev.Date, t * 0.8, TB, 0);
+                DxfText(sx + numW + dateW + pad * 0.6, ry, rev.Description, t * 0.8, TB, 0);
+            }
+
+            // Label / value pairs
+            double py = pairsTop;
+            foreach (var (label, value) in new[]
+            {
+                ("PROJECT NUM.", _titleBlock.ProjectNumber), ("DRAWN BY", _titleBlock.DrawnBy),
+                ("CHECKED BY", _titleBlock.CheckedBy), ("DATE", _titleBlock.Date)
+            })
+            {
+                py -= pairLead;
+                DxfText(sx + pad, py, label, t * 0.85, TB, 0);
+                DxfText(sRight - pad, py, value, t * 0.85, TB, 2);
+            }
+            Rule(titleTop);
+
+            // Drawing title (per sheet)
+            DxfText(sx + pad, titleTop - t * 1.5, "DRAWING TITLE", t * 0.8, TB, 0);
+            var drawingTitle = string.IsNullOrWhiteSpace(sheet.DrawingTitle) ? _diagramTitle : sheet.DrawingTitle;
+            DxfText(sx + pad, titleTop - t * 3.6, drawingTitle, t * 1.15, TB, 0);
+            Rule(numberTop);
+
+            // Drawing number: short box in the bottom corner
+            DxfText(sx + pad, numberTop - t * 1.5, "DRAWING NUMBER", t * 0.8, TB, 0);
+            DxfText(sRight - pad, sBot + t * 1.3, sheet.DrawingNumber, t * 2.0, TB, 2);
+        }
+
         sb.AppendLine("0\nENDSEC");
         sb.AppendLine("0\nEOF");
 
@@ -3509,6 +3885,44 @@
         public bool Editing { get; set; } = false;
 
         public TextNode(Point position) : base(position) { }
+    }
+
+    // One row of the title block's revision grid.
+    public class TitleBlockRevision
+    {
+        public string Number { get; set; } = "";
+        public string Date { get; set; } = "";
+        public string Description { get; set; } = "";
+    }
+
+    // Drawing-sheet title block, modeled on a standard AV/telecom sheet: a vertical strip
+    // down the right edge of the page. Everything here is document-wide and saved in the
+    // .lf file; the drawing title and number are per-sheet (see Sheet), so each tab prints
+    // its own. Rendered into both the PDF and DXF exports when Enabled.
+    public class TitleBlockInfo
+    {
+        public bool Enabled { get; set; }
+        public string SheetSize { get; set; } = "11x17";   // 11x17 | A4 | Letter (all landscape)
+
+        // Top block — your own company details.
+        public string CompanyName { get; set; } = "";
+        public string CompanyAddress { get; set; } = "";
+        public string CompanyPhone { get; set; } = "";
+        public string CompanyWeb { get; set; } = "";
+
+        // Project block — printed rotated 90°, largest first, like a CAD sheet.
+        public string Client { get; set; } = "";
+        public string ProjectName { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string Discipline { get; set; } = "";
+
+        // Label/value pairs under the revision grid.
+        public string ProjectNumber { get; set; } = "";
+        public string DrawnBy { get; set; } = "";
+        public string CheckedBy { get; set; } = "";
+        public string Date { get; set; } = "";
+
+        public List<TitleBlockRevision> Revisions { get; set; } = new();
     }
 
     // A user-defined cabling type with an assigned color. Cable types are per-diagram

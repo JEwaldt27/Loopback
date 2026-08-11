@@ -74,11 +74,20 @@ Diagrams save as `.lf` files — JSON under the hood. A document is a set of **s
   },
   "activeSheet": 0,
   "cableTypes": [ ... ],
+  "titleBlock": {
+    "Enabled": true, "SheetSize": "11x17",
+    "CompanyName": "…", "CompanyAddress": "…", "CompanyPhone": "…", "CompanyWeb": "…",
+    "Client": "…", "ProjectName": "…", "Location": "…", "Discipline": "…",
+    "ProjectNumber": "…", "DrawnBy": "…", "CheckedBy": "…", "Date": "…",
+    "Revisions": [{ "Number": "1", "Date": "8/20/23", "Description": "ISSUED FOR CONSTRUCTION" }]
+  },
   "sheets": [
-    { "name": "Room 101", "nodes": [ ... ], "links": [ ... ], "boxes": [ ... ], "lines": [ ... ], "texts": [ ... ], "legend": { ... } }
+    { "name": "Room 101", "drawingTitle": "AV SIGNAL FLOW", "drawingNumber": "AV-101",
+      "nodes": [ ... ], "links": [ ... ], "boxes": [ ... ], "lines": [ ... ], "texts": [ ... ], "legend": { ... } }
   ]
 }
 ```
+`titleBlock` is document-wide and absent on older files (which simply get an empty, disabled one). `drawingTitle`/`drawingNumber` are per sheet — the rest of the title block is shared.
 Files saved before multi-sheet existed have no `sheets` property — the root itself is the sheet content (including its own `cableTypes`); they open as a single "Sheet 1" untouched. Sheet content looks like:
 ```json
 {
@@ -447,8 +456,12 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Signal path trace — right-click a device or connection → 🔦 **Trace Signal Path**: walks the connection graph and lights everything electrically reachable (traced connections go full-color + thick, traced devices get an amber glow; everything else fades to ~15%). Broken connections are still single logical links, so a trace flows straight through them and lights their tag blocks. Pure view state — never saved, never on the undo stack, cleared by Esc, clicking empty canvas, the floating "✕ clear" chip, or any sheet switch/load
 
 
+- ✅ Drawing title block — **Tools → 📋 Title Block** turns the exports into proper drawing sheets: a double border with a vertical title-block strip down the right edge holding an uploadable company logo, right-aligned company details, a 90°-rotated client/project/location/discipline stack, a stamp area, a revision grid, project-number/drawn-by/checked-by/date pairs, and the drawing title + number. Sheet size is selectable per diagram (11×17 / Letter / A4, landscape). Everything is document-wide except the **drawing title and number, which are per sheet**, so each tab prints its own. Rendered in the PDF (`drawTitleBlock` in `index.html`, which returns the leftover rectangle the diagram is fitted into) and in the DXF on a `TITLEBLOCK` layer — DXF is model space with no notion of paper, so the sheet is sized to the chosen aspect ratio and scaled up until the tracked drawing extents fit inside its drawing area, then centered
+
+- ✅ Title block logo — upload a PNG/JPEG in the Title Block editor; stored **server-side** (`Server/logo.txt`, gitignored) as a data URI via `LogoController`, so one logo is shared by every diagram and every user rather than being re-uploaded per project and carried as base64 inside each `.lf`. Scaled into the reserved box preserving aspect ratio; with no logo (or an image jsPDF can't decode) the box falls back to an empty outline. **PDF only** — DXF R12 predates embedded raster images
+
 ## Features Planned / Not Yet Implemented
-- ⬜ PDF title block — a proper drawing-style title block on the PDF export (project, client, drawn by, revision, sheet number) instead of the simple header line
+- ⬜ Nothing outstanding — see the git history for what shipped most recently
 
 ## License
 [PolyForm Noncommercial 1.0.0](LICENSE) — free to use, modify, and share for any noncommercial purpose. Commercial use requires separate permission from the copyright holder. Note this is a "source-available" license, not an OSI-approved open source license — the Open Source Definition explicitly prohibits restricting commercial use, which is exactly the restriction this project needs.

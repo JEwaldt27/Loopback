@@ -1,0 +1,3044 @@
+{
+  "meta": {
+    "createdBy": "jewaldt",
+    "createdAt": "2026-08-11T14:00:00+00:00",
+    "modifiedBy": "jewaldt",
+    "modifiedAt": "2026-08-11T14:00:00+00:00"
+  },
+  "activeSheet": 0,
+  "cableTypes": [
+    {
+      "name": "HDMI",
+      "color": "#22cc44",
+      "prefix": "VID",
+      "partNumber": "Belden HD1694A",
+      "cableColor": "Black"
+    },
+    {
+      "name": "Network",
+      "color": "#4fc3f7",
+      "prefix": "NET",
+      "partNumber": "Belden 10GXS13",
+      "cableColor": "Blue"
+    },
+    {
+      "name": "Audio",
+      "color": "#ff8800",
+      "prefix": "AUD",
+      "partNumber": "Belden 8451",
+      "cableColor": "Orange"
+    },
+    {
+      "name": "Speaker",
+      "color": "#e94560",
+      "prefix": "SPK",
+      "partNumber": "Belden 5000UE",
+      "cableColor": "Red"
+    },
+    {
+      "name": "Control",
+      "color": "#ce93d8",
+      "prefix": "CTL",
+      "partNumber": "Belden 9841",
+      "cableColor": "Violet"
+    },
+    {
+      "name": "USB",
+      "color": "#fff176",
+      "prefix": "USB",
+      "partNumber": "Icron USB 3-2-1",
+      "cableColor": "Yellow"
+    }
+  ],
+  "titleBlock": {
+    "Enabled": true,
+    "SheetSize": "11x17",
+    "CompanyName": "IET CORPORATION",
+    "CompanyAddress": "HOLLYWOOD, MD 20636",
+    "CompanyPhone": "202.470.1029",
+    "CompanyWeb": "IETCORP.US",
+    "Client": "CLARK CONSTRUCTION",
+    "ProjectName": "RIVERFRONT CORPORATE HQ",
+    "Location": "WASHINGTON, DC",
+    "Discipline": "TELECOM",
+    "ProjectNumber": "26-0114",
+    "DrawnBy": "JE",
+    "CheckedBy": "JN",
+    "Date": "8/11/26",
+    "Revisions": [
+      {
+        "Number": "1",
+        "Date": "7/22/26",
+        "Description": "ISSUED FOR REVIEW"
+      },
+      {
+        "Number": "2",
+        "Date": "8/04/26",
+        "Description": "ADDED HUDDLE ROOMS 103-104"
+      },
+      {
+        "Number": "3",
+        "Date": "8/11/26",
+        "Description": "ISSUED FOR CONSTRUCTION"
+      }
+    ]
+  },
+  "sheets": [
+    {
+      "name": "MDF - Head End",
+      "drawingTitle": "HEAD END / MDF RISER",
+      "drawingNumber": "AV-101",
+      "nodes": [
+        {
+          "id": "515acedb-e729-4ff8-92c7-8b2a6e293382",
+          "manufacturer": "Cisco",
+          "model": "Catalyst 9200L",
+          "category": "Network Switch",
+          "ports": [
+            {
+              "name": "Port 1",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 2",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 3",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 4",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Console",
+              "type": "COM",
+              "direction": "Out"
+            }
+          ],
+          "x": 120.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "81718997-2f1f-44e1-b5a7-3f9da2676c51",
+          "manufacturer": "NETGEAR",
+          "model": "M4250-26G4F-PoE+",
+          "category": "Network Switch",
+          "ports": [
+            {
+              "name": "Port 1",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 2",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 3",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 4",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "SFP+ Uplink",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 120.0,
+          "y": 420.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "123aadeb-19d8-491b-85ca-0401c7d34828",
+          "manufacturer": "QSC",
+          "model": "Core 110f",
+          "category": "Audio DSP",
+          "ports": [
+            {
+              "name": "Analog In 1",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Analog In 2",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Analog Out 1",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Analog Out 2",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            }
+          ],
+          "x": 740.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "1b372ed1-23b3-44b6-9e5c-f9e0b55b4d7c",
+          "manufacturer": "Crown",
+          "model": "CDi 2000",
+          "category": "Amplifier",
+          "ports": [
+            {
+              "name": "Audio In 1",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Audio In 2",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Speaker Out 1",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Speaker Out 2",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 740.0,
+          "y": 420.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "ef840ef7-e3bb-4b10-a9a2-57d9d0fcbb53",
+          "manufacturer": "Crestron",
+          "model": "CP4N",
+          "category": "Control Processor",
+          "ports": [
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "IR",
+              "type": "IR",
+              "direction": "Out"
+            },
+            {
+              "name": "RS-232",
+              "type": "COM",
+              "direction": "Out"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            }
+          ],
+          "x": 740.0,
+          "y": 660.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "db0c46e0-aa1b-4635-b90c-a241946c3c6d",
+          "manufacturer": "Just Add Power",
+          "model": "3G Ultra HD Transmitter",
+          "category": "AV over IP",
+          "ports": [
+            {
+              "name": "HDMI In",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "IR In",
+              "type": "IR",
+              "direction": "In"
+            }
+          ],
+          "x": 1400.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "901aae1c-5aa1-4c85-bdcb-fe5980910dec",
+          "manufacturer": "Just Add Power",
+          "model": "3G Ultra HD Transmitter",
+          "category": "AV over IP",
+          "ports": [
+            {
+              "name": "HDMI In",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "IR In",
+              "type": "IR",
+              "direction": "In"
+            }
+          ],
+          "x": 1400.0,
+          "y": 340.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "76afdec8-90ef-4b9a-b0ba-177dbdcf19f6",
+          "manufacturer": "Barco",
+          "model": "ClickShare CX-50",
+          "category": "Wireless Presentation",
+          "ports": [
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 1400.0,
+          "y": 540.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "edda44a4-92d3-422e-8bff-625b97b37028",
+          "manufacturer": "Middle Atlantic",
+          "model": "RLNK-P920R",
+          "category": "Power",
+          "ports": [
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Outlet Bank A",
+              "type": "Other",
+              "direction": "Out"
+            },
+            {
+              "name": "Outlet Bank B",
+              "type": "Other",
+              "direction": "Out"
+            }
+          ],
+          "x": 1400.0,
+          "y": 760.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        }
+      ],
+      "links": [
+        {
+          "sourceNodeId": "515acedb-e729-4ff8-92c7-8b2a6e293382",
+          "sourcePortIndex": 0,
+          "targetNodeId": "81718997-2f1f-44e1-b5a7-3f9da2676c51",
+          "targetPortIndex": 4,
+          "vertices": [
+            {
+              "x": 230.0,
+              "y": 379.0
+            }
+          ],
+          "label": "NET-1",
+          "labelX": 230.0,
+          "labelY": 365.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "515acedb-e729-4ff8-92c7-8b2a6e293382",
+          "sourcePortIndex": 1,
+          "targetNodeId": "123aadeb-19d8-491b-85ca-0401c7d34828",
+          "targetPortIndex": 4,
+          "vertices": [
+            {
+              "x": 540.0,
+              "y": 228.0
+            }
+          ],
+          "label": "NET-2",
+          "labelX": 540.0,
+          "labelY": 214.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "515acedb-e729-4ff8-92c7-8b2a6e293382",
+          "sourcePortIndex": 2,
+          "targetNodeId": "ef840ef7-e3bb-4b10-a9a2-57d9d0fcbb53",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 540.0,
+              "y": 477.0
+            }
+          ],
+          "label": "NET-3",
+          "labelX": 540.0,
+          "labelY": 463.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "515acedb-e729-4ff8-92c7-8b2a6e293382",
+          "sourcePortIndex": 3,
+          "targetNodeId": "edda44a4-92d3-422e-8bff-625b97b37028",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 870.0,
+              "y": 538.0
+            }
+          ],
+          "label": "NET-4",
+          "labelX": 870.0,
+          "labelY": 524.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "81718997-2f1f-44e1-b5a7-3f9da2676c51",
+          "sourcePortIndex": 0,
+          "targetNodeId": "db0c46e0-aa1b-4635-b90c-a241946c3c6d",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 870.0,
+              "y": 335.0
+            }
+          ],
+          "label": "NET-5",
+          "labelX": 870.0,
+          "labelY": 321.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "81718997-2f1f-44e1-b5a7-3f9da2676c51",
+          "sourcePortIndex": 1,
+          "targetNodeId": "901aae1c-5aa1-4c85-bdcb-fe5980910dec",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 870.0,
+              "y": 446.0
+            }
+          ],
+          "label": "NET-6",
+          "labelX": 870.0,
+          "labelY": 432.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "81718997-2f1f-44e1-b5a7-3f9da2676c51",
+          "sourcePortIndex": 2,
+          "targetNodeId": "76afdec8-90ef-4b9a-b0ba-177dbdcf19f6",
+          "targetPortIndex": 2,
+          "vertices": [
+            {
+              "x": 870.0,
+              "y": 579.0
+            }
+          ],
+          "label": "NET-7",
+          "labelX": 870.0,
+          "labelY": 565.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "123aadeb-19d8-491b-85ca-0401c7d34828",
+          "sourcePortIndex": 2,
+          "targetNodeId": "1b372ed1-23b3-44b6-9e5c-f9e0b55b4d7c",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 850.0,
+              "y": 335.0
+            }
+          ],
+          "label": "AUD-1",
+          "labelX": 850.0,
+          "labelY": 321.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "123aadeb-19d8-491b-85ca-0401c7d34828",
+          "sourcePortIndex": 3,
+          "targetNodeId": "1b372ed1-23b3-44b6-9e5c-f9e0b55b4d7c",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 850.0,
+              "y": 357.0
+            }
+          ],
+          "label": "AUD-2",
+          "labelX": 850.0,
+          "labelY": 343.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "76afdec8-90ef-4b9a-b0ba-177dbdcf19f6",
+          "sourcePortIndex": 0,
+          "targetNodeId": "db0c46e0-aa1b-4635-b90c-a241946c3c6d",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1510.0,
+              "y": 395.0
+            }
+          ],
+          "label": "VID-1",
+          "labelX": 1510.0,
+          "labelY": 381.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "ef840ef7-e3bb-4b10-a9a2-57d9d0fcbb53",
+          "sourcePortIndex": 2,
+          "targetNodeId": "1b372ed1-23b3-44b6-9e5c-f9e0b55b4d7c",
+          "targetPortIndex": 4,
+          "vertices": [
+            {
+              "x": 850.0,
+              "y": 639.0
+            }
+          ],
+          "label": "CTL-1",
+          "labelX": 850.0,
+          "labelY": 625.0,
+          "labelRotation": 0,
+          "cableType": "Control",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "81718997-2f1f-44e1-b5a7-3f9da2676c51",
+          "sourcePortIndex": 3,
+          "targetNodeId": "76afdec8-90ef-4b9a-b0ba-177dbdcf19f6",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 870.0,
+              "y": 579.0
+            }
+          ],
+          "label": "NET-8",
+          "labelX": 870.0,
+          "labelY": 565.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": true,
+          "srcTagX": 386.0,
+          "srcTagY": 531.0,
+          "tgtTagX": 1304.0,
+          "tgtTagY": 607.0
+        }
+      ],
+      "boxes": [
+        {
+          "x": 80.0,
+          "y": 80.0,
+          "width": 520.0,
+          "height": 1180.0,
+          "borderColor": "#4fc3f7"
+        },
+        {
+          "x": 700.0,
+          "y": 80.0,
+          "width": 560.0,
+          "height": 700.0,
+          "borderColor": "#ff8800"
+        },
+        {
+          "x": 1360.0,
+          "y": 80.0,
+          "width": 520.0,
+          "height": 780.0,
+          "borderColor": "#22cc44"
+        }
+      ],
+      "lines": [],
+      "texts": [
+        {
+          "x": 60.0,
+          "y": 40.0,
+          "text": "RACK A - MDF HEAD END",
+          "fontSize": 22,
+          "color": "#16213e"
+        },
+        {
+          "x": 100.0,
+          "y": 100.0,
+          "text": "NETWORK CORE",
+          "fontSize": 14,
+          "color": "#4fc3f7"
+        },
+        {
+          "x": 720.0,
+          "y": 100.0,
+          "text": "AUDIO / CONTROL",
+          "fontSize": 14,
+          "color": "#ff8800"
+        },
+        {
+          "x": 1380.0,
+          "y": 100.0,
+          "text": "AV DISTRIBUTION",
+          "fontSize": 14,
+          "color": "#22cc44"
+        }
+      ],
+      "legend": {
+        "x": 120.0,
+        "y": 1330.0,
+        "entries": [
+          {
+            "type": "HDMI",
+            "color": "#22cc44",
+            "partNumber": "Belden HD1694A",
+            "cableColor": "Black"
+          },
+          {
+            "type": "Network",
+            "color": "#4fc3f7",
+            "partNumber": "Belden 10GXS13",
+            "cableColor": "Blue"
+          },
+          {
+            "type": "Audio",
+            "color": "#ff8800",
+            "partNumber": "Belden 8451",
+            "cableColor": "Orange"
+          },
+          {
+            "type": "Control",
+            "color": "#ce93d8",
+            "partNumber": "Belden 9841",
+            "cableColor": "Violet"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Boardroom 200",
+      "drawingTitle": "BOARDROOM 200 - SIGNAL FLOW",
+      "drawingNumber": "AV-102",
+      "nodes": [
+        {
+          "id": "d3a002b6-0ba4-46a8-b841-0e045f74a4c1",
+          "manufacturer": "Shure",
+          "model": "MXA920",
+          "category": "Microphone",
+          "ports": [
+            {
+              "name": "Audio Out",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Network/PoE",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 120.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "1a090f9a-ed8c-47ee-8cfd-bbc255a38458",
+          "manufacturer": "Shure",
+          "model": "MXA920",
+          "category": "Microphone",
+          "ports": [
+            {
+              "name": "Audio Out",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Network/PoE",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 120.0,
+          "y": 360.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "9275117f-b51e-4faf-8619-61041d2e2a38",
+          "manufacturer": "Biamp",
+          "model": "TesiraFORTE AI",
+          "category": "Audio DSP",
+          "ports": [
+            {
+              "name": "Mic/Line In 1",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Mic/Line In 2",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Line Out 1",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Line Out 2",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "AVB Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "RS-232",
+              "type": "COM",
+              "direction": "Out"
+            }
+          ],
+          "x": 120.0,
+          "y": 580.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "81830f62-d66c-4939-baec-ab3aa070ae5f",
+          "manufacturer": "Vaddio",
+          "model": "RoboSHOT 12E HDBT",
+          "category": "Cameras",
+          "ports": [
+            {
+              "name": "OneLINK",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "HDMI",
+              "type": "HDMI",
+              "direction": "Out"
+            }
+          ],
+          "x": 740.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "051ebf61-8679-42fa-815a-59a4fff43a7c",
+          "manufacturer": "Vaddio",
+          "model": "OneLINK Bridge",
+          "category": "Cameras",
+          "ports": [
+            {
+              "name": "48V DC",
+              "type": "Other",
+              "direction": "In"
+            },
+            {
+              "name": "OneLINK",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "HDMI",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "HD-SDI",
+              "type": "SDI",
+              "direction": "Out"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "RS232",
+              "type": "COM",
+              "direction": "Out"
+            },
+            {
+              "name": "Line Out 1",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Line Out 2",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Mic In 1",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Mic In 2",
+              "type": "Audio",
+              "direction": "In"
+            }
+          ],
+          "x": 740.0,
+          "y": 340.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "928ff48f-e4c5-4a32-b9f9-14292e1ef109",
+          "manufacturer": "Crestron",
+          "model": "UC-ENGINE",
+          "category": "Conferencing",
+          "ports": [
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "USB 1",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "USB 2",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 740.0,
+          "y": 700.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "3523010e-b2ed-4cbf-aed9-51d0a00516e4",
+          "manufacturer": "Poly",
+          "model": "Studio X50",
+          "category": "Conferencing",
+          "ports": [
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Audio Out",
+              "type": "Audio",
+              "direction": "Out"
+            }
+          ],
+          "x": 740.0,
+          "y": 940.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "eeb94162-fc9d-4656-a2bc-d03c0a5182f3",
+          "manufacturer": "Sony",
+          "model": "BRAVIA FW-85BZ40H",
+          "category": "Display",
+          "ports": [
+            {
+              "name": "HDMI In 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 3",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "RS-232",
+              "type": "COM",
+              "direction": "In"
+            }
+          ],
+          "x": 1380.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "fa5120ac-066d-42b7-9e1c-a0a32775089a",
+          "manufacturer": "Sony",
+          "model": "BRAVIA FW-85BZ40H",
+          "category": "Display",
+          "ports": [
+            {
+              "name": "HDMI In 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 3",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "RS-232",
+              "type": "COM",
+              "direction": "In"
+            }
+          ],
+          "x": 1380.0,
+          "y": 400.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "393397c1-175d-4d0a-a1a6-f03d9870cf67",
+          "manufacturer": "Crown",
+          "model": "CDi 2000",
+          "category": "Amplifier",
+          "ports": [
+            {
+              "name": "Audio In 1",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Audio In 2",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Speaker Out 1",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Speaker Out 2",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 1380.0,
+          "y": 680.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "e01c8fb6-a16f-4f22-9980-f0de169082f5",
+          "manufacturer": "QSC",
+          "model": "AcousticDesign AD-S52",
+          "category": "Speaker",
+          "ports": [
+            {
+              "name": "Audio In",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Daisy Chain (Diagram Only)",
+              "type": "Audio",
+              "direction": "Out"
+            }
+          ],
+          "x": 1380.0,
+          "y": 940.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "35a41507-be82-4ba1-b92d-a667c79bdcc5",
+          "manufacturer": "QSC",
+          "model": "AcousticDesign AD-S52",
+          "category": "Speaker",
+          "ports": [
+            {
+              "name": "Audio In",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Daisy Chain (Diagram Only)",
+              "type": "Audio",
+              "direction": "Out"
+            }
+          ],
+          "x": 1380.0,
+          "y": 1080.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "27aeed74-6637-4f36-bc01-736f707c63f8",
+          "manufacturer": "Extron",
+          "model": "IPL T S3",
+          "category": "Control Processor",
+          "ports": [
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "IR/Serial 1",
+              "type": "IR",
+              "direction": "Out"
+            },
+            {
+              "name": "IR/Serial 2",
+              "type": "IR",
+              "direction": "Out"
+            },
+            {
+              "name": "Relay",
+              "type": "Other",
+              "direction": "Out"
+            }
+          ],
+          "x": 740.0,
+          "y": 1160.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        }
+      ],
+      "links": [
+        {
+          "sourceNodeId": "d3a002b6-0ba4-46a8-b841-0e045f74a4c1",
+          "sourcePortIndex": 0,
+          "targetNodeId": "9275117f-b51e-4faf-8619-61041d2e2a38",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 230.0,
+              "y": 415.0
+            }
+          ],
+          "label": "AUD-1",
+          "labelX": 230.0,
+          "labelY": 401.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "1a090f9a-ed8c-47ee-8cfd-bbc255a38458",
+          "sourcePortIndex": 0,
+          "targetNodeId": "9275117f-b51e-4faf-8619-61041d2e2a38",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 230.0,
+              "y": 536.0
+            }
+          ],
+          "label": "AUD-2",
+          "labelX": 230.0,
+          "labelY": 522.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "81830f62-d66c-4939-baec-ab3aa070ae5f",
+          "sourcePortIndex": 0,
+          "targetNodeId": "051ebf61-8679-42fa-815a-59a4fff43a7c",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 850.0,
+              "y": 295.0
+            }
+          ],
+          "label": "NET-1",
+          "labelX": 850.0,
+          "labelY": 281.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "051ebf61-8679-42fa-815a-59a4fff43a7c",
+          "sourcePortIndex": 2,
+          "targetNodeId": "eeb94162-fc9d-4656-a2bc-d03c0a5182f3",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 1170.0,
+              "y": 317.0
+            }
+          ],
+          "label": "VID-1",
+          "labelX": 1170.0,
+          "labelY": 303.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "051ebf61-8679-42fa-815a-59a4fff43a7c",
+          "sourcePortIndex": 7,
+          "targetNodeId": "9275117f-b51e-4faf-8619-61041d2e2a38",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 540.0,
+              "y": 581.0
+            }
+          ],
+          "label": "AUD-3",
+          "labelX": 540.0,
+          "labelY": 567.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "928ff48f-e4c5-4a32-b9f9-14292e1ef109",
+          "sourcePortIndex": 0,
+          "targetNodeId": "eeb94162-fc9d-4656-a2bc-d03c0a5182f3",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1170.0,
+              "y": 475.0
+            }
+          ],
+          "label": "VID-2",
+          "labelX": 1170.0,
+          "labelY": 461.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "3523010e-b2ed-4cbf-aed9-51d0a00516e4",
+          "sourcePortIndex": 0,
+          "targetNodeId": "fa5120ac-066d-42b7-9e1c-a0a32775089a",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1170.0,
+              "y": 725.0
+            }
+          ],
+          "label": "VID-3",
+          "labelX": 1170.0,
+          "labelY": 711.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "3523010e-b2ed-4cbf-aed9-51d0a00516e4",
+          "sourcePortIndex": 3,
+          "targetNodeId": "393397c1-175d-4d0a-a1a6-f03d9870cf67",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1170.0,
+              "y": 898.0
+            }
+          ],
+          "label": "AUD-4",
+          "labelX": 1170.0,
+          "labelY": 884.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "9275117f-b51e-4faf-8619-61041d2e2a38",
+          "sourcePortIndex": 2,
+          "targetNodeId": "393397c1-175d-4d0a-a1a6-f03d9870cf67",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 860.0,
+              "y": 696.0
+            }
+          ],
+          "label": "AUD-5",
+          "labelX": 860.0,
+          "labelY": 682.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "393397c1-175d-4d0a-a1a6-f03d9870cf67",
+          "sourcePortIndex": 2,
+          "targetNodeId": "e01c8fb6-a16f-4f22-9980-f0de169082f5",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1490.0,
+              "y": 865.0
+            }
+          ],
+          "label": "SPK-1",
+          "labelX": 1490.0,
+          "labelY": 851.0,
+          "labelRotation": 0,
+          "cableType": "Speaker",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "393397c1-175d-4d0a-a1a6-f03d9870cf67",
+          "sourcePortIndex": 3,
+          "targetNodeId": "35a41507-be82-4ba1-b92d-a667c79bdcc5",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1490.0,
+              "y": 946.0
+            }
+          ],
+          "label": "SPK-2",
+          "labelX": 1490.0,
+          "labelY": 932.0,
+          "labelRotation": 0,
+          "cableType": "Speaker",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "27aeed74-6637-4f36-bc01-736f707c63f8",
+          "sourcePortIndex": 1,
+          "targetNodeId": "eeb94162-fc9d-4656-a2bc-d03c0a5182f3",
+          "targetPortIndex": 4,
+          "vertices": [
+            {
+              "x": 1170.0,
+              "y": 749.0
+            }
+          ],
+          "label": "CTL-1",
+          "labelX": 1170.0,
+          "labelY": 735.0,
+          "labelRotation": 0,
+          "cableType": "Control",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "27aeed74-6637-4f36-bc01-736f707c63f8",
+          "sourcePortIndex": 2,
+          "targetNodeId": "fa5120ac-066d-42b7-9e1c-a0a32775089a",
+          "targetPortIndex": 4,
+          "vertices": [
+            {
+              "x": 1170.0,
+              "y": 890.0
+            }
+          ],
+          "label": "CTL-2",
+          "labelX": 1170.0,
+          "labelY": 876.0,
+          "labelRotation": 0,
+          "cableType": "Control",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "928ff48f-e4c5-4a32-b9f9-14292e1ef109",
+          "sourcePortIndex": 1,
+          "targetNodeId": "3523010e-b2ed-4cbf-aed9-51d0a00516e4",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 850.0,
+              "y": 897.0
+            }
+          ],
+          "label": "USB-1",
+          "labelX": 850.0,
+          "labelY": 883.0,
+          "labelRotation": 0,
+          "cableType": "USB",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "051ebf61-8679-42fa-815a-59a4fff43a7c",
+          "sourcePortIndex": 5,
+          "targetNodeId": "928ff48f-e4c5-4a32-b9f9-14292e1ef109",
+          "targetPortIndex": 3,
+          "vertices": [
+            {
+              "x": 850.0,
+              "y": 652.0
+            }
+          ],
+          "label": "NET-2",
+          "labelX": 850.0,
+          "labelY": 638.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": true,
+          "srcTagX": 1006.0,
+          "srcTagY": 473.0,
+          "tgtTagX": 644.0,
+          "tgtTagY": 811.0
+        }
+      ],
+      "boxes": [
+        {
+          "x": 80.0,
+          "y": 80.0,
+          "width": 540.0,
+          "height": 620.0,
+          "borderColor": "#ff8800"
+        }
+      ],
+      "lines": [],
+      "texts": [
+        {
+          "x": 60.0,
+          "y": 40.0,
+          "text": "BOARDROOM 200",
+          "fontSize": 22,
+          "color": "#16213e"
+        },
+        {
+          "x": 100.0,
+          "y": 100.0,
+          "text": "AUDIO CAPTURE",
+          "fontSize": 14,
+          "color": "#ff8800"
+        }
+      ],
+      "legend": {
+        "x": 120.0,
+        "y": 1320.0,
+        "entries": [
+          {
+            "type": "HDMI",
+            "color": "#22cc44",
+            "partNumber": "Belden HD1694A",
+            "cableColor": "Black"
+          },
+          {
+            "type": "Network",
+            "color": "#4fc3f7",
+            "partNumber": "Belden 10GXS13",
+            "cableColor": "Blue"
+          },
+          {
+            "type": "Audio",
+            "color": "#ff8800",
+            "partNumber": "Belden 8451",
+            "cableColor": "Orange"
+          },
+          {
+            "type": "Speaker",
+            "color": "#e94560",
+            "partNumber": "Belden 5000UE",
+            "cableColor": "Red"
+          },
+          {
+            "type": "Control",
+            "color": "#ce93d8",
+            "partNumber": "Belden 9841",
+            "cableColor": "Violet"
+          },
+          {
+            "type": "USB",
+            "color": "#fff176",
+            "partNumber": "Icron USB 3-2-1",
+            "cableColor": "Yellow"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Training Room 150",
+      "drawingTitle": "TRAINING ROOM 150 - SIGNAL FLOW",
+      "drawingNumber": "AV-103",
+      "nodes": [
+        {
+          "id": "5bdce733-e676-4634-b9b5-a86a097944b7",
+          "manufacturer": "Atlona",
+          "model": "AT-OME-EX-KIT",
+          "category": "Extender",
+          "ports": [
+            {
+              "name": "HDMI In",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "HDBaseT",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "IR",
+              "type": "IR",
+              "direction": "Universal"
+            }
+          ],
+          "x": 120.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "94581c64-43b9-4686-9bf0-fed1a83bd921",
+          "manufacturer": "Kramer",
+          "model": "TP-580",
+          "category": "Extender",
+          "ports": [
+            {
+              "name": "HDMI In",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDBaseT Out",
+              "type": "Network",
+              "direction": "Out"
+            },
+            {
+              "name": "IR",
+              "type": "IR",
+              "direction": "Universal"
+            }
+          ],
+          "x": 120.0,
+          "y": 380.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "4be06a27-4775-4e96-ac07-f4b57dbe598a",
+          "manufacturer": "Extron",
+          "model": "DTP CrossPoint 84",
+          "category": "Switcher",
+          "ports": [
+            {
+              "name": "Input 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Input 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Input 3",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Input 4",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Output 1",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "Output 2",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "Ethernet",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "RS-232",
+              "type": "COM",
+              "direction": "Out"
+            }
+          ],
+          "x": 120.0,
+          "y": 620.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "b93f0154-42a7-4c2d-8e71-895a65df44a2",
+          "manufacturer": "Kramer",
+          "model": "VP-773",
+          "category": "Scaler",
+          "ports": [
+            {
+              "name": "HDMI In 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "SDI In",
+              "type": "SDI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "SDI Out",
+              "type": "SDI",
+              "direction": "Out"
+            },
+            {
+              "name": "RS-232",
+              "type": "COM",
+              "direction": "Out"
+            }
+          ],
+          "x": 740.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "0d415f4b-6a2c-4b18-84fc-395adfb73837",
+          "manufacturer": "Epson",
+          "model": "PowerLite Pro L730U",
+          "category": "Projector",
+          "ports": [
+            {
+              "name": "HDMI In 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "RS-232",
+              "type": "COM",
+              "direction": "In"
+            },
+            {
+              "name": "Power",
+              "type": "Other",
+              "direction": "In"
+            }
+          ],
+          "x": 740.0,
+          "y": 460.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "192f975a-e19e-4c6e-b3ca-dc654cc725e2",
+          "manufacturer": "Samsung",
+          "model": "QM85R",
+          "category": "Display",
+          "ports": [
+            {
+              "name": "HDMI In 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "RS-232",
+              "type": "COM",
+              "direction": "In"
+            },
+            {
+              "name": "Power",
+              "type": "Other",
+              "direction": "In"
+            }
+          ],
+          "x": 740.0,
+          "y": 760.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "b3075fd2-8241-46f8-a715-0bfc60fad981",
+          "manufacturer": "ClearOne",
+          "model": "CONVERGE Pro 2",
+          "category": "Audio DSP",
+          "ports": [
+            {
+              "name": "Mic In 1",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Mic In 2",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Line Out",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "RS-232",
+              "type": "COM",
+              "direction": "Out"
+            }
+          ],
+          "x": 1380.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "dcacc2f4-0e44-48ae-b8e3-9d38222a7433",
+          "manufacturer": "Yamaha",
+          "model": "MTX5-D",
+          "category": "Audio Matrix",
+          "ports": [
+            {
+              "name": "Mic/Line In 1",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Mic/Line In 2",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Line Out 1",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Line Out 2",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 1380.0,
+          "y": 400.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "211f0a4d-9f84-4053-9721-9e2a0e3b74ab",
+          "manufacturer": "Crown",
+          "model": "CDi 2000",
+          "category": "Amplifier",
+          "ports": [
+            {
+              "name": "Audio In 1",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Audio In 2",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Speaker Out 1",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Speaker Out 2",
+              "type": "Audio",
+              "direction": "Out"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 1380.0,
+          "y": 660.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "c8ab8ac3-b22e-4f23-8d29-e5d5cc7ea240",
+          "manufacturer": "QSC",
+          "model": "AcousticDesign AD-S52",
+          "category": "Speaker",
+          "ports": [
+            {
+              "name": "Audio In",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Daisy Chain (Diagram Only)",
+              "type": "Audio",
+              "direction": "Out"
+            }
+          ],
+          "x": 1380.0,
+          "y": 920.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "5998233e-0d95-4c3f-9283-76dd7889c3e9",
+          "manufacturer": "QSC",
+          "model": "AcousticDesign AD-S52",
+          "category": "Speaker",
+          "ports": [
+            {
+              "name": "Audio In",
+              "type": "Audio",
+              "direction": "In"
+            },
+            {
+              "name": "Daisy Chain (Diagram Only)",
+              "type": "Audio",
+              "direction": "Out"
+            }
+          ],
+          "x": 1380.0,
+          "y": 1060.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        }
+      ],
+      "links": [
+        {
+          "sourceNodeId": "5bdce733-e676-4634-b9b5-a86a097944b7",
+          "sourcePortIndex": 1,
+          "targetNodeId": "4be06a27-4775-4e96-ac07-f4b57dbe598a",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 230.0,
+              "y": 435.0
+            }
+          ],
+          "label": "VID-1",
+          "labelX": 230.0,
+          "labelY": 421.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "94581c64-43b9-4686-9bf0-fed1a83bd921",
+          "sourcePortIndex": 1,
+          "targetNodeId": "4be06a27-4775-4e96-ac07-f4b57dbe598a",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 230.0,
+              "y": 566.0
+            }
+          ],
+          "label": "VID-2",
+          "labelX": 230.0,
+          "labelY": 552.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "4be06a27-4775-4e96-ac07-f4b57dbe598a",
+          "sourcePortIndex": 4,
+          "targetNodeId": "b93f0154-42a7-4c2d-8e71-895a65df44a2",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 540.0,
+              "y": 435.0
+            }
+          ],
+          "label": "VID-3",
+          "labelX": 540.0,
+          "labelY": 421.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "4be06a27-4775-4e96-ac07-f4b57dbe598a",
+          "sourcePortIndex": 5,
+          "targetNodeId": "192f975a-e19e-4c6e-b3ca-dc654cc725e2",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 540.0,
+              "y": 756.0
+            }
+          ],
+          "label": "VID-4",
+          "labelX": 540.0,
+          "labelY": 742.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "b93f0154-42a7-4c2d-8e71-895a65df44a2",
+          "sourcePortIndex": 3,
+          "targetNodeId": "0d415f4b-6a2c-4b18-84fc-395adfb73837",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 850.0,
+              "y": 355.0
+            }
+          ],
+          "label": "VID-5",
+          "labelX": 850.0,
+          "labelY": 341.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "b3075fd2-8241-46f8-a715-0bfc60fad981",
+          "sourcePortIndex": 2,
+          "targetNodeId": "dcacc2f4-0e44-48ae-b8e3-9d38222a7433",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1490.0,
+              "y": 325.0
+            }
+          ],
+          "label": "AUD-1",
+          "labelX": 1490.0,
+          "labelY": 311.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "dcacc2f4-0e44-48ae-b8e3-9d38222a7433",
+          "sourcePortIndex": 2,
+          "targetNodeId": "211f0a4d-9f84-4053-9721-9e2a0e3b74ab",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1490.0,
+              "y": 585.0
+            }
+          ],
+          "label": "AUD-2",
+          "labelX": 1490.0,
+          "labelY": 571.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "dcacc2f4-0e44-48ae-b8e3-9d38222a7433",
+          "sourcePortIndex": 3,
+          "targetNodeId": "211f0a4d-9f84-4053-9721-9e2a0e3b74ab",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 1490.0,
+              "y": 607.0
+            }
+          ],
+          "label": "AUD-3",
+          "labelX": 1490.0,
+          "labelY": 593.0,
+          "labelRotation": 0,
+          "cableType": "Audio",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "211f0a4d-9f84-4053-9721-9e2a0e3b74ab",
+          "sourcePortIndex": 2,
+          "targetNodeId": "c8ab8ac3-b22e-4f23-8d29-e5d5cc7ea240",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1490.0,
+              "y": 845.0
+            }
+          ],
+          "label": "SPK-1",
+          "labelX": 1490.0,
+          "labelY": 831.0,
+          "labelRotation": 0,
+          "cableType": "Speaker",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "211f0a4d-9f84-4053-9721-9e2a0e3b74ab",
+          "sourcePortIndex": 3,
+          "targetNodeId": "5998233e-0d95-4c3f-9283-76dd7889c3e9",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1490.0,
+              "y": 926.0
+            }
+          ],
+          "label": "SPK-2",
+          "labelX": 1490.0,
+          "labelY": 912.0,
+          "labelRotation": 0,
+          "cableType": "Speaker",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "4be06a27-4775-4e96-ac07-f4b57dbe598a",
+          "sourcePortIndex": 7,
+          "targetNodeId": "0d415f4b-6a2c-4b18-84fc-395adfb73837",
+          "targetPortIndex": 3,
+          "vertices": [
+            {
+              "x": 540.0,
+              "y": 650.0
+            }
+          ],
+          "label": "CTL-1",
+          "labelX": 540.0,
+          "labelY": 636.0,
+          "labelRotation": 0,
+          "cableType": "Control",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "b93f0154-42a7-4c2d-8e71-895a65df44a2",
+          "sourcePortIndex": 5,
+          "targetNodeId": "192f975a-e19e-4c6e-b3ca-dc654cc725e2",
+          "targetPortIndex": 3,
+          "vertices": [
+            {
+              "x": 850.0,
+              "y": 549.0
+            }
+          ],
+          "label": "CTL-2",
+          "labelX": 850.0,
+          "labelY": 535.0,
+          "labelRotation": 0,
+          "cableType": "Control",
+          "broken": false
+        }
+      ],
+      "boxes": [],
+      "lines": [],
+      "texts": [
+        {
+          "x": 60.0,
+          "y": 40.0,
+          "text": "TRAINING ROOM 150",
+          "fontSize": 22,
+          "color": "#16213e"
+        }
+      ],
+      "legend": {
+        "x": 120.0,
+        "y": 1000.0,
+        "entries": [
+          {
+            "type": "HDMI",
+            "color": "#22cc44",
+            "partNumber": "Belden HD1694A",
+            "cableColor": "Black"
+          },
+          {
+            "type": "Audio",
+            "color": "#ff8800",
+            "partNumber": "Belden 8451",
+            "cableColor": "Orange"
+          },
+          {
+            "type": "Speaker",
+            "color": "#e94560",
+            "partNumber": "Belden 5000UE",
+            "cableColor": "Red"
+          },
+          {
+            "type": "Control",
+            "color": "#ce93d8",
+            "partNumber": "Belden 9841",
+            "cableColor": "Violet"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Huddle Rooms",
+      "drawingTitle": "HUDDLE ROOMS 101-104",
+      "drawingNumber": "AV-104",
+      "nodes": [
+        {
+          "id": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "manufacturer": "Generic",
+          "model": "24 Port Switch",
+          "category": "GENERIC",
+          "ports": [
+            {
+              "name": "Port 1",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 2",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 3",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 4",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 5",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 6",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 7",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 8",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 9",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 10",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 11",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 12",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 13",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 14",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 15",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 16",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 17",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 18",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 19",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 20",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 21",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 22",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 23",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Port 24",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 120.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "2710ac5e-a277-4825-b99f-77cc48a2d059",
+          "manufacturer": "Logitech",
+          "model": "Rally Bar",
+          "category": "Conferencing",
+          "ports": [
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 700.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "9c2af578-460a-4972-9fd9-6823279b170a",
+          "manufacturer": "LG",
+          "model": "55UH5F-H",
+          "category": "Display",
+          "ports": [
+            {
+              "name": "HDMI In 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Power",
+              "type": "Other",
+              "direction": "In"
+            }
+          ],
+          "x": 1300.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "c9b0b70a-f46e-4462-bc6c-54b464cf34d2",
+          "manufacturer": "Just Add Power",
+          "model": "3G Ultra HD Receiver",
+          "category": "AV over IP",
+          "ports": [
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "IR Out",
+              "type": "IR",
+              "direction": "Out"
+            }
+          ],
+          "x": 1900.0,
+          "y": 140.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "62225dc7-4669-4f69-928c-68a49877bc0c",
+          "manufacturer": "Logitech",
+          "model": "Rally Bar",
+          "category": "Conferencing",
+          "ports": [
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 700.0,
+          "y": 460.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "e52ef7a4-4766-4b01-a214-5d790f424a13",
+          "manufacturer": "LG",
+          "model": "55UH5F-H",
+          "category": "Display",
+          "ports": [
+            {
+              "name": "HDMI In 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Power",
+              "type": "Other",
+              "direction": "In"
+            }
+          ],
+          "x": 1300.0,
+          "y": 460.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "1359520e-faf2-404d-8401-7b67de55756b",
+          "manufacturer": "Just Add Power",
+          "model": "3G Ultra HD Receiver",
+          "category": "AV over IP",
+          "ports": [
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "IR Out",
+              "type": "IR",
+              "direction": "Out"
+            }
+          ],
+          "x": 1900.0,
+          "y": 460.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "c169ddb0-dec8-4381-997b-0c459c215ac0",
+          "manufacturer": "Logitech",
+          "model": "Rally Bar",
+          "category": "Conferencing",
+          "ports": [
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 700.0,
+          "y": 780.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "775ee65e-0e0d-479c-bbb5-4df0e923ee52",
+          "manufacturer": "LG",
+          "model": "55UH5F-H",
+          "category": "Display",
+          "ports": [
+            {
+              "name": "HDMI In 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Power",
+              "type": "Other",
+              "direction": "In"
+            }
+          ],
+          "x": 1300.0,
+          "y": 780.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "e4c31439-abd2-4c80-b3eb-8c2d5f04b01d",
+          "manufacturer": "Just Add Power",
+          "model": "3G Ultra HD Receiver",
+          "category": "AV over IP",
+          "ports": [
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "IR Out",
+              "type": "IR",
+              "direction": "Out"
+            }
+          ],
+          "x": 1900.0,
+          "y": 780.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "18044123-a4e7-47ec-b330-5ca86cb5bcb6",
+          "manufacturer": "Logitech",
+          "model": "Rally Bar",
+          "category": "Conferencing",
+          "ports": [
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "USB",
+              "type": "USB",
+              "direction": "Universal"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            }
+          ],
+          "x": 700.0,
+          "y": 1100.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "43bcd413-edfc-482e-8a1d-17e6ace158ba",
+          "manufacturer": "LG",
+          "model": "55UH5F-H",
+          "category": "Display",
+          "ports": [
+            {
+              "name": "HDMI In 1",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "HDMI In 2",
+              "type": "HDMI",
+              "direction": "In"
+            },
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "Power",
+              "type": "Other",
+              "direction": "In"
+            }
+          ],
+          "x": 1300.0,
+          "y": 1100.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        },
+        {
+          "id": "23a66820-16c6-455c-8252-3728059a9598",
+          "manufacturer": "Just Add Power",
+          "model": "3G Ultra HD Receiver",
+          "category": "AV over IP",
+          "ports": [
+            {
+              "name": "Network",
+              "type": "Network",
+              "direction": "Universal"
+            },
+            {
+              "name": "HDMI Out",
+              "type": "HDMI",
+              "direction": "Out"
+            },
+            {
+              "name": "IR Out",
+              "type": "IR",
+              "direction": "Out"
+            }
+          ],
+          "x": 1900.0,
+          "y": 1100.0,
+          "backgroundColor": "#16213e",
+          "borderColor": "#e94560",
+          "textColor": "#ffffff"
+        }
+      ],
+      "links": [
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 0,
+          "targetNodeId": "2710ac5e-a277-4825-b99f-77cc48a2d059",
+          "targetPortIndex": 2,
+          "vertices": [
+            {
+              "x": 520.0,
+              "y": 217.0
+            }
+          ],
+          "label": "NET-1",
+          "labelX": 520.0,
+          "labelY": 203.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 1,
+          "targetNodeId": "9c2af578-460a-4972-9fd9-6823279b170a",
+          "targetPortIndex": 2,
+          "vertices": [
+            {
+              "x": 820.0,
+              "y": 206.0
+            }
+          ],
+          "label": "NET-2",
+          "labelX": 820.0,
+          "labelY": 192.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 2,
+          "targetNodeId": "c9b0b70a-f46e-4462-bc6c-54b464cf34d2",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1120.0,
+              "y": 217.0
+            }
+          ],
+          "label": "NET-3",
+          "labelX": 1120.0,
+          "labelY": 203.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "2710ac5e-a277-4825-b99f-77cc48a2d059",
+          "sourcePortIndex": 0,
+          "targetNodeId": "9c2af578-460a-4972-9fd9-6823279b170a",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1110.0,
+              "y": 195.0
+            }
+          ],
+          "label": "VID-1",
+          "labelX": 1110.0,
+          "labelY": 181.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "c9b0b70a-f46e-4462-bc6c-54b464cf34d2",
+          "sourcePortIndex": 1,
+          "targetNodeId": "9c2af578-460a-4972-9fd9-6823279b170a",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 1710.0,
+              "y": 217.0
+            }
+          ],
+          "label": "VID-2",
+          "labelX": 1710.0,
+          "labelY": 203.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 3,
+          "targetNodeId": "62225dc7-4669-4f69-928c-68a49877bc0c",
+          "targetPortIndex": 2,
+          "vertices": [
+            {
+              "x": 520.0,
+              "y": 410.0
+            }
+          ],
+          "label": "NET-4",
+          "labelX": 520.0,
+          "labelY": 396.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 4,
+          "targetNodeId": "e52ef7a4-4766-4b01-a214-5d790f424a13",
+          "targetPortIndex": 2,
+          "vertices": [
+            {
+              "x": 820.0,
+              "y": 399.0
+            }
+          ],
+          "label": "NET-5",
+          "labelX": 820.0,
+          "labelY": 385.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 5,
+          "targetNodeId": "1359520e-faf2-404d-8401-7b67de55756b",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1120.0,
+              "y": 410.0
+            }
+          ],
+          "label": "NET-6",
+          "labelX": 1120.0,
+          "labelY": 396.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "62225dc7-4669-4f69-928c-68a49877bc0c",
+          "sourcePortIndex": 0,
+          "targetNodeId": "e52ef7a4-4766-4b01-a214-5d790f424a13",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1110.0,
+              "y": 515.0
+            }
+          ],
+          "label": "VID-3",
+          "labelX": 1110.0,
+          "labelY": 501.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "1359520e-faf2-404d-8401-7b67de55756b",
+          "sourcePortIndex": 1,
+          "targetNodeId": "e52ef7a4-4766-4b01-a214-5d790f424a13",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 1710.0,
+              "y": 537.0
+            }
+          ],
+          "label": "VID-4",
+          "labelX": 1710.0,
+          "labelY": 523.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 6,
+          "targetNodeId": "c169ddb0-dec8-4381-997b-0c459c215ac0",
+          "targetPortIndex": 2,
+          "vertices": [
+            {
+              "x": 520.0,
+              "y": 603.0
+            }
+          ],
+          "label": "NET-7",
+          "labelX": 520.0,
+          "labelY": 589.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 7,
+          "targetNodeId": "775ee65e-0e0d-479c-bbb5-4df0e923ee52",
+          "targetPortIndex": 2,
+          "vertices": [
+            {
+              "x": 820.0,
+              "y": 592.0
+            }
+          ],
+          "label": "NET-8",
+          "labelX": 820.0,
+          "labelY": 578.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 8,
+          "targetNodeId": "e4c31439-abd2-4c80-b3eb-8c2d5f04b01d",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1120.0,
+              "y": 603.0
+            }
+          ],
+          "label": "NET-9",
+          "labelX": 1120.0,
+          "labelY": 589.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "c169ddb0-dec8-4381-997b-0c459c215ac0",
+          "sourcePortIndex": 0,
+          "targetNodeId": "775ee65e-0e0d-479c-bbb5-4df0e923ee52",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1110.0,
+              "y": 835.0
+            }
+          ],
+          "label": "VID-5",
+          "labelX": 1110.0,
+          "labelY": 821.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "e4c31439-abd2-4c80-b3eb-8c2d5f04b01d",
+          "sourcePortIndex": 1,
+          "targetNodeId": "775ee65e-0e0d-479c-bbb5-4df0e923ee52",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 1710.0,
+              "y": 857.0
+            }
+          ],
+          "label": "VID-6",
+          "labelX": 1710.0,
+          "labelY": 843.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 9,
+          "targetNodeId": "18044123-a4e7-47ec-b330-5ca86cb5bcb6",
+          "targetPortIndex": 2,
+          "vertices": [
+            {
+              "x": 520.0,
+              "y": 796.0
+            }
+          ],
+          "label": "NET-10",
+          "labelX": 520.0,
+          "labelY": 782.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 10,
+          "targetNodeId": "43bcd413-edfc-482e-8a1d-17e6ace158ba",
+          "targetPortIndex": 2,
+          "vertices": [
+            {
+              "x": 820.0,
+              "y": 785.0
+            }
+          ],
+          "label": "NET-11",
+          "labelX": 820.0,
+          "labelY": 771.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "a2aded29-5d1f-4445-abfd-e8369ddc254d",
+          "sourcePortIndex": 11,
+          "targetNodeId": "23a66820-16c6-455c-8252-3728059a9598",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1120.0,
+              "y": 796.0
+            }
+          ],
+          "label": "NET-12",
+          "labelX": 1120.0,
+          "labelY": 782.0,
+          "labelRotation": 0,
+          "cableType": "Network",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "18044123-a4e7-47ec-b330-5ca86cb5bcb6",
+          "sourcePortIndex": 0,
+          "targetNodeId": "43bcd413-edfc-482e-8a1d-17e6ace158ba",
+          "targetPortIndex": 0,
+          "vertices": [
+            {
+              "x": 1110.0,
+              "y": 1155.0
+            }
+          ],
+          "label": "VID-7",
+          "labelX": 1110.0,
+          "labelY": 1141.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        },
+        {
+          "sourceNodeId": "23a66820-16c6-455c-8252-3728059a9598",
+          "sourcePortIndex": 1,
+          "targetNodeId": "43bcd413-edfc-482e-8a1d-17e6ace158ba",
+          "targetPortIndex": 1,
+          "vertices": [
+            {
+              "x": 1710.0,
+              "y": 1177.0
+            }
+          ],
+          "label": "VID-8",
+          "labelX": 1710.0,
+          "labelY": 1163.0,
+          "labelRotation": 0,
+          "cableType": "HDMI",
+          "broken": false
+        }
+      ],
+      "boxes": [],
+      "lines": [],
+      "texts": [
+        {
+          "x": 60.0,
+          "y": 40.0,
+          "text": "HUDDLE ROOMS 101-104",
+          "fontSize": 22,
+          "color": "#16213e"
+        }
+      ],
+      "legend": {
+        "x": 120.0,
+        "y": 1500.0,
+        "entries": [
+          {
+            "type": "HDMI",
+            "color": "#22cc44",
+            "partNumber": "Belden HD1694A",
+            "cableColor": "Black"
+          },
+          {
+            "type": "Network",
+            "color": "#4fc3f7",
+            "partNumber": "Belden 10GXS13",
+            "cableColor": "Blue"
+          }
+        ]
+      }
+    }
+  ]
+}

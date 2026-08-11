@@ -7,7 +7,7 @@
     <base href="/" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <!-- keep the ?v= stamp in sync with AppVersion so cached browsers refetch the styles -->
-    <link rel="stylesheet" href="css/app.css?v=1.5.32" />
+    <link rel="stylesheet" href="css/app.css?v=1.5.33" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="Client.styles.css" rel="stylesheet" />
     <link href="_content/Z.Blazor.Diagrams/style.min.css" rel="stylesheet" />
@@ -119,7 +119,186 @@
             return out;
         }
 
-        window.exportToPdf = async function (title, version, bx, by, bw, bh) {
+        // Draws a drawing-sheet title block: a vertical strip down the right edge, laid out
+        // like a standard AV/telecom sheet. Returns the rectangle left over for the drawing
+        // itself, so the caller can fit the diagram into it.
+        // tb = { enabled, companyName, companyAddress, companyPhone, companyWeb, client,
+        //        projectName, location, discipline, projectNumber, drawnBy, checkedBy, date,
+        //        revisions:[{number,date,description}], drawingTitle, drawingNumber, sheetName }
+        function drawTitleBlock(pdf, tb, pageW, pageH, version) {
+            const M = 6;                       // margin from paper edge to the outer border
+            const inner = 1.6;                 // gap between the double border lines
+            const stripW = Math.min(49, pageW * 0.113);
+            const x0 = M, y0 = M, x1 = pageW - M, y1 = pageH - M;
+
+            pdf.setLineWidth(0.7);
+            pdf.setDrawColor(0);
+            pdf.rect(x0, y0, x1 - x0, y1 - y0);                      // outer border
+            pdf.setLineWidth(0.25);
+            pdf.rect(x0 + inner, y0 + inner, (x1 - x0) - inner * 2, (y1 - y0) - inner * 2);
+
+            if (!tb || !tb.enabled) {
+                return { x: x0 + inner + 3, y: y0 + inner + 3,
+                         w: (x1 - x0) - inner * 2 - 6, h: (y1 - y0) - inner * 2 - 6 };
+            }
+
+            const sx = x1 - inner - stripW;    // strip left edge
+            const sTop = y0 + inner, sBot = y1 - inner;
+            pdf.setLineWidth(0.4);
+            pdf.line(sx, sTop, sx, sBot);
+
+            const pad = 2.5;
+            const txt = (s, x, y, size, opts) => {
+                if (s === undefined || s === null || s === '') return;
+                pdf.setFontSize(size);
+                pdf.text(String(s), x, y, opts);
+            };
+            const rule = y => { pdf.setLineWidth(0.3); pdf.line(sx, y, x1 - inner, y); };
+
+            // Trims a single-line cell value to its column, so a long revision description
+            // can't run off the edge of the sheet.
+            const fit = (s, maxW, size) => {
+                if (s === undefined || s === null || s === '') return '';
+                pdf.setFontSize(size);
+                let str = String(s);
+                if (pdf.getTextWidth(str) <= maxW) return str;
+                while (str.length > 1 && pdf.getTextWidth(str + '…') > maxW) str = str.slice(0, -1);
+                return str + '…';
+            };
+
+            let y = sTop;
+
+            // --- Logo + company details ---
+            // The uploaded logo is fitted inside the reserved box preserving its aspect
+            // ratio; with no logo (or an image jsPDF can't read) the box prints as an empty
+            // outline so there's still somewhere obvious to stamp one in by hand.
+            const logoH = 20;
+            const boxX = sx + pad, boxY = y + pad;
+            const boxW = stripW - pad * 2, boxH = logoH - pad * 2;
+            let logoDrawn = false;
+            if (tb.logo) {
+                try {
+                    const props = pdf.getImageProperties(tb.logo);
+                    const scale = Math.min(boxW / props.width, boxH / props.height);
+                    const w = props.width * scale, h = props.height * scale;
+                    pdf.addImage(tb.logo, props.fileType || 'PNG',
+                                 boxX + (boxW - w) / 2, boxY + (boxH - h) / 2, w, h);
+                    logoDrawn = true;
+                } catch (err) {
+                    console.warn('Title block logo could not be drawn:', err);
+                }
+            }
+            if (!logoDrawn) {
+                pdf.setLineWidth(0.25);
+                pdf.setDrawColor(150);
+                pdf.rect(boxX, boxY, boxW, boxH);
+                pdf.setDrawColor(0);
+            }
+            y += logoH;
+
+            pdf.setFont(undefined, 'bold');
+            const company = [tb.companyName, tb.companyAddress, tb.companyPhone, tb.companyWeb].filter(Boolean);
+            let cy = y + 3.2;
+            for (const lineText of company) { txt(lineText, x1 - inner - pad, cy, 6.2, { align: 'right' }); cy += 3.0; }
+            pdf.setFont(undefined, 'normal');
+            y = Math.max(y + 4, cy) + 2;
+            rule(y);
+
+            // Everything from the revision grid down is ANCHORED TO THE BOTTOM of the strip,
+            // the way a real drawing sheet works: the drawing number sits in a short box in
+            // the bottom corner. These are worked out first so the project and stamp blocks
+            // above can divide up exactly the space that's actually left.
+            const revRows = 6, revH = 5.0;
+            const numberBoxH = 20, titleBoxH = 20;
+            const pairLead = 4.4;
+            const pairsH = pairLead * 4 + 3;
+
+            const numberTop = sBot - numberBoxH;
+            const titleTop = numberTop - titleBoxH;
+            const pairsTop = titleTop - pairsH;
+            const revTop = Math.max(pairsTop - revRows * revH, y + 20);
+
+            // --- Project block: rotated 90°, reading bottom-to-top like a CAD sheet ---
+            // Takes the larger share of the space between the company details and the
+            // revision grid; the stamp box gets the rest.
+            const projBottom = y + (revTop - y) * 0.70;
+            let px = sx + pad + 6;
+            const rot = (s, x, size, bold) => {
+                if (!s) return;
+                pdf.setFont(undefined, bold ? 'bold' : 'normal');
+                pdf.setFontSize(size);
+                pdf.text(String(s), x, projBottom - pad, { angle: 90 });
+                pdf.setFont(undefined, 'normal');
+            };
+            rot(tb.client, px, 13, true);        px += 7;
+            rot(tb.projectName, px, 10, true);   px += 6;
+            rot(tb.location, px, 8);             px += 5;
+            rot(tb.discipline, px, 8);
+            rule(projBottom);
+
+            // --- Stamp box: from the project block down to the revision grid ---
+            txt('STAMP', sx + pad, projBottom + 3.4, 5.6);
+            rule(revTop);
+
+            // --- Revisions grid ---
+            // Proportional to the strip, so the description column doesn't vanish on a
+            // narrow strip (Letter/A4) the way fixed widths did.
+            const numW = stripW * 0.16, dateW = stripW * 0.32;
+            pdf.setLineWidth(0.25);
+            for (let r = 1; r <= revRows; r++) rule(revTop + r * revH);
+            const revBottom = revTop + revRows * revH;
+            pdf.line(sx + numW, revTop, sx + numW, revBottom);
+            pdf.line(sx + numW + dateW, revTop, sx + numW + dateW, revBottom);
+            txt('#', sx + 2, revTop + 3.4, 5);
+            txt('DATE', sx + numW + 2, revTop + 3.4, 5);
+            txt('DESCRIPTION', sx + numW + dateW + 2, revTop + 3.4, 5);
+            (tb.revisions || []).slice(0, revRows - 1).forEach((rev, i) => {
+                const ry = revTop + (i + 1) * revH + 3.4;
+                txt(fit(rev.number, numW - 3, 5), sx + 2, ry, 5);
+                txt(fit(rev.date, dateW - 3, 5), sx + numW + 2, ry, 5);
+                txt(fit(rev.description, stripW - numW - dateW - 3, 5), sx + numW + dateW + 2, ry, 5);
+            });
+
+            // --- Label / value pairs ---
+            let py = pairsTop;
+            for (const [label, value] of [
+                ['PROJECT NUM.', tb.projectNumber], ['DRAWN BY', tb.drawnBy],
+                ['CHECKED BY', tb.checkedBy], ['DATE', tb.date]
+            ]) {
+                py += pairLead;
+                txt(label, sx + pad, py, 5.6);
+                txt(value, x1 - inner - pad, py, 5.6, { align: 'right' });
+            }
+            rule(titleTop);
+
+            // --- Drawing title (per sheet) ---
+            txt('DRAWING TITLE', sx + pad, titleTop + 3.6, 5.2);
+            pdf.setFont(undefined, 'bold');
+            // Set the size BEFORE measuring: splitTextToSize wraps at the *current* font
+            // size, so wrapping at the label's smaller size then drawing at 8pt overflowed.
+            pdf.setFontSize(8);
+            const titleLines = pdf.splitTextToSize(String(tb.drawingTitle || tb.sheetName || ''), stripW - pad * 2);
+            titleLines.slice(0, 3).forEach((t, i) => pdf.text(t, sx + pad, titleTop + 9.5 + i * 3.6));
+            pdf.setFont(undefined, 'normal');
+            rule(numberTop);
+
+            // --- Drawing number: short box in the bottom corner ---
+            txt('DRAWING NUMBER', sx + pad, numberTop + 3.6, 5.2);
+            pdf.setFont(undefined, 'bold');
+            txt(tb.drawingNumber || '', x1 - inner - pad, sBot - 3.5, 14, { align: 'right' });
+            pdf.setFont(undefined, 'normal');
+
+            // Build stamp, bottom-left of the drawing area
+            pdf.setFontSize(5);
+            pdf.setTextColor(130);
+            pdf.text('Loopback v' + version, x0 + inner + 2, y1 - inner - 1.5);
+            pdf.setTextColor(0);
+
+            return { x: x0 + inner + 3, y: y0 + inner + 3,
+                     w: (sx - 3) - (x0 + inner + 3), h: (y1 - inner - 3) - (y0 + inner + 3) };
+        }
+
+        window.exportToPdf = async function (title, version, bx, by, bw, bh, titleBlock) {
             const canvasArea = document.querySelector('.canvas-area');
             const originalBg = canvasArea.style.background;
             canvasArea.style.background = '#ffffff';
@@ -179,39 +358,49 @@
             const cropped = useBounds ? snapshot : cropToContent(snapshot);
             const imgData = cropped.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+            // Paper comes from the title block's sheet size (all landscape). jsPDF knows
+            // 'tabloid' as 11x17; letter and a4 are built in too.
+            const sizes = { '11x17': 'tabloid', 'Letter': 'letter', 'A4': 'a4' };
+            const format = sizes[(titleBlock && titleBlock.sheetSize) || 'A4'] || 'a4';
+            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: format });
 
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
-            const margin = 10;
 
-            pdf.setFontSize(16);
-            pdf.setTextColor(40, 40, 40);
-            pdf.text(title || 'Line Flow Diagram', margin, margin + 6);
+            let area;
+            if (titleBlock && titleBlock.enabled) {
+                area = drawTitleBlock(pdf, titleBlock, pageWidth, pageHeight, version);
+            } else {
+                // No title block — keep the original simple header.
+                const margin = 10;
+                pdf.setFontSize(16);
+                pdf.setTextColor(40, 40, 40);
+                pdf.text(title || 'Line Flow Diagram', margin, margin + 6);
 
-            const date = new Date().toLocaleDateString();
-            const stamp = version ? (date + '   ·   Loopback v' + version) : date;
-            pdf.setFontSize(10);
-            pdf.setTextColor(120, 120, 120);
-            pdf.text(stamp, pageWidth - margin, margin + 6, { align: 'right' });
+                const date = new Date().toLocaleDateString();
+                const stamp = version ? (date + '   ·   Loopback v' + version) : date;
+                pdf.setFontSize(10);
+                pdf.setTextColor(120, 120, 120);
+                pdf.text(stamp, pageWidth - margin, margin + 6, { align: 'right' });
+                pdf.setTextColor(0);
 
-            pdf.setDrawColor(200, 200, 200);
-            pdf.line(margin, margin + 10, pageWidth - margin, margin + 10);
+                pdf.setDrawColor(200, 200, 200);
+                pdf.line(margin, margin + 10, pageWidth - margin, margin + 10);
 
-            // Fit the cropped diagram into the area below the header, preserving aspect
-            // ratio (no stretching) and centering it.
-            const availX = margin;
-            const availY = margin + 14;
-            const availW = pageWidth - margin * 2;
-            const availH = pageHeight - availY - margin;
+                area = { x: margin, y: margin + 14,
+                         w: pageWidth - margin * 2, h: pageHeight - (margin + 14) - margin };
+            }
+
+            // Fit the cropped diagram into the available area, preserving aspect ratio
+            // (no stretching) and centering it.
             const aspect = cropped.width / cropped.height;
-
-            let drawW = availW;
+            let drawW = area.w;
             let drawH = drawW / aspect;
-            if (drawH > availH) { drawH = availH; drawW = drawH * aspect; }
+            if (drawH > area.h) { drawH = area.h; drawW = drawH * aspect; }
 
-            const drawX = availX + (availW - drawW) / 2;
-            const drawY = availY + (availH - drawH) / 2;
+            const drawX = area.x + (area.w - drawW) / 2;
+            const drawY = area.y + (area.h - drawH) / 2;
 
             pdf.addImage(imgData, 'PNG', drawX, drawY, drawW, drawH);
             pdf.save('lineflow-diagram.pdf');
