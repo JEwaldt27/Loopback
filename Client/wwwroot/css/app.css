@@ -915,6 +915,19 @@ html, body {
 
 .lf-tb-grid .device-input { margin: 0; }
 
+/* Mandatory-dialog backdrop: swallows every pointer event beneath it, so the app
+   underneath can't be clicked while a required action is outstanding. */
+.lf-modal-overlay-blocking {
+    cursor: not-allowed;
+}
+
+.lf-temp-pw-msg {
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #ddd;
+}
+
 /* Feature requests */
 .lf-fr-input {
     width: 100%;

@@ -607,13 +607,43 @@
     </div>
 }
 
+@* Mandatory: no ✕, no dismiss, and the overlay swallows clicks. The only way out is to
+   actually change the password, which flips _mustChangePassword via LoadAuthStatus. *@
+@if (_mustChangePassword && !_passwordModalOpen)
+{
+    <div class="lf-modal-overlay lf-modal-overlay-blocking"></div>
+    <div class="lf-modal" style="width:340px;" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>🔑 Password change required</span>
+        </div>
+        <div class="lf-temp-pw-msg">
+            Your account is still using the temporary password it was created with.
+            Anyone who knows it can sign in as <strong>@_currentUsername</strong>, so you'll
+            need to set your own before using Loopback.
+        </div>
+        <button class="add-device-btn" @onclick="GoChangePasswordFromPrompt">🔑 Change Password</button>
+    </div>
+}
+
 @if (_passwordModalOpen)
 {
-    <div class="lf-modal-overlay" @onclick="CloseChangePassword"></div>
+    @* While the placeholder password is still in force this dialog can't be dismissed
+       either — otherwise closing it would be a way straight past the mandatory prompt. *@
+    @if (_mustChangePassword)
+    {
+        <div class="lf-modal-overlay lf-modal-overlay-blocking"></div>
+    }
+    else
+    {
+        <div class="lf-modal-overlay" @onclick="CloseChangePassword"></div>
+    }
     <div class="lf-modal" style="width:280px;" @onclick:stopPropagation="true">
         <div class="lf-modal-header">
-            <span>Change Password</span>
-            <button class="lf-modal-close" @onclick="CloseChangePassword">✕</button>
+            <span>@(_mustChangePassword ? "Set your password" : "Change Password")</span>
+            @if (!_mustChangePassword)
+            {
+                <button class="lf-modal-close" @onclick="CloseChangePassword">✕</button>
+            }
         </div>
         <input type="password" class="device-input" id="current-password" name="current-password" @bind="_pwCurrent" placeholder="Current password" autocomplete="current-password" autofocus />
         <input type="password" class="device-input" id="new-password" name="new-password" @bind="_pwNew" placeholder="New password (min 8 characters)" autocomplete="new-password" />
@@ -922,7 +952,12 @@
     private string _modifiedBy = "";
     private DateTimeOffset? _modifiedAt = null;
 
-    private record AuthStatus(bool HasUsers, bool IsAuthenticated, string? Username, string? Role);
+    private record AuthStatus(bool HasUsers, bool IsAuthenticated, string? Username, string? Role,
+                              bool UsingTemporaryPassword);
+
+    // True while the account is still on the placeholder password. Server-driven and only
+    // cleared by actually changing it — the prompt it drives cannot be dismissed.
+    private bool _mustChangePassword;
     private NodeModel? _resizingNode = null;
     private ResizeHandle _resizeHandleKind = ResizeHandle.TopLeft;
     private Point _resizeStartMouse = new(0, 0);
@@ -1084,6 +1119,7 @@
             var status = await Http.GetFromJsonAsync<AuthStatus>("api/auth/status");
             _currentUsername = status?.Username ?? "";
             _currentRole = status?.Role ?? "";
+            _mustChangePassword = status?.UsingTemporaryPassword ?? false;
         }
         catch
         {
@@ -1103,6 +1139,16 @@
         _pwBusy = false;
         _passwordModalOpen = true;
     }
+
+    // From the mandatory prompt: pre-fill the current password, since we know what it is.
+    // _mustChangePassword deliberately stays set — the change dialog is locked open too.
+    private void GoChangePasswordFromPrompt()
+    {
+        OpenChangePassword();
+        _pwCurrent = TemporaryPassword;
+    }
+
+    private const string TemporaryPassword = "TempPassword";
 
     private void CloseChangePassword()
     {
@@ -1134,6 +1180,9 @@
             {
                 _pwSuccess = "Password updated.";
                 _pwCurrent = _pwNew = _pwConfirm = "";
+                // Re-check so the temporary-password nag stops immediately rather than
+                // waiting for the next page load.
+                await LoadAuthStatus();
             }
             else
             {

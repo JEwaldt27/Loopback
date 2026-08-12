@@ -21,17 +21,37 @@ public class AuthController : ControllerBase
 
     public record LoginRequest(string Username, string Password);
 
+    /// <summary>
+    /// The placeholder an admin hands out when creating an account. Anyone whose password
+    /// still verifies against this is nagged to change it.
+    /// </summary>
+    public const string TemporaryPassword = "TempPassword";
+
     [HttpGet("status")]
     public async Task<IActionResult> Status()
     {
         var hasUsers = await _store.AnyUsersAsync();
         var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+
+        // Checked against the STORED hash rather than remembered from login, so it stays
+        // right for people already holding a 30-day cookie (and for an admin resetting
+        // someone back to the placeholder) instead of only catching the next sign-in.
+        // Costs one hash verification per page load.
+        var usingTemporaryPassword = false;
+        if (isAuthenticated)
+        {
+            var user = await _store.FindAsync(User.Identity!.Name ?? "");
+            usingTemporaryPassword = user != null
+                && _store.VerifyPassword(user, TemporaryPassword) != PasswordVerificationResult.Failed;
+        }
+
         return Ok(new
         {
             hasUsers,
             isAuthenticated,
             username = isAuthenticated ? User.Identity!.Name : null,
-            role = isAuthenticated ? User.FindFirstValue(ClaimTypes.Role) : null
+            role = isAuthenticated ? User.FindFirstValue(ClaimTypes.Role) : null,
+            usingTemporaryPassword
         });
     }
 

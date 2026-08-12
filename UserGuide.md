@@ -40,6 +40,13 @@ Enter your username and password on the sign-in screen. Your session lasts 30 da
 ### Logging out
 Click the **👤 account button** at the top-right of the toolbar, then **🚪 Logout**.
 
+### First sign-in: you must set your own password
+Accounts are created with a shared placeholder password. The first time you sign in, Loopback blocks the app with **"Password change required"** — there's no dismiss, and you can't use the diagram until you've set your own.
+
+Click **🔑 Change Password** (your current password is filled in for you), enter a new one twice, and everything unlocks immediately.
+
+Admins aren't exempt — an admin still on the placeholder is held at the same screen. If an admin resets your password back to the placeholder, you'll be prompted again next time you open the app.
+
 ### Changing your password
 Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#14-managing-users-admins)).
 
