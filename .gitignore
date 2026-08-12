@@ -378,3 +378,6 @@ deploy/client-cert/*.crt
 Server/certs/
 # Uploaded title-block logo (user content, not source)
 Server/logo.txt
+
+# User-submitted feature requests (user content, not source)
+Server/feature-requests.json

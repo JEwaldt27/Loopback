@@ -23,6 +23,7 @@ if (File.Exists(certPath) && File.Exists(keyPath))
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<UserStore>();
+builder.Services.AddSingleton<FeatureRequestStore>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

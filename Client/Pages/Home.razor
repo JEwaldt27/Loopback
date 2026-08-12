@@ -73,6 +73,9 @@
         }
     </div>
 
+    <button class="lf-menu-btn" title="Suggest a feature or see what's been asked for"
+            @onclick="OpenFeatureRequests">💡 Feature Requests</button>
+
     <button @onclick="Undo" disabled="@(!CanUndo)" title="Undo (Ctrl+Z)">↩ Undo</button>
     <button @onclick="Redo" disabled="@(!CanRedo)" title="Redo (Ctrl+Y)">↪ Redo</button>
     <button @onclick="DeleteSelected">Delete Selected</button>
@@ -361,6 +364,82 @@
     </div>
 }
 
+@if (_featureModalOpen)
+{
+    <div class="lf-modal-overlay" @onclick="() => _featureModalOpen = false"></div>
+    <div class="lf-modal lf-modal-wide" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>Feature Requests</span>
+            <button class="lf-modal-close" @onclick="() => _featureModalOpen = false">✕</button>
+        </div>
+
+        <textarea class="device-input lf-fr-input" rows="3" placeholder="What would you like Loopback to do?"
+                  @bind="_newFeatureText" @bind:event="oninput"></textarea>
+        <button class="add-device-btn" disabled="@(_featureBusy || string.IsNullOrWhiteSpace(_newFeatureText))"
+                @onclick="SubmitFeatureRequest">@(_featureBusy ? "Sending…" : "➕ Submit Request")</button>
+        @if (!string.IsNullOrEmpty(_featureError))
+        {
+            <div class="lf-tb-error">@_featureError</div>
+        }
+
+        <div class="lf-tb-section">@_featureRequests.Count request@(_featureRequests.Count == 1 ? "" : "s")</div>
+
+        @if (_featureRequests.Count == 0)
+        {
+            <div class="cable-type-empty">Nothing yet — the first request is yours to make.</div>
+        }
+
+        @foreach (var fr in _featureRequests)
+        {
+            var r = fr;
+            <div class="lf-fr-card">
+                <div class="lf-fr-head">
+                    <span class="lf-fr-badge lf-fr-@r.Status.ToLowerInvariant()">@r.Status</span>
+                    <span class="lf-fr-meta">@r.CreatedBy · @r.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                    <span class="lf-fr-actions">
+                        @if (CanEditRequest(r))
+                        {
+                            <button class="device-action-btn" title="Edit" @onclick="() => StartEditRequest(r)">✏</button>
+                        }
+                        @if (_currentRole == "Admin")
+                        {
+                            <button class="device-action-btn device-action-delete" title="Delete"
+                                    @onclick="() => DeleteFeatureRequest(r)">🗑</button>
+                        }
+                    </span>
+                </div>
+
+                @if (_editingRequestId == r.Id)
+                {
+                    <textarea class="device-input lf-fr-input" rows="3" @bind="_editRequestText" @bind:event="oninput"></textarea>
+                    <div class="lf-fr-editrow">
+                        <button class="add-device-btn lf-fr-save" @onclick="() => SaveRequestText(r)">✔ Save</button>
+                        <button class="add-device-btn lf-fr-cancel" @onclick="() => _editingRequestId = null">Cancel</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="lf-fr-text">@r.Text</div>
+                }
+
+                @if (_currentRole == "Admin")
+                {
+                    <div class="lf-fr-editrow">
+                        <span class="lf-tb-hint">Status</span>
+                        <select class="device-input lf-fr-status" value="@r.Status"
+                                @onchange="e => SetRequestStatus(r, e.Value?.ToString())">
+                            @foreach (var s in FeatureStatuses)
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        </select>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
 @if (_titleBlockModalOpen)
 {
     <div class="lf-modal-overlay" @onclick="CloseTitleBlock"></div>
@@ -625,6 +704,126 @@
 
     private TitleBlockInfo _titleBlock = new();
     private bool _titleBlockModalOpen;
+
+    // --- Feature requests ---
+    private static readonly string[] FeatureStatuses = { "Received", "WIP", "Done", "Declined" };
+
+    private bool _featureModalOpen;
+    private bool _featureBusy;
+    private string _newFeatureText = "";
+    private string _featureError = "";
+    private List<FeatureRequestDto> _featureRequests = new();
+    private string? _editingRequestId;
+    private string _editRequestText = "";
+
+    public class FeatureRequestDto
+    {
+        public string Id { get; set; } = "";
+        public string Text { get; set; } = "";
+        public string Status { get; set; } = "Received";
+        public string CreatedBy { get; set; } = "";
+        public DateTimeOffset CreatedAt { get; set; }
+    }
+
+    // Mirrors the server rule: admins always; the author only while it's still Received.
+    private bool CanEditRequest(FeatureRequestDto r) =>
+        _currentRole == "Admin" ||
+        (string.Equals(r.CreatedBy, _currentUsername, StringComparison.OrdinalIgnoreCase)
+         && r.Status == "Received");
+
+    private async Task OpenFeatureRequests()
+    {
+        _featureModalOpen = true;
+        _featureError = "";
+        _editingRequestId = null;
+        await LoadFeatureRequests();
+    }
+
+    private async Task LoadFeatureRequests()
+    {
+        try
+        {
+            _featureRequests = await Http.GetFromJsonAsync<List<FeatureRequestDto>>("api/featurerequests") ?? new();
+        }
+        catch (Exception ex)
+        {
+            _featureError = "Couldn't load requests: " + ex.Message;
+        }
+    }
+
+    private async Task SubmitFeatureRequest()
+    {
+        var text = _newFeatureText.Trim();
+        if (string.IsNullOrWhiteSpace(text)) return;
+        _featureBusy = true;
+        _featureError = "";
+        try
+        {
+            var res = await Http.PostAsJsonAsync("api/featurerequests", new { text });
+            if (res.IsSuccessStatusCode) { _newFeatureText = ""; await LoadFeatureRequests(); }
+            else _featureError = await ErrorTextAsync(res);
+        }
+        catch (Exception ex) { _featureError = ex.Message; }
+        finally { _featureBusy = false; }
+    }
+
+    private void StartEditRequest(FeatureRequestDto r)
+    {
+        _editingRequestId = r.Id;
+        _editRequestText = r.Text;
+        _featureError = "";
+    }
+
+    private async Task SaveRequestText(FeatureRequestDto r)
+    {
+        _featureError = "";
+        try
+        {
+            var res = await Http.PutAsJsonAsync($"api/featurerequests/{r.Id}", new { text = _editRequestText });
+            if (res.IsSuccessStatusCode) { _editingRequestId = null; await LoadFeatureRequests(); }
+            else _featureError = await ErrorTextAsync(res);
+        }
+        catch (Exception ex) { _featureError = ex.Message; }
+    }
+
+    private async Task SetRequestStatus(FeatureRequestDto r, string? status)
+    {
+        if (string.IsNullOrEmpty(status)) return;
+        _featureError = "";
+        try
+        {
+            var res = await Http.PutAsJsonAsync($"api/featurerequests/{r.Id}", new { status });
+            if (res.IsSuccessStatusCode) await LoadFeatureRequests();
+            else _featureError = await ErrorTextAsync(res);
+        }
+        catch (Exception ex) { _featureError = ex.Message; }
+    }
+
+    private async Task DeleteFeatureRequest(FeatureRequestDto r)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", "Delete this feature request?")) return;
+        _featureError = "";
+        try
+        {
+            var res = await Http.DeleteAsync($"api/featurerequests/{r.Id}");
+            if (res.IsSuccessStatusCode) await LoadFeatureRequests();
+            else _featureError = await ErrorTextAsync(res);
+        }
+        catch (Exception ex) { _featureError = ex.Message; }
+    }
+
+    // Surfaces the server's own message (permission refusals, length limits) rather than a
+    // bare status code.
+    private static async Task<string> ErrorTextAsync(HttpResponseMessage res)
+    {
+        try
+        {
+            var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+            if (doc.RootElement.TryGetProperty("error", out var e)) return e.GetString() ?? "Request failed.";
+        }
+        catch { }
+        return $"Request failed ({(int)res.StatusCode}).";
+    }
 
     // Title block logo. Server-side and shared across every diagram, so it lives outside
     // TitleBlockInfo (which is saved per .lf file) — see LogoController.

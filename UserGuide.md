@@ -20,9 +20,10 @@ This guide covers everything you need as a user. (If you're looking for install/
 10. [Saving and Opening Diagrams](#10-saving-and-opening-diagrams)
 11. [Title Block](#11-title-block)
 12. [Exporting](#12-exporting)
-13. [Managing Users (Admins)](#13-managing-users-admins)
-14. [The Desktop App](#14-the-desktop-app)
-15. [Tips & Troubleshooting](#15-tips--troubleshooting)
+13. [Feature Requests](#13-feature-requests)
+14. [Managing Users (Admins)](#14-managing-users-admins)
+15. [The Desktop App](#15-the-desktop-app)
+16. [Tips & Troubleshooting](#16-tips--troubleshooting)
 
 ---
 
@@ -40,9 +41,9 @@ Enter your username and password on the sign-in screen. Your session lasts 30 da
 Click the **👤 account button** at the top-right of the toolbar, then **🚪 Logout**.
 
 ### Changing your password
-Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#13-managing-users-admins)).
+Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#14-managing-users-admins)).
 
-> **Don't have an account?** Accounts are created by an administrator — there is no self-signup. Ask your admin to add you (see [Managing Users](#13-managing-users-admins)).
+> **Don't have an account?** Accounts are created by an administrator — there is no self-signup. Ask your admin to add you (see [Managing Users](#14-managing-users-admins)).
 
 ---
 
@@ -55,6 +56,7 @@ Once signed in, you'll see four main areas:
   - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 📋 Title Block, 🔢 Auto-Label Connections, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
   - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV), 📦 Device Schedule (CSV)
   - **Help** → 📖 User Guide (opens this guide on GitHub in a new tab)
+  - **💡 Feature Requests** — suggest an improvement and see what everyone else has asked for (see below)
   - **↩ Undo / ↪ Redo** — step backward/forward through your changes (also **Ctrl+Z** / **Ctrl+Y** when the canvas has focus). Covers everything: placing and deleting devices, connections, bends, labels, moves, resizes, and text edits. Up to 50 steps.
   - **Delete Selected** — removes whatever is currently selected on the canvas
   - **Diagram title box** — the name used in the PDF export header
@@ -78,7 +80,7 @@ Two ways — both give the same result:
 1. **Drag and drop** — drag a device card from the panel onto the canvas.
 2. **Click-to-place** — click a device card once (it highlights coral to show it's armed), then click anywhere on the canvas to place it there. Click the highlighted card again to cancel without placing.
 
-> If you're using the **desktop app**, use click-to-place — drag-and-drop doesn't work there due to a Windows platform bug (see [The Desktop App](#14-the-desktop-app)).
+> If you're using the **desktop app**, use click-to-place — drag-and-drop doesn't work there due to a Windows platform bug (see [The Desktop App](#15-the-desktop-app)).
 
 A placed device appears as a node with its **input ports on the left edge** and its **output/universal ports on the right edge**, each with a black port dot. (Connection color now comes from the cable type you assign — see Cable types below.)
 
@@ -328,7 +330,29 @@ Rows are sorted by category, then manufacturer. Three of the same speaker on the
 
 ---
 
-## 13. Managing Users (Admins)
+## 13. Feature Requests
+
+Click **💡 Feature Requests** in the toolbar to suggest an improvement or see what's already been asked for. Everyone shares one list.
+
+Type your idea in the box and click **➕ Submit Request**. It's saved against your username and starts at **Received**.
+
+Each request shows a status:
+
+| Status | Meaning |
+|---|---|
+| **Received** | Logged, not started |
+| **WIP** | Being worked on |
+| **Done** | Shipped |
+| **Declined** | Not going to be built |
+
+**What you can do:**
+- **Everyone** — see every request and its status, and submit new ones.
+- **The person who wrote it** — edit their own wording with **✏**, but only while it's still **Received**. Once an admin moves it to WIP the text is locked, so what's being built can't shift underneath them. (An admin can still edit it for you, or move it back to Received.)
+- **Admins** — edit any request, set any status from the dropdown, and delete with **🗑**.
+
+---
+
+## 14. Managing Users (Admins)
 
 Only accounts with the **Admin** role see this. Open the **👤 account menu → 👥 Manage Users**.
 
@@ -342,7 +366,7 @@ Only accounts with the **Admin** role see this. Open the **👤 account menu →
 
 ---
 
-## 14. The Desktop App
+## 15. The Desktop App
 
 Loopback also ships as a native **Windows desktop app** — the same interface in its own window, no browser needed.
 
@@ -365,7 +389,7 @@ Dragging devices from the panel onto the canvas **does not work in the desktop a
 
 ---
 
-## 15. Tips & Troubleshooting
+## 16. Tips & Troubleshooting
 
 **"I just see a login page / 'Create admin account' screen"**
 That's normal — the whole app is gated behind login. If you see the admin-creation screen, the server is brand new and no accounts exist yet.

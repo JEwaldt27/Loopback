@@ -460,6 +460,8 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 
 - ✅ Title block logo — upload a PNG/JPEG in the Title Block editor; stored **server-side** (`Server/logo.txt`, gitignored) as a data URI via `LogoController`, so one logo is shared by every diagram and every user rather than being re-uploaded per project and carried as base64 inside each `.lf`. Scaled into the reserved box preserving aspect ratio; with no logo (or an image jsPDF can't decode) the box falls back to an empty outline. **PDF only** — DXF R12 predates embedded raster images
 
+- ✅ Feature requests — a **💡 Feature Requests** toolbar button opens a shared list anyone signed in can read and add to. New requests start at `Received`; statuses are `Received` / `WIP` / `Done` / `Declined`. Permissions: **anyone** submits and views; **the author** may edit their own wording *only while it's still `Received`*, so the text can't shift once work has started; **admins** edit anything, set any status, and delete. The author check is evaluated against the *stored* status inside `FeatureRequestStore`'s lock, not against anything the client sends, so a stale page can't be used to edit an in-progress request. Backed by `Server/feature-requests.json` (gitignored), same no-database pattern as `users.json`
+
 ## Features Planned / Not Yet Implemented
 - ⬜ Nothing outstanding — see the git history for what shipped most recently
 

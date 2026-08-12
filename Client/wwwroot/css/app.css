@@ -915,6 +915,72 @@ html, body {
 
 .lf-tb-grid .device-input { margin: 0; }
 
+/* Feature requests */
+.lf-fr-input {
+    width: 100%;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.lf-fr-card {
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+}
+
+.lf-fr-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+.lf-fr-meta {
+    font-size: 11px;
+    color: #888;
+}
+
+.lf-fr-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+}
+
+.lf-fr-text {
+    font-size: 13px;
+    color: #ddd;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.lf-fr-badge {
+    padding: 1px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-radius: 10px;
+    border: 1px solid currentColor;
+}
+
+.lf-fr-received { color: #4fc3f7; }
+.lf-fr-wip      { color: #ffc107; }
+.lf-fr-done     { color: #22cc44; }
+.lf-fr-declined { color: #888; }
+
+.lf-fr-editrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.lf-fr-editrow .add-device-btn { margin: 0; width: auto; }
+.lf-fr-cancel { border-color: #888 !important; }
+.lf-fr-status { margin: 0; width: auto; }
+
 .lf-tb-logo {
     display: flex;
     align-items: center;
