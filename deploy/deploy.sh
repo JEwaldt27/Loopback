@@ -22,8 +22,16 @@ fi
 
 echo "==> Installing $STAGING -> $APP_DIR"
 mkdir -p "$APP_DIR"
-# Note: users.json (your accounts + password hashes) lives only in APP_DIR and
-# is not part of the published build, so this copy never overwrites it.
+# This is a plain overwrite: anything in the staging build replaces the copy in
+# APP_DIR. Server-owned runtime data (users.json, logo.txt, feature-requests.json)
+# survives ONLY because Server.csproj explicitly excludes it from the publish
+# output, so it is never in $STAGING in the first place.
+#
+# That exclusion is load-bearing. The Web SDK publishes **/*.json by default, so
+# before it existed a publish carried the dev machine's users.json and this copy
+# silently replaced a production user list. If you add another server-owned data
+# file, add a matching <Content Remove> in Server.csproj — do not rely on
+# remembering to exclude it here.
 cp -r "$STAGING"/* "$APP_DIR"/
 
 echo "==> Restarting $SERVICE (sudo)"

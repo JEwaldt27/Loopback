@@ -8,6 +8,38 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.9" />
   </ItemGroup>
 
+  <!--
+    Runtime data owned by the SERVER, never by the build.
+
+    The Web SDK's default Content glob includes **\*.json, so without these Removes a
+    publish silently carries this dev machine's users.json into the output — and any
+    deploy that copies the build over the app directory then overwrites the server's
+    real accounts with it. That is exactly how a deploy wiped the production user list.
+
+    Excluding them here fixes it for EVERY deploy path (deploy.sh, the private scripts,
+    or anything added later) rather than relying on each one to remember an exclusion.
+    Nothing breaks locally: these files are read straight off disk from the content root,
+    and the server recreates them on demand (first-run admin setup, first logo upload,
+    first feature request).
+
+    devices.json is in that list too — the device library is edited in the app, so the
+    server's copy is the real one. What ships instead is devices.seed.json (tracked), which
+    DevicesController copies to devices.json only when no library exists yet. So a fresh
+    install still gets the full stock library, while an existing server keeps every device
+    its users added. Editing devices.seed.json in git therefore changes what NEW installs
+    start with; it deliberately does not push devices onto servers already running.
+  -->
+  <ItemGroup>
+    <Content Remove="users.json" />
+    <Content Remove="feature-requests.json" />
+    <Content Remove="logo.txt" />
+    <Content Remove="devices.json" />
+    <None Remove="users.json" />
+    <None Remove="feature-requests.json" />
+    <None Remove="logo.txt" />
+    <None Remove="devices.json" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>

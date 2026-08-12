@@ -37,7 +37,8 @@ LineFlowAppHosted/
     ├── Services/
     │   └── UserStore.cs             ← JSON-file-backed user store (Server/users.json)
     ├── LoginPage.cs                 ← Self-contained inline HTML for the /login screen
-    ├── devices.json                ← Device library (auto-created if missing, tracked in git)
+    ├── devices.seed.json           ← Stock device library shipped with the build (tracked)
+    ├── devices.json                ← Live device library, seeded from the above on first run (gitignored)
     ├── users.json                  ← User accounts + password hashes (auto-created, gitignored)
     └── Program.cs                  ← Server setup, cookie auth, auth gate middleware, serves Blazor WASM
 Desktop/                             ← .NET MAUI Windows desktop shell (see Desktop Wrapper below)
@@ -51,7 +52,7 @@ Desktop/                             ← .NET MAUI Windows desktop shell (see De
 - **Blazor WebAssembly** (standalone, hosted by ASP.NET Core)
 - **Z.Blazor.Diagrams 3.0.4.1** — diagramming library
 - **jsPDF 2.5.1** + **html2canvas 1.4.1** — PDF export (CDN, loaded in index.html)
-- No database — device list stored in `Server/devices.json`
+- No database — device list stored in `Server/devices.json` (seeded from the tracked `devices.seed.json`)
 
 ## Running the App
 ```bash
@@ -139,7 +140,7 @@ The shared `cableTypes` array (document root) looks like:
 `meta` is stamped automatically on Save: the first save of a new diagram sets `createdBy`/`createdAt` to the signed-in user and current time; every save (including the first) updates `modifiedBy`/`modifiedAt`. It's read back on Open and shown in a thin info bar under the toolbar (e.g. "Created by jdoe on Jul 6, 2026 3:12 PM · Last modified by asmith on Jul 6, 2026 4:05 PM"). Files saved before this feature existed simply have no `meta` block — they open fine, the info bar just stays hidden until the next save.
 
 ### Device Library
-- Stored server-side in `Server/devices.json`
+- Stored server-side in `Server/devices.json`, which is **gitignored and never published** — it belongs to the server, so deploys can't overwrite devices your users added. On first run `DevicesController` copies the tracked `Server/devices.seed.json` into place, so a fresh install still gets the full stock library. Editing the seed in git changes what NEW installs start with; it deliberately does not push devices onto running servers
 - Loaded via `GET /api/devices`
 - New devices added via `POST /api/devices`
 - Default device: Crestron DM-NVX-350 with 8 ports
@@ -330,7 +331,9 @@ If you have a systemd service already set up (see the manual steps below for the
 ./deploy/deploy.ps1 -Deploy
 ```
 
-It prompts for your server's IP/hostname and SSH username (or pass `-Server user@host`, or set `$env:LOOPBACK_SERVER`), publishes the Server build, copies it up, and runs the server-side installer over SSH — which drops the build into the app folder and restarts the service. The server-side half is `deploy/deploy.sh`, configurable via `APP_DIR` / `STAGING` / `SERVICE` env vars (defaults: `$HOME/lineflowapp`, `$HOME/loopback-staging`, `lineflow`). Your `users.json` is never part of the build, so deploys never overwrite your logins. Omit `-Deploy` to copy only and finish the install by hand.
+It prompts for your server's IP/hostname and SSH username (or pass `-Server user@host`, or set `$env:LOOPBACK_SERVER`), publishes the Server build, copies it up, and runs the server-side installer over SSH — which drops the build into the app folder and restarts the service. The server-side half is `deploy/deploy.sh`, configurable via `APP_DIR` / `STAGING` / `SERVICE` env vars (defaults: `$HOME/lineflowapp`, `$HOME/loopback-staging`, `lineflow`). Omit `-Deploy` to copy only and finish the install by hand.
+
+> ⚠️ **Server-owned data and the publish output.** The install step is a plain overwrite (`cp -r staging/* APP_DIR/`), so anything present in the publish output replaces the server's copy. `users.json`, `devices.json`, `logo.txt`, and `feature-requests.json` survive **only** because `Server/Server.csproj` explicitly `<Content Remove>`s them — the Web SDK publishes `**/*.json` by default, and before that exclusion existed a deploy carried the dev machine's `users.json` up and wiped a production user list. **If you add another server-owned data file, add a matching `<Content Remove>` in the csproj** rather than relying on a deploy script to exclude it.
 
 ### Manual steps
 ```bash

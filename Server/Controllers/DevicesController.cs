@@ -18,6 +18,20 @@ public class DevicesController : ControllerBase
     {
         if (!System.IO.File.Exists(_filePath))
         {
+            // First run on this server: start from the stock library shipped with the
+            // build. devices.json itself is deliberately NOT published (see Server.csproj)
+            // so a deploy can never overwrite devices your users added here — which means
+            // this seed is the only way a fresh install gets a populated library.
+            // Read from AppContext.BaseDirectory, not the content root: the latter follows
+            // the working directory and silently finds nothing when launched from elsewhere.
+            var seedPath = Path.Combine(AppContext.BaseDirectory, "devices.seed.json");
+            if (System.IO.File.Exists(seedPath))
+            {
+                System.IO.File.Copy(seedPath, _filePath);
+                return Content(await System.IO.File.ReadAllTextAsync(_filePath), "application/json");
+            }
+
+            // No seed either (unusual) — fall back to a single device so the app still works.
             var defaults = """
             [
               {

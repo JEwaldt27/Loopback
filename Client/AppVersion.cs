@@ -6,5 +6,5 @@ namespace Client;
 /// </summary>
 public static class AppVersion
 {
-    public const string Version = "1.5.34";
+    public const string Version = "1.5.35";
 }
