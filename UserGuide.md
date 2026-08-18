@@ -105,7 +105,7 @@ Click **"+ Add Device"** at the bottom of the panel. A dialog opens:
 - **Category** — the group it appears under, e.g. "AV over IP" (categories are matched case-insensitively, so "Displays" and "DISPLAYS" merge into one group)
 - **Ports** — click **"+ Add Port"** for each connector on the device, and give each one:
   - a **name** (what shows next to the dot, e.g. "HDMI Out")
-  - a **type** — HDMI, SDI, Audio, Network, USB, IR, COM, or Other (controls the color)
+  - a **signal type** — **free text with suggestions.** Start typing and you'll see HDMI, SDI, Audio, Network, USB, IR, COM, Other, plus every type already used anywhere in your library. Need something that isn't listed — Dante, AES67, 12G-SDI, Fiber? Just type it. Once you save the device it becomes a suggestion for everyone. (This is the "Signal" column in the Cable Schedule export; connection *colors* come from cable types, not from this.)
   - a **direction** — **In** (left side), **Out** (right side), or **Universal** (right side, connects to anything)
 
 Click **"+ Add Device"** in the dialog to save it to the shared library.
@@ -115,6 +115,13 @@ Each device card has three buttons: **⧉ (duplicate)**, **✏ (edit)**, and **�
 - **Duplicate** opens the Add-Device dialog pre-filled with a copy of that device — same manufacturer, category, and ports, with "Copy" added to the model name. Great when a new device is just one port different from an existing one: duplicate it, tweak the model name and that one port, and save.
 - **Edit** opens the same dialog on the existing device.
 - **Delete** removes it from the library — devices already placed on diagrams are not affected.
+
+### Labelling a device (SW-1, AMP-2…)
+Right-click a device block → **🏷 Add Device Label** and give it a tag like `SW-1`. It prints in amber above the model name on the block, appears as `[SW-1]` in the DXF, and fills the **From Tag** / **To Tag** columns of the Cable Schedule.
+
+This matters as soon as a drawing has **two of the same model**. Without tags, a switch-to-switch interconnect exports as *"Netgear GSM4230P Port 26 → Netgear GSM4230P Port 26"*, which reads like a port patched back into itself. With tags it's unambiguous: *"SW-1 Port 26 → SW-2 Port 26"*.
+
+The label belongs to that placed block, not to the library device, so each unit gets its own. Right-click again to edit, or **🗑 Remove Label**.
 
 ### Copying and duplicating on the canvas
 Once devices (or annotations) are on the canvas, you can duplicate them instead of dragging fresh ones out:
@@ -316,10 +323,11 @@ Useful for dropping the diagram into CAD workflows or as a starting point for fo
 ### 🧾 Cable Schedule (CSV)
 Generates a **cable schedule / pull sheet** — a spreadsheet listing every connection **across every sheet**, one per row, with these columns:
 
-| # | Sheet | Cable | Cable Type | Part Number | Cable Color | Signal | From Device | From Port | To Device | To Port |
-|---|-------|-------|------------|-------------|-------------|--------|-------------|-----------|-----------|---------|
+| # | Sheet | Cable | Cable Type | Part Number | Cable Color | Signal | From Tag | From Device | From Port | To Tag | To Device | To Port |
+|---|-------|-------|------------|-------------|-------------|--------|----------|-------------|-----------|--------|-----------|---------|
 
 - **Sheet** is which sheet (tab) the connection lives on; sheets appear in tab order.
+- **From Tag** / **To Tag** are the device labels (see Labelling a device) — blank until you set them. These are what tell two of the same model apart.
 - **Cable** is the connection's label (e.g. VID-001) — blank if you haven't labelled it.
 - **Cable Type**, **Part Number**, and **Cable Color** come from the cabling type you assigned to the connection (from the Cable Types panel).
 - **Signal** is the port's signal type (HDMI, Audio, etc.) — still recorded on each device port.

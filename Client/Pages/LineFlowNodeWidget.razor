@@ -25,6 +25,10 @@
                    @oninput="e => OnColorInput(v => Node.TextColor = v, e)" @onchange="EndColorEdit" />
         </div>
     }
+    @if (!string.IsNullOrWhiteSpace(Node.Label))
+    {
+        <div class="lf-node-label">@Node.Label</div>
+    }
     <div class="lf-node-title">@Node.Title</div>
     <div class="lf-node-body">
         <div class="lf-ports-left">

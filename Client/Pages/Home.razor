@@ -268,8 +268,9 @@
                 {
                     <div class="context-menu-item" @onclick="RotateContextLabel">↻ Rotate Label 90°</div>
                 }
-                @if (_contextNode is LineFlowNode)
+                @if (_contextNode is LineFlowNode dev)
                 {
+                    <div class="context-menu-item" @onclick="OpenDeviceLabel">🏷 @(string.IsNullOrEmpty(dev.Label) ? "Add Device Label" : "Edit Device Label")</div>
                     <div class="context-menu-item" @onclick="TraceContextNode">🔦 Trace Signal Path</div>
                 }
                 <div class="context-menu-item" @onclick="DuplicateContextNode">⧉ Duplicate</div>
@@ -309,22 +310,24 @@
         <input class="device-input" id="new-device-model" name="new-device-model" @bind="_newModel" placeholder="Model number..." />
         <input class="device-input" id="new-device-category" name="new-device-category" @bind="_newCategory" placeholder="Category..." />
 
+        <datalist id="lf-port-types">
+            @foreach (var t in PortTypeSuggestions)
+            {
+                <option value="@t"></option>
+            }
+        </datalist>
+
         <div class="port-list-header">Ports</div>
+        <div class="lf-port-hint">Signal type is free text — pick a suggestion or type a new one (e.g. Dante, AES67, Fiber).</div>
         @for (int i = 0; i < _newPorts.Count; i++)
         {
             var idx = i;
             <div class="port-row">
                 <input class="port-input" id="@($"port-name-{idx}")" name="@($"port-name-{idx}")" @bind="_newPorts[idx].Name" placeholder="Name" />
-                <select class="port-select" id="@($"port-type-{idx}")" name="@($"port-type-{idx}")" @bind="_newPorts[idx].Type">
-                    <option>HDMI</option>
-                    <option>SDI</option>
-                    <option>Audio</option>
-                    <option>Network</option>
-                    <option>USB</option>
-                    <option>IR</option>
-                    <option>COM</option>
-                    <option>Other</option>
-                </select>
+                @* Free text with suggestions rather than a fixed dropdown: type anything and
+                   it becomes a suggestion for everyone once the device is saved. *@
+                <input class="port-select" list="lf-port-types" placeholder="Type"
+                       id="@($"port-type-{idx}")" name="@($"port-type-{idx}")" @bind="_newPorts[idx].Type" />
                 <select class="port-select" id="@($"port-direction-{idx}")" name="@($"port-direction-{idx}")" @bind="_newPorts[idx].Direction">
                     <option>In</option>
                     <option>Out</option>
@@ -360,6 +363,25 @@
         @if (!string.IsNullOrEmpty(_labelTargetLink?.LabelText))
         {
             <button class="add-device-btn" style="border-color:#888;margin-top:2px;" @onclick="RemoveLabel">🗑 Remove Label</button>
+        }
+    </div>
+}
+
+@if (_deviceLabelModalOpen)
+{
+    <div class="lf-modal-overlay" @onclick="CloseDeviceLabel"></div>
+    <div class="lf-modal" style="width:280px;" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>Device Label</span>
+            <button class="lf-modal-close" @onclick="CloseDeviceLabel">✕</button>
+        </div>
+        <div class="lf-tb-hint">A tag for this specific unit, e.g. SW-1. Distinguishes two of the same model on the drawing and in the cable schedule.</div>
+        <input class="device-input" id="device-label-input" name="device-label-input"
+               @bind="_deviceLabelText" placeholder="e.g. SW-1" autofocus />
+        <button class="add-device-btn" @onclick="SaveDeviceLabel">✔ Save</button>
+        @if (!string.IsNullOrEmpty((_deviceLabelTarget as LineFlowNode)?.Label))
+        {
+            <button class="add-device-btn" style="border-color:#888;margin-top:2px;" @onclick="RemoveDeviceLabel">🗑 Remove Label</button>
         }
     </div>
 }
@@ -1949,6 +1971,54 @@
         ApplyTraceVisuals();
     }
 
+    // --- Per-device label (right-click a device -> Device Label) ---
+    private bool _deviceLabelModalOpen;
+    private NodeModel? _deviceLabelTarget;
+    private string _deviceLabelText = "";
+
+    private void OpenDeviceLabel()
+    {
+        _contextMenuVisible = false;
+        if (_contextNode is not LineFlowNode device) { _contextNode = null; return; }
+        _deviceLabelTarget = device;
+        _deviceLabelText = device.Label;
+        _deviceLabelModalOpen = true;
+        _contextNode = null;
+    }
+
+    private void CloseDeviceLabel()
+    {
+        _deviceLabelModalOpen = false;
+        _deviceLabelTarget = null;
+        _deviceLabelText = "";
+    }
+
+    private void SaveDeviceLabel()
+    {
+        if (_deviceLabelTarget is LineFlowNode device)
+        {
+            var text = _deviceLabelText.Trim();
+            if (text != device.Label)
+            {
+                PushUndoSnapshot();
+                device.Label = text;
+                device.Refresh();
+            }
+        }
+        CloseDeviceLabel();
+    }
+
+    private void RemoveDeviceLabel()
+    {
+        if (_deviceLabelTarget is LineFlowNode device && !string.IsNullOrEmpty(device.Label))
+        {
+            PushUndoSnapshot();
+            device.Label = "";
+            device.Refresh();
+        }
+        CloseDeviceLabel();
+    }
+
     private void TraceContextNode()
     {
         _contextMenuVisible = false;
@@ -2472,6 +2542,22 @@
         }
     }
 
+    // Signal types aren't a fixed list. These are the stock ones; anything already used
+    // anywhere in the shared library joins them, so a type someone invents (Dante, AES67,
+    // 12G-SDI…) becomes a suggestion for everyone once that device is saved. Deriving the
+    // list from real usage means there's nothing to keep in sync and no orphaned entries.
+    private static readonly string[] BuiltInPortTypes =
+        { "HDMI", "SDI", "Audio", "Network", "USB", "IR", "COM", "Other" };
+
+    private IEnumerable<string> PortTypeSuggestions =>
+        BuiltInPortTypes
+            .Concat(_devices.SelectMany(d => d.Ports).Select(p => p.Type))
+            .Concat(_newPorts.Select(p => p.Type))   // include what's being typed right now
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(t => t, StringComparer.OrdinalIgnoreCase);
+
     private void AddPort()
     {
         _newPorts.Add(new PortDefinition { Name = "", Type = "HDMI", Direction = "In" });
@@ -2653,6 +2739,7 @@
     private object NodeToJson(LineFlowNode n) => new
     {
         id = n.Id,
+        label = n.Label,
         manufacturer = n.Device.Manufacturer,
         model = n.Device.Model,
         category = n.Device.Category,
@@ -2814,6 +2901,8 @@
                 node.BorderColor = nbc.GetString() ?? "#e94560";
             if (nodeEl.TryGetProperty("textColor", out var ntc) && ntc.ValueKind == JsonValueKind.String)
                 node.TextColor = ntc.GetString() ?? "#ffffff";
+            if (nodeEl.TryGetProperty("label", out var nlb) && nlb.ValueKind == JsonValueKind.String)
+                node.Label = nlb.GetString() ?? "";
             _diagram.Nodes.Add(node);
             idMap[oldId] = node;
             newNodes.Add(node);
@@ -3154,6 +3243,8 @@
                 node.BorderColor = nbc.GetString() ?? "#e94560";
             if (nodeEl.TryGetProperty("textColor", out var ntc) && ntc.ValueKind == JsonValueKind.String)
                 node.TextColor = ntc.GetString() ?? "#ffffff";
+            if (nodeEl.TryGetProperty("label", out var nlb) && nlb.ValueKind == JsonValueKind.String)
+                node.Label = nlb.GetString() ?? "";
             _diagram.Nodes.Add(node);
             nodeMap[id] = node;
         }
@@ -3320,21 +3411,26 @@
     // port so cables from the same box group together.
     private async Task ExportCableSchedule()
     {
-        var rows = new List<(string Sheet, string Cable, string CableType, string Signal, string FromDevice, string FromPort, string ToDevice, string ToPort)>();
+        var rows = new List<(string Sheet, string Cable, string CableType, string Signal,
+                             string FromLabel, string FromDevice, string FromPort,
+                             string ToLabel, string ToDevice, string ToPort)>();
 
         foreach (var (sheetName, root) in AllSheetRoots())
         {
-            // id -> (title, ports) lookup for this sheet's devices
-            var nodes = new Dictionary<string, (string Title, List<PortDefinition> Ports)>();
+            // id -> (tag, title, ports) lookup for this sheet's devices
+            var nodes = new Dictionary<string, (string Label, string Title, List<PortDefinition> Ports)>();
             foreach (var n in root.GetProperty("nodes").EnumerateArray())
             {
                 var mfr = n.TryGetProperty("manufacturer", out var mEl) ? mEl.GetString() ?? "" : "";
                 var model = n.TryGetProperty("model", out var moEl) ? moEl.GetString() ?? "" : "";
+                var label = n.TryGetProperty("label", out var lEl) ? lEl.GetString() ?? "" : "";
                 var ports = n.TryGetProperty("ports", out var pEl) ? pEl.Deserialize<List<PortDefinition>>() ?? new() : new();
-                nodes[n.GetProperty("id").GetString()!] = ($"{mfr} {model}".Trim(), ports);
+                nodes[n.GetProperty("id").GetString()!] = (label, $"{mfr} {model}".Trim(), ports);
             }
 
-            var sheetRows = new List<(string Sheet, string Cable, string CableType, string Signal, string FromDevice, string FromPort, string ToDevice, string ToPort, int PortIdx)>();
+            var sheetRows = new List<(string Sheet, string Cable, string CableType, string Signal,
+                                      string FromLabel, string FromDevice, string FromPort,
+                                      string ToLabel, string ToDevice, string ToPort, int PortIdx)>();
             foreach (var l in root.GetProperty("links").EnumerateArray())
             {
                 if (!nodes.TryGetValue(l.GetProperty("sourceNodeId").GetString() ?? "", out var src)) continue;
@@ -3347,26 +3443,31 @@
                     l.TryGetProperty("label", out var lbEl) ? lbEl.GetString() ?? "" : "",
                     l.TryGetProperty("cableType", out var ctEl) && ctEl.ValueKind == JsonValueKind.String ? ctEl.GetString() ?? "" : "",
                     src.Ports[spi].Type,
-                    src.Title, src.Ports[spi].Name,
-                    tgt.Title, tgt.Ports[tpi].Name,
+                    src.Label, src.Title, src.Ports[spi].Name,
+                    tgt.Label, tgt.Title, tgt.Ports[tpi].Name,
                     spi));
             }
             rows.AddRange(sheetRows
                 .OrderBy(r => r.FromDevice, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(r => r.PortIdx)
-                .Select(r => (r.Sheet, r.Cable, r.CableType, r.Signal, r.FromDevice, r.FromPort, r.ToDevice, r.ToPort)));
+                .Select(r => (r.Sheet, r.Cable, r.CableType, r.Signal,
+                              r.FromLabel, r.FromDevice, r.FromPort,
+                              r.ToLabel, r.ToDevice, r.ToPort)));
         }
 
         var sb = new System.Text.StringBuilder();
         sb.Append('\uFEFF'); // BOM so Excel opens the CSV with correct (UTF-8) encoding
-        sb.AppendLine("#,Sheet,Cable,Cable Type,Part Number,Cable Color,Signal,From Device,From Port,To Device,To Port");
+        // From/To Tag sit before their device columns: with two of the same model, the model
+        // name alone can't tell an interconnect apart from a port patched into itself.
+        sb.AppendLine("#,Sheet,Cable,Cable Type,Part Number,Cable Color,Signal,From Tag,From Device,From Port,To Tag,To Device,To Port");
         int i = 1;
         foreach (var r in rows)
         {
             var ct = _cableTypes.FirstOrDefault(c => c.Name == r.CableType);
             sb.AppendLine(string.Join(",",
                 i++.ToString(), Csv(r.Sheet), Csv(r.Cable), Csv(r.CableType), Csv(ct?.PartNumber ?? ""), Csv(ct?.CableColor ?? ""),
-                Csv(r.Signal), Csv(r.FromDevice), Csv(r.FromPort), Csv(r.ToDevice), Csv(r.ToPort)));
+                Csv(r.Signal), Csv(r.FromLabel), Csv(r.FromDevice), Csv(r.FromPort),
+                Csv(r.ToLabel), Csv(r.ToDevice), Csv(r.ToPort)));
         }
 
         await JS.InvokeVoidAsync("saveAsFile", "cable-schedule.csv", sb.ToString());
@@ -3729,7 +3830,9 @@
             DxfLine(x + w, y - h, x, y - h);
             DxfLine(x, y - h, x, y);
             DxfLine(x, y - sth, x + w, y - sth);
-            DxfText(x + w / 2, y - sth + sth * 0.3, node.Title, 2.5, "NODES", 1);
+            // Tag first when set, so two of the same model are distinguishable in CAD too.
+            var nodeTitle = string.IsNullOrWhiteSpace(node.Label) ? node.Title : $"[{node.Label}] {node.Title}";
+            DxfText(x + w / 2, y - sth + sth * 0.3, nodeTitle, 2.5, "NODES", 1);
 
             for (int i = 0; i < leftPorts.Count; i++)
             {
@@ -4305,6 +4408,10 @@
     public class LineFlowNode : NodeModel
     {
         public DeviceDefinition Device { get; }
+        // Per-INSTANCE tag, e.g. "SW-1". Two of the same model are otherwise indistinguishable
+        // on the drawing and in the cable schedule — a switch-to-switch interconnect between
+        // identical models reads as a port patched back into itself without this.
+        public string Label { get; set; } = "";
         // Per-block background fill. Defaults to the original navy; "transparent" is allowed.
         public string BackgroundColor { get; set; } = "#16213e";
         // Per-block outline color. Defaults to the original coral.
