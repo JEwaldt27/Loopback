@@ -33,14 +33,17 @@
                 <div class="lf-dropdown-item @(_placementMode == "box" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("box"); CloseMenus(); }'>▭ Box</div>
                 <div class="lf-dropdown-item @(_placementMode == "line" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("line"); CloseMenus(); }'>╱ Line</div>
                 <div class="lf-dropdown-item @(_placementMode == "text" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("text"); CloseMenus(); }'>T Text</div>
+                @* Checkbox glyph in BOTH states — with only a ✓-when-on it didn't read as a
+                   toggle at all, and got missed. *@
                 <div class="lf-dropdown-item @(_connectionsOnTop ? "lf-dropdown-item-active" : "")"
                      title="Raise connections above device blocks so you can grab a bend handle hidden under one"
                      @onclick="() => { _connectionsOnTop = !_connectionsOnTop; CloseMenus(); }">
-                    🔀 Connections On Top@(_connectionsOnTop ? " ✓" : "")
+                    @(_connectionsOnTop ? "☑" : "☐") 🔀 Connections On Top
                 </div>
                 <div class="lf-dropdown-item" @onclick="() => { OpenDeviceColors(); CloseMenus(); }">🎨 Device Colors…</div>
                 <div class="lf-dropdown-item" @onclick="() => { _titleBlockModalOpen = true; CloseMenus(); }">📋 Title Block…</div>
                 <div class="lf-dropdown-item" @onclick="() => { AutoLabelConnections(); CloseMenus(); }">🔢 Auto-Label Connections</div>
+                <div class="lf-dropdown-item" @onclick="async () => { CloseMenus(); await ClearConnectionLabels(); }">🧹 Clear Connection Labels</div>
                 <div class="lf-dropdown-item" @onclick="() => { BreakAllConnections(); CloseMenus(); }">🔗 Break All Connections</div>
                 <div class="lf-dropdown-item" @onclick="() => { RejoinAllConnections(); CloseMenus(); }">🔗 Rejoin All Connections</div>
                 <div class="lf-dropdown-sep"></div>
@@ -2206,6 +2209,28 @@
             SetLinkBroken(elbow, true);
         }
         _contextLink = null;
+    }
+
+    // Tools -> Clear Connection Labels: strips every cable tag on this sheet, the counterpart
+    // to Auto-Label. Confirms with a count first, since a label can be hand-typed work rather
+    // than something auto-generated; it's a single undo step either way.
+    private async Task ClearConnectionLabels()
+    {
+        var labeled = _diagram.Links.OfType<ElbowLinkModel>()
+            .Where(l => !string.IsNullOrEmpty(l.LabelText)).ToList();
+        if (labeled.Count == 0) return;
+
+        var broken = labeled.Count(l => l.IsBroken);
+        var warning = broken > 0
+            ? $"\n\n{broken} of them are broken connections — their label blocks will be left blank."
+            : "";
+        if (!await JS.InvokeAsync<bool>("confirm",
+                $"Clear {labeled.Count} connection label{(labeled.Count == 1 ? "" : "s")} on this sheet?{warning}\n\nUndo will bring them back."))
+            return;
+
+        PushUndoSnapshot();
+        foreach (var link in labeled) RemoveLabelNode(link);
+        StateHasChanged();
     }
 
     // Tools -> Break All: auto-label everything, then break every labeled connection.

@@ -61,7 +61,7 @@ Once signed in, you'll see four main areas:
 
 - **Toolbar (top)** — the app menus and controls (a small version number next to the "Loopback" title shows which build the server is running):
   - **File** → 🆕 New, 💾 Save, 📂 Open
-  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🔀 Connections On Top, 🎨 Device Colors, 📋 Title Block, 🔢 Auto-Label Connections, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
+  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, ☐ 🔀 Connections On Top, 🎨 Device Colors, 📋 Title Block, 🔢 Auto-Label Connections, 🧹 Clear Connection Labels, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
   - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV), 📦 Device Schedule (CSV)
   - **Help** → 📖 User Guide (opens this guide on GitHub in a new tab)
   - **💡 Feature Requests** — suggest an improvement and see what everyone else has asked for (see below)
@@ -212,6 +212,8 @@ The label appears as a small tag centered on the connection. From there you can:
 Labels are included in both PDF and DXF exports.
 
 ### Auto-labeling every connection
+**Clearing them all:** **Tools → 🧹 Clear Connection Labels** strips every cable tag on the current sheet — handy when an auto-label run didn't come out how you wanted and you'd rather start over. It tells you how many it's about to remove, and it's a single Undo step. (Device tags like `SW-1` are left alone.)
+
 Instead of labeling each connection by hand, you can label them all at once from their cable types. First give each cable type a **label prefix** in the Cable Types panel (e.g. `DATA`), then choose **Tools → 🔢 Auto-Label Connections**. Every connection gets a label like `DATA-1`, `DATA-2`, … — numbered per prefix starting at 1, in the same order as the Cable Schedule (by source device). Connections with no cable type (or no prefix) are left alone. Run it again anytime to renumber. The results are ordinary labels, so you can still right-click any connection to tweak its label, and drag/rotate the tags as usual.
 
 ### Breaking connections (for readability)
