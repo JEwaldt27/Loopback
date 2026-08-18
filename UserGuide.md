@@ -15,15 +15,16 @@ This guide covers everything you need as a user. (If you're looking for install/
 5. [Routing Connections Around Things](#5-routing-connections-around-things)
 6. [Connection Labels](#6-connection-labels)
 7. [Annotations: Boxes, Lines, and Text](#7-annotations-boxes-lines-and-text)
-8. [The Legend](#8-the-legend)
-9. [Sheets (Multi-Page Diagrams)](#9-sheets-multi-page-diagrams)
-10. [Saving and Opening Diagrams](#10-saving-and-opening-diagrams)
-11. [Title Block](#11-title-block)
-12. [Exporting](#12-exporting)
-13. [Feature Requests](#13-feature-requests)
-14. [Managing Users (Admins)](#14-managing-users-admins)
-15. [The Desktop App](#15-the-desktop-app)
-16. [Tips & Troubleshooting](#16-tips--troubleshooting)
+8. [What's On Top of What](#8-whats-on-top-of-what)
+9. [The Legend](#9-the-legend)
+10. [Sheets (Multi-Page Diagrams)](#10-sheets-multi-page-diagrams)
+11. [Saving and Opening Diagrams](#11-saving-and-opening-diagrams)
+12. [Title Block](#12-title-block)
+13. [Exporting](#13-exporting)
+14. [Feature Requests](#14-feature-requests)
+15. [Managing Users (Admins)](#15-managing-users-admins)
+16. [The Desktop App](#16-the-desktop-app)
+17. [Tips & Troubleshooting](#17-tips--troubleshooting)
 
 ---
 
@@ -48,9 +49,9 @@ Click **🔑 Change Password** (your current password is filled in for you), ent
 Admins aren't exempt — an admin still on the placeholder is held at the same screen. If an admin resets your password back to the placeholder, you'll be prompted again next time you open the app.
 
 ### Changing your password
-Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#14-managing-users-admins)).
+Any signed-in user can change their own password: click the **👤 account button → 🔑 Change Password**, enter your current password and the new one (at least 8 characters) twice, and click **Update Password**. If you've forgotten your password entirely, an administrator can reset it for you (see [Managing Users](#15-managing-users-admins)).
 
-> **Don't have an account?** Accounts are created by an administrator — there is no self-signup. Ask your admin to add you (see [Managing Users](#14-managing-users-admins)).
+> **Don't have an account?** Accounts are created by an administrator — there is no self-signup. Ask your admin to add you (see [Managing Users](#15-managing-users-admins)).
 
 ---
 
@@ -60,7 +61,7 @@ Once signed in, you'll see four main areas:
 
 - **Toolbar (top)** — the app menus and controls (a small version number next to the "Loopback" title shows which build the server is running):
   - **File** → 🆕 New, 💾 Save, 📂 Open
-  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🎨 Device Colors, 📋 Title Block, 🔢 Auto-Label Connections, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
+  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, 🔀 Connections On Top, 🎨 Device Colors, 📋 Title Block, 🔢 Auto-Label Connections, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
   - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV), 📦 Device Schedule (CSV)
   - **Help** → 📖 User Guide (opens this guide on GitHub in a new tab)
   - **💡 Feature Requests** — suggest an improvement and see what everyone else has asked for (see below)
@@ -70,7 +71,7 @@ Once signed in, you'll see four main areas:
   - **👤 account menu** — your username, Manage Users (admins only), and Logout
 - **Devices panel (left)** — the shared device library, grouped by category, with a sort control and an "+ Add Device" button at the bottom.
 - **Cable Types panel (right)** — define the cabling types used in this diagram (color, prefix, part number, cable color); connections are colored and labeled from these (see Cable types under Making Connections).
-- **Canvas (middle)** — where the diagram lives. Scroll to zoom, drag empty space to pan. **Lost your diagram after zooming too far?** Double-click the middle mouse button (press the scroll wheel twice quickly) anywhere on the canvas to snap the whole diagram back into view. Along the bottom sits the **sheet tab bar** — multi-page diagrams, Excel-style (see [Sheets](#9-sheets-multi-page-diagrams)).
+- **Canvas (middle)** — where the diagram lives. Scroll to zoom, drag empty space to pan. **Lost your diagram after zooming too far?** Double-click the middle mouse button (press the scroll wheel twice quickly) anywhere on the canvas to snap the whole diagram back into view. Along the bottom sits the **sheet tab bar** — multi-page diagrams, Excel-style (see [Sheets](#10-sheets-multi-page-diagrams)).
 
 When a diagram that has been saved before is open, a thin info bar under the toolbar shows **who created the file and when, and who last modified it** — e.g. *"Created by jsmith on Jul 6, 2026 3:12 PM · Last modified by mjones on Jul 8, 2026 9:41 AM."*
 
@@ -87,7 +88,7 @@ Two ways — both give the same result:
 1. **Drag and drop** — drag a device card from the panel onto the canvas.
 2. **Click-to-place** — click a device card once (it highlights coral to show it's armed), then click anywhere on the canvas to place it there. Click the highlighted card again to cancel without placing.
 
-> If you're using the **desktop app**, use click-to-place — drag-and-drop doesn't work there due to a Windows platform bug (see [The Desktop App](#15-the-desktop-app)).
+> If you're using the **desktop app**, use click-to-place — drag-and-drop doesn't work there due to a Windows platform bug (see [The Desktop App](#16-the-desktop-app)).
 
 A placed device appears as a node with its **input ports on the left edge** and its **output/universal ports on the right edge**, each with a black port dot. (Connection color now comes from the cable type you assign — see Cable types below.)
 
@@ -237,13 +238,25 @@ All annotations can be selected, moved, and deleted like anything else, are save
 
 ---
 
-## 8. The Legend
+## 8. What's On Top of What
+
+Two ordering annoyances are handled for you:
+
+**Boxes and lines sit behind everything.** Draw a box around a rack and the devices inside stay fully clickable — the box never swallows your clicks. Same for annotation lines. **Text is deliberately left in front**, so a callout placed over a block stays readable.
+
+**Connections normally sit behind device blocks**, which looks right but means a bend handle that ends up underneath a device can't be grabbed. When that happens, turn on **Tools → 🔀 Connections On Top**. Connections (and their handles) jump above the blocks so you can grab the handle and drag it clear, then switch it off again.
+
+> While it's on, connections are drawn over your device blocks and will intercept clicks on them — that's why it's a toggle rather than the default. The ✓ in the menu shows when it's active. It's a working preference, not part of the drawing, so it isn't saved in the `.lf` file.
+
+---
+
+## 9. The Legend
 
 **Tools → 🏷 Legend** places a color-key node on the canvas — a small **table** with columns for the color swatch, cable type, part number, and cable color — listing only the types **actually used in the current diagram's connections**, so it stays relevant. Click Legend again after adding more connections to refresh it. It's a normal node: drag it wherever it looks best.
 
 ---
 
-## 9. Sheets (Multi-Page Diagrams)
+## 10. Sheets (Multi-Page Diagrams)
 
 Big projects rarely fit on one page. The **tab bar under the canvas** works like sheet tabs in Excel — one canvas per sheet, e.g. a sheet per room or floor:
 
@@ -262,7 +275,7 @@ Everything saves together in one `.lf` file, including which sheet was active. F
 
 ---
 
-## 10. Saving and Opening Diagrams
+## 11. Saving and Opening Diagrams
 
 Diagrams save as **`.lf` files that download to your computer** — they are *not* stored on the server. Treat them like any other document: keep them in your project folders, email them, put them on the network share, etc.
 
@@ -279,7 +292,7 @@ Whenever you have changes that haven't been saved to a `.lf` file, an amber **�
 
 ---
 
-## 11. Title Block
+## 12. Title Block
 
 **Tools → 📋 Title Block** turns your exports into proper drawing sheets instead of a bare diagram — a bordered page with the familiar vertical title-block strip down the right-hand edge.
 
@@ -300,7 +313,7 @@ The diagram itself is automatically scaled to fit the space left beside the titl
 
 ---
 
-## 12. Exporting
+## 13. Exporting
 
 All exports are in the **Export** menu and download directly, like Save does.
 
@@ -345,7 +358,7 @@ Rows are sorted by category, then manufacturer. Three of the same speaker on the
 
 ---
 
-## 13. Feature Requests
+## 14. Feature Requests
 
 Click **💡 Feature Requests** in the toolbar to suggest an improvement or see what's already been asked for. Everyone shares one list.
 
@@ -367,7 +380,7 @@ Each request shows a status:
 
 ---
 
-## 14. Managing Users (Admins)
+## 15. Managing Users (Admins)
 
 Only accounts with the **Admin** role see this. Open the **👤 account menu → 👥 Manage Users**.
 
@@ -381,7 +394,7 @@ Only accounts with the **Admin** role see this. Open the **👤 account menu →
 
 ---
 
-## 15. The Desktop App
+## 16. The Desktop App
 
 Loopback also ships as a native **Windows desktop app** — the same interface in its own window, no browser needed.
 
@@ -404,7 +417,7 @@ Dragging devices from the panel onto the canvas **does not work in the desktop a
 
 ---
 
-## 16. Tips & Troubleshooting
+## 17. Tips & Troubleshooting
 
 **"I just see a login page / 'Create admin account' screen"**
 That's normal — the whole app is gated behind login. If you see the admin-creation screen, the server is brand new and no accounts exist yet.

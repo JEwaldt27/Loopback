@@ -921,6 +921,46 @@ html, body {
     cursor: not-allowed;
 }
 
+/* ---------------------------------------------------------------------------
+   Stacking order on the canvas.
+
+   The diagramming library renders two absolutely-positioned sibling layers
+   inside .diagram-canvas — an <svg class="diagram-svg-layer"> for connections
+   and a <div class="diagram-html-layer"> for nodes — both at z-index 0. The
+   HTML layer comes later in the DOM, so nodes always paint over connections,
+   and each node wrapper (.diagram-node) is z-index:auto, i.e. plain DOM order.
+
+   Boxes and lines are backdrops (rack outlines, zone dividers), so they're
+   pinned behind everything else — otherwise a box drawn around a rack sits on
+   top of it and swallows every click on the devices inside. Text is left with
+   the devices on purpose: a text callout is often placed deliberately over a
+   block, and pushing it back would hide it.
+   --------------------------------------------------------------------------- */
+.diagram-node:has(.lf-box),
+.diagram-node:has(.lf-line-svg) {
+    z-index: 1;
+}
+
+.diagram-node:has(.lf-node),
+.diagram-node:has(.lf-legend),
+.diagram-node:has(.lf-text-node),
+.diagram-node:has(.lf-connection-label),
+.diagram-node:has(.lf-break-tag) {
+    z-index: 2;
+}
+
+/* Tools -> Connections On Top. Because the node layer sets an explicit z-index it
+   forms a stacking context, so raising the whole SVG layer above it is the only
+   way to reach a bend handle sitting underneath a device block. Trade-off while
+   it's on: connections also cover the blocks, so it's a toggle, not the default.
+
+   !important is required, not lazy: the diagramming library writes the layer's
+   z-index as an INLINE style (style="transform: …; z-index: 0"), which outranks
+   any stylesheet rule. */
+.lf-links-on-top .diagram-svg-layer {
+    z-index: 3 !important;
+}
+
 /* Per-instance device tag, above the model name on the block */
 .lf-node-label {
     padding: 1px 6px 0;

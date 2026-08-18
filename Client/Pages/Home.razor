@@ -33,6 +33,11 @@
                 <div class="lf-dropdown-item @(_placementMode == "box" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("box"); CloseMenus(); }'>▭ Box</div>
                 <div class="lf-dropdown-item @(_placementMode == "line" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("line"); CloseMenus(); }'>╱ Line</div>
                 <div class="lf-dropdown-item @(_placementMode == "text" ? "lf-dropdown-item-active" : "")" @onclick='() => { TogglePlacement("text"); CloseMenus(); }'>T Text</div>
+                <div class="lf-dropdown-item @(_connectionsOnTop ? "lf-dropdown-item-active" : "")"
+                     title="Raise connections above device blocks so you can grab a bend handle hidden under one"
+                     @onclick="() => { _connectionsOnTop = !_connectionsOnTop; CloseMenus(); }">
+                    🔀 Connections On Top@(_connectionsOnTop ? " ✓" : "")
+                </div>
                 <div class="lf-dropdown-item" @onclick="() => { OpenDeviceColors(); CloseMenus(); }">🎨 Device Colors…</div>
                 <div class="lf-dropdown-item" @onclick="() => { _titleBlockModalOpen = true; CloseMenus(); }">📋 Title Block…</div>
                 <div class="lf-dropdown-item" @onclick="() => { AutoLabelConnections(); CloseMenus(); }">🔢 Auto-Label Connections</div>
@@ -174,7 +179,7 @@
     </div>
 
     <div class="canvas-column">
-        <div class="canvas-area @(_placementMode != "" ? "canvas-placing" : "")"
+        <div class="canvas-area @(_placementMode != "" ? "canvas-placing" : "") @(_connectionsOnTop ? "lf-links-on-top" : "")"
              @ondragover:preventDefault="true"
              @ondrop="OnCanvasDrop"
              @onclick="OnCanvasClick"
@@ -753,6 +758,11 @@
         public List<string> UndoStack { get; } = new();
         public List<string> RedoStack { get; } = new();
     }
+
+    // View-only toggle (Tools -> Connections On Top): raises the connections layer above the
+    // device blocks so a bend handle sitting under one can be grabbed. Not saved with the
+    // diagram — it's a working preference, not part of the drawing.
+    private bool _connectionsOnTop;
 
     private TitleBlockInfo _titleBlock = new();
     private bool _titleBlockModalOpen;
