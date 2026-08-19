@@ -376,8 +376,9 @@ scripts/
 deploy/certs/
 deploy/client-cert/*.crt
 Server/certs/
-# Uploaded title-block logo (user content, not source)
+# Uploaded title-block images: company logo + engineer's stamp (user content, not source)
 Server/logo.txt
+Server/logo-stamp.txt
 
 # User-submitted feature requests (user content, not source)
 Server/feature-requests.json

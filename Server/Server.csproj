@@ -33,10 +33,12 @@
     <Content Remove="users.json" />
     <Content Remove="feature-requests.json" />
     <Content Remove="logo.txt" />
+    <Content Remove="logo-stamp.txt" />
     <Content Remove="devices.json" />
     <None Remove="users.json" />
     <None Remove="feature-requests.json" />
     <None Remove="logo.txt" />
+    <None Remove="logo-stamp.txt" />
     <None Remove="devices.json" />
   </ItemGroup>
 

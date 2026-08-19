@@ -1190,6 +1190,13 @@ html, body {
     object-fit: contain;
 }
 
+/* A seal is usually round and taller than a wordmark — give it more headroom so the
+   preview isn't squashed into a strip. */
+.lf-tb-stamp-preview {
+    max-width: 110px;
+    max-height: 90px;
+}
+
 /* The file input itself is hidden — the styled label is the clickable target. */
 .lf-tb-upload {
     margin: 0;

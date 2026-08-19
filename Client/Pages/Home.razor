@@ -544,13 +544,35 @@
             }
             <label class="add-device-btn lf-tb-upload">
                 @(_logoBusy ? "Uploading…" : "⬆ Upload logo")
-                <InputFile OnChange="UploadLogo" accept="image/*" />
+                <InputFile OnChange="UploadLogo" accept="image/*,.svg" />
             </label>
         </div>
         <div class="lf-tb-hint">Shared by every diagram, and printed on the PDF only — the DXF keeps an empty box.</div>
         @if (!string.IsNullOrEmpty(_logoError))
         {
             <div class="lf-tb-error">@_logoError</div>
+        }
+
+        <div class="lf-tb-section">Stamp</div>
+        <div class="lf-tb-logo">
+            @if (!string.IsNullOrEmpty(_stampDataUri))
+            {
+                <img class="lf-tb-logo-preview lf-tb-stamp-preview" src="@_stampDataUri" alt="Title block stamp" />
+                <button class="device-action-btn device-action-delete" title="Remove stamp" @onclick="RemoveStamp">🗑</button>
+            }
+            else
+            {
+                <span class="lf-tb-hint">No stamp — the STAMP box prints empty to seal by hand.</span>
+            }
+            <label class="add-device-btn lf-tb-upload">
+                @(_stampBusy ? "Uploading…" : "⬆ Upload stamp")
+                <InputFile OnChange="UploadStamp" accept="image/*,.svg" />
+            </label>
+        </div>
+        <div class="lf-tb-hint">Your engineer's seal, printed inside the STAMP box on the PDF. PNG (transparent background works best), JPG, or SVG — an SVG is converted to a high-resolution image on upload, since PDF export can't place vector artwork.</div>
+        @if (!string.IsNullOrEmpty(_stampError))
+        {
+            <div class="lf-tb-error">@_stampError</div>
         }
 
         <div class="lf-tb-section">Company</div>
@@ -988,64 +1010,110 @@
         return $"Request failed ({(int)res.StatusCode}).";
     }
 
-    // Title block logo. Server-side and shared across every diagram, so it lives outside
-    // TitleBlockInfo (which is saved per .lf file) — see LogoController.
+    // Title block images: the company logo at the top of the strip, and an engineer's
+    // stamp/seal in the STAMP box. Server-side and shared across every diagram, so they
+    // live outside TitleBlockInfo (which is saved per .lf file) — see LogoController.
     private string? _logoDataUri;
     private string _logoError = "";
     private bool _logoBusy;
+
+    private string? _stampDataUri;
+    private string _stampError = "";
+    private bool _stampBusy;
 
     private record LogoPayload(string DataUri);
 
     private async Task LoadLogo()
     {
+        _logoDataUri = await FetchImageSlot("logo");
+        _stampDataUri = await FetchImageSlot("stamp");
+    }
+
+    private async Task<string?> FetchImageSlot(string slot)
+    {
         try
         {
-            var res = await Http.GetAsync("api/logo");
-            if (res.StatusCode == System.Net.HttpStatusCode.NoContent) { _logoDataUri = null; return; }
+            var res = await Http.GetAsync($"api/logo?slot={slot}");
+            if (res.StatusCode == System.Net.HttpStatusCode.NoContent) return null;
             if (res.IsSuccessStatusCode)
-                _logoDataUri = (await res.Content.ReadFromJsonAsync<LogoPayload>())?.DataUri;
+                return (await res.Content.ReadFromJsonAsync<LogoPayload>())?.DataUri;
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Failed to load logo: " + ex.Message);
+            Console.WriteLine($"Failed to load {slot} image: " + ex.Message);
         }
+        return null;
     }
 
-    private async Task UploadLogo(InputFileChangeEventArgs e)
+    private async Task UploadLogo(InputFileChangeEventArgs e) => await UploadImageSlot(e, "logo");
+    private async Task UploadStamp(InputFileChangeEventArgs e) => await UploadImageSlot(e, "stamp");
+
+    private async Task UploadImageSlot(InputFileChangeEventArgs e, string slot)
     {
-        _logoError = "";
-        var file = e.File;
-        if (file == null) return;
+        var stamp = slot == "stamp";
+        if (stamp) { _stampError = ""; _stampBusy = true; } else { _logoError = ""; _logoBusy = true; }
 
-        const long max = 2 * 1024 * 1024;
-        if (file.Size > max) { _logoError = "Image is too large — keep it under 2 MB."; return; }
+        void Fail(string msg) { if (stamp) _stampError = msg; else _logoError = msg; }
 
-        _logoBusy = true;
         try
         {
+            var file = e.File;
+            if (file == null) return;
+
+            const long max = 2 * 1024 * 1024;
+            if (file.Size > max) { Fail("Image is too large — keep it under 2 MB."); return; }
+
             using var stream = file.OpenReadStream(max);
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
-            var contentType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/png" : file.ContentType;
+
+            // Trust the extension over the browser's content type: Windows reports .svg as
+            // image/svg+xml, but some setups hand back an empty or generic type instead.
+            var isSvg = file.Name.EndsWith(".svg", StringComparison.OrdinalIgnoreCase)
+                     || file.ContentType.Contains("svg", StringComparison.OrdinalIgnoreCase);
+            var contentType = isSvg ? "image/svg+xml"
+                : (string.IsNullOrWhiteSpace(file.ContentType) ? "image/png" : file.ContentType);
             var dataUri = $"data:{contentType};base64,{Convert.ToBase64String(ms.ToArray())}";
 
-            var res = await Http.PostAsJsonAsync("api/logo", new { dataUri });
-            if (res.IsSuccessStatusCode) _logoDataUri = dataUri;
-            else _logoError = "Upload failed — the server rejected the image.";
+            // PDF export goes through jsPDF, which can't place vector artwork — so an SVG
+            // is rendered to a high-resolution PNG here and that is what gets stored.
+            if (isSvg)
+            {
+                try
+                {
+                    dataUri = await JS.InvokeAsync<string>("rasterizeSvg", dataUri, 1400);
+                }
+                catch (JSException jsEx)
+                {
+                    Fail(jsEx.Message);
+                    return;
+                }
+            }
+
+            var res = await Http.PostAsJsonAsync($"api/logo?slot={slot}", new { dataUri });
+            if (res.IsSuccessStatusCode)
+            {
+                if (stamp) _stampDataUri = dataUri; else _logoDataUri = dataUri;
+            }
+            else Fail("Upload failed — the server rejected the image.");
         }
-        catch (Exception ex) { _logoError = ex.Message; }
-        finally { _logoBusy = false; }
+        catch (Exception ex) { Fail(ex.Message); }
+        finally { if (stamp) _stampBusy = false; else _logoBusy = false; }
     }
 
-    private async Task RemoveLogo()
+    private async Task RemoveLogo() => await RemoveImageSlot("logo");
+    private async Task RemoveStamp() => await RemoveImageSlot("stamp");
+
+    private async Task RemoveImageSlot(string slot)
     {
-        _logoError = "";
+        var stamp = slot == "stamp";
+        if (stamp) _stampError = ""; else _logoError = "";
         try
         {
-            await Http.DeleteAsync("api/logo");
-            _logoDataUri = null;
+            await Http.DeleteAsync($"api/logo?slot={slot}");
+            if (stamp) _stampDataUri = null; else _logoDataUri = null;
         }
-        catch (Exception ex) { _logoError = ex.Message; }
+        catch (Exception ex) { if (stamp) _stampError = ex.Message; else _logoError = ex.Message; }
     }
 
     private const string EmptySheetJson = "{\"nodes\":[],\"links\":[]}";
@@ -3822,7 +3890,8 @@
             drawingTitle = string.IsNullOrWhiteSpace(sheet.DrawingTitle) ? _diagramTitle : sheet.DrawingTitle,
             drawingNumber = sheet.DrawingNumber,
             sheetName = sheet.Name,
-            logo = _logoDataUri
+            logo = _logoDataUri,
+            stamp = _stampDataUri
         };
 
         await JS.InvokeVoidAsync("exportToPdf", pdfTitle, AppVersion.Version, bx, by, bw, bh, tb);

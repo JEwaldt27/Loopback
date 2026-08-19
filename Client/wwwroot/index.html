@@ -7,7 +7,7 @@
     <base href="/" />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
     <!-- keep the ?v= stamp in sync with AppVersion so cached browsers refetch the styles -->
-    <link rel="stylesheet" href="css/app.css?v=1.5.41" />
+    <link rel="stylesheet" href="css/app.css?v=1.5.42" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="Client.styles.css" rel="stylesheet" />
     <link href="_content/Z.Blazor.Diagrams/style.min.css" rel="stylesheet" />
@@ -52,6 +52,72 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+        };
+
+        // Renders an uploaded SVG to a PNG data URI. jsPDF's addImage takes raster images
+        // only, so a vector logo or stamp has to be rasterized somewhere; doing it once at
+        // upload keeps a single stored format and leaves every export path untouched.
+        // maxPx is the long edge — 1400px across a ~45mm title-block box is ~790 dpi, well
+        // past what a plotter resolves, so the seal still reads crisply in print.
+        window.rasterizeSvg = function (dataUri, maxPx) {
+            return new Promise(function (resolve, reject) {
+                let svgText;
+                try {
+                    const comma = dataUri.indexOf(',');
+                    const payload = dataUri.slice(comma + 1);
+                    svgText = /;base64/i.test(dataUri.slice(0, comma))
+                        ? decodeURIComponent(escape(atob(payload)))   // base64 -> UTF-8 text
+                        : decodeURIComponent(payload);
+                } catch (err) {
+                    reject("That SVG couldn't be read.");
+                    return;
+                }
+
+                const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+                const svg = doc.documentElement;
+                if (!svg || svg.nodeName.toLowerCase() !== 'svg' || doc.querySelector('parsererror')) {
+                    reject("That file isn't a valid SVG.");
+                    return;
+                }
+
+                // Intrinsic size: the viewBox is the reliable source (unitless), since
+                // width/height are often percentages or carry units like mm. Both can be
+                // missing entirely, in which case a square default still beats failing.
+                let w = 0, h = 0;
+                const vb = (svg.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+                if (vb.length === 4 && vb[2] > 0 && vb[3] > 0) { w = vb[2]; h = vb[3]; }
+                else {
+                    w = parseFloat(svg.getAttribute('width')) || 0;
+                    h = parseFloat(svg.getAttribute('height')) || 0;
+                }
+                if (!(w > 0) || !(h > 0)) { w = 512; h = 512; }
+
+                const scale = maxPx / Math.max(w, h);
+                const outW = Math.max(1, Math.round(w * scale));
+                const outH = Math.max(1, Math.round(h * scale));
+
+                // Chrome refuses to rasterize an <img> SVG with no concrete size, so pin
+                // the output dimensions on the root element before handing it over.
+                svg.setAttribute('width', outW);
+                svg.setAttribute('height', outH);
+                const sized = new XMLSerializer().serializeToString(svg);
+
+                const img = new Image();
+                img.onload = function () {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = outW;
+                    canvas.height = outH;
+                    canvas.getContext('2d').drawImage(img, 0, 0, outW, outH);
+                    try {
+                        resolve(canvas.toDataURL('image/png'));
+                    } catch (err) {
+                        // Tainted canvas: the SVG pulls in something from another origin.
+                        reject('That SVG links to an external image, so it cannot be converted. Export it with everything embedded and try again.');
+                    }
+                };
+                img.onerror = function () { reject("That SVG couldn't be rendered."); };
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(sized)));
+            });
         };
 
         // Reports the pixel size of the canvas viewport, used to compute a zoom-to-fit
@@ -238,6 +304,24 @@
 
             // --- Stamp box: from the project block down to the revision grid ---
             txt('STAMP', sx + pad, projBottom + 3.4, 5.6);
+            // An uploaded seal is fitted into the box below the label, preserving its
+            // aspect ratio and centered; with none, the box stays empty to stamp by hand.
+            if (tb.stamp) {
+                try {
+                    const props = pdf.getImageProperties(tb.stamp);
+                    const stampTop = projBottom + 5.0;
+                    const availW = stripW - pad * 2;
+                    const availH = Math.max(0, revTop - stampTop - pad);
+                    if (availH > 2) {
+                        const s = Math.min(availW / props.width, availH / props.height);
+                        const w = props.width * s, h = props.height * s;
+                        pdf.addImage(tb.stamp, props.fileType || 'PNG',
+                                     sx + pad + (availW - w) / 2, stampTop + (availH - h) / 2, w, h);
+                    }
+                } catch (err) {
+                    console.warn('Title block stamp could not be drawn:', err);
+                }
+            }
             rule(revTop);
 
             // --- Revisions grid ---

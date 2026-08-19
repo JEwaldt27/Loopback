@@ -319,9 +319,12 @@ Tick **"Print a title block on PDF and DXF exports"** to switch it on, then fill
 - **Company** — your company name, address, phone, and website, printed right-aligned under the logo area.
 - **Revisions** — click **+ Add Revision** for each entry (#, date, description). They fill the revision grid from the top; the remaining rows print blank for marking up by hand.
 
-- **Logo** — click **⬆ Upload logo** and pick a PNG or JPEG (under 2 MB). It's scaled to fit the box at the top of the strip without distorting, and it's **shared across every diagram** — upload it once and it appears on all your drawings, for everyone. **🗑** removes it. With no logo the box simply prints as an empty outline, so you can still stamp one in by hand.
+- **Logo** — click **⬆ Upload logo** and pick a PNG, JPEG, or SVG (under 2 MB). It's scaled to fit the box at the top of the strip without distorting, and it's **shared across every diagram** — upload it once and it appears on all your drawings, for everyone. **🗑** removes it. With no logo the box simply prints as an empty outline, so you can still stamp one in by hand.
+- **Stamp** — the same thing for your engineer's seal: **⬆ Upload stamp** puts an image inside the **STAMP** box, centered under the label and fitted without distorting. Also shared across every diagram, and **🗑** clears it — leaving the box empty to seal by hand as before. A PNG with a transparent background sits best against the sheet.
 
-> The logo prints on the **PDF only**. DXF (R12) predates embedded images, so the DXF keeps the empty box — which matters little, since in CAD you'd normally use your own title block anyway.
+> **SVGs are accepted** for either slot. Because PDF export can't place vector artwork, an uploaded SVG is converted to a high-resolution image (1400px on its long edge — roughly 790 dpi in the title block, past what a plotter resolves) at the moment you upload it, and that's what's stored. Everything has to be embedded in the file: an SVG that links out to an external image can't be converted, and you'll get told so rather than getting a silently blank box.
+
+> The logo and stamp print on the **PDF only**. DXF (R12) predates embedded images, so the DXF keeps the empty boxes — which matters little, since in CAD you'd normally use your own title block anyway.
 
 The diagram itself is automatically scaled to fit the space left beside the title block, so turning it on never crops your drawing. In the DXF, the whole block is drawn on its own **TITLEBLOCK** layer, which you can freeze or edit independently in CAD.
 
