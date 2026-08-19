@@ -15,7 +15,11 @@ LineFlowAppHosted/
 │   │   ├── Home.razor              ← Main diagram page (ALL core diagram logic lives here)
 │   │   ├── LineFlowNodeWidget.razor ← Custom node renderer with port labels
 │   │   ├── TextNodeWidget.razor     ← Freeform text annotation renderer
+│   │   ├── BoxNodeWidget.razor      ← Rectangle annotation renderer
+│   │   ├── LineNodeWidget.razor     ← Freeform line annotation renderer
+│   │   ├── LegendNodeWidget.razor   ← Cable-type legend renderer
 │   │   ├── ConnectionLabelWidget.razor ← Connection label renderer (plain div, not SVG — see Connection Labels below)
+│   │   ├── BreakTagWidget.razor     ← Label block shown at each end of a broken connection
 │   │   └── Users.razor              ← Admin-only "Manage Users" page (/users)
 │   ├── Layout/
 │   │   ├── MainLayout.razor        ← Simple layout wrapper, no sidebar
@@ -30,22 +34,33 @@ LineFlowAppHosted/
 └── Server/                         ← ASP.NET Core host
     ├── Controllers/
     │   ├── DevicesController.cs    ← GET/POST /api/devices
-    │   ├── AuthController.cs       ← GET /api/auth/status, POST setup/login/logout
-    │   └── UsersController.cs      ← Admin-only CRUD for accounts, GET/POST/DELETE /api/users
+    │   ├── AuthController.cs       ← GET /api/auth/status, POST setup/login/logout/change-password
+    │   ├── UsersController.cs      ← Admin-only CRUD for accounts, GET/POST/DELETE /api/users
+    │   ├── LogoController.cs       ← Title-block images (?slot=logo|stamp), GET/POST/DELETE /api/logo
+    │   └── FeatureRequestsController.cs ← Shared feature-request list, GET/POST/PUT/DELETE /api/featurerequests
     ├── Models/
-    │   └── AppUser.cs               ← Username, PasswordHash, Role
+    │   ├── AppUser.cs               ← Username, PasswordHash, Role
+    │   └── FeatureRequest.cs        ← Id, Title, Description, Status, submitter + timestamps
     ├── Services/
-    │   └── UserStore.cs             ← JSON-file-backed user store (Server/users.json)
+    │   ├── UserStore.cs             ← JSON-file-backed user store (Server/users.json)
+    │   └── FeatureRequestStore.cs   ← Same pattern for Server/feature-requests.json
     ├── LoginPage.cs                 ← Self-contained inline HTML for the /login screen
     ├── devices.seed.json           ← Stock device library shipped with the build (tracked)
     ├── devices.json                ← Live device library, seeded from the above on first run (gitignored)
     ├── users.json                  ← User accounts + password hashes (auto-created, gitignored)
+    ├── feature-requests.json       ← Submitted feature requests (auto-created, gitignored)
+    ├── logo.txt / logo-stamp.txt   ← Title-block logo + stamp as data URIs (auto-created, gitignored)
     └── Program.cs                  ← Server setup, cookie auth, auth gate middleware, serves Blazor WASM
 Desktop/                             ← .NET MAUI Windows desktop shell (see Desktop Wrapper below)
 ├── MainPage.xaml(.cs)               ← Top bar (Settings/Reload) + WebView pointed at the server
 ├── SettingsPage.xaml(.cs)           ← Server URL entry, persisted via Preferences
 └── Desktop.csproj                  ← Windows-only target (net10.0-windows10.0.19041.0)
+deploy/                              ← Deployment scripts + TLS material (see Deploying to Ubuntu Linux)
+samples/                             ← Example .lf files (Riverfront-HQ-Sample.lf — 4 sheets, 46 devices)
+UserGuide.md                         ← End-user documentation, linked from the app's Help menu
 ```
+
+> The four server-owned data files above (`devices.json`, `users.json`, `feature-requests.json`, `logo*.txt`) are **gitignored and `<Content Remove>`d from publish** — see the deploy warning further down before adding another.
 
 ## Tech Stack
 - **.NET 10** (not 8 or 9)
@@ -95,6 +110,7 @@ Files saved before multi-sheet existed have no `sheets` property — the root it
   "nodes": [
     {
       "id": "guid",
+      "label": "SW-1",
       "manufacturer": "Crestron",
       "model": "DM-NVX-350",
       "category": "AV over IP",
@@ -164,6 +180,7 @@ The whole app sits behind a login gate — added so it can be safely exposed to 
 - **Login page** (`Server/LoginPage.cs`) is a small self-contained inline HTML/CSS/JS page served via a minimal API endpoint (`GET /login`) — there's no `Server/wwwroot`, so a static file wasn't worth adding. It calls `/api/auth/status` on load to decide whether to show setup mode or a normal login form.
 - **Manage Users page** (`Client/Pages/Users.razor`, route `/users`) — a real Blazor page, admin-only (both server-enforced via `[Authorize(Roles = "Admin")]` on `UsersController` and gated client-side by checking `/api/auth/status`). Lists accounts, adds new ones with a chosen role, removes accounts (blocked from deleting your own account or the last remaining Admin), and **resets any user's password** (an inline panel per row — for forgotten passwords, so you no longer have to delete-and-recreate the account).
 - **Password management**: any signed-in user can change **their own** password from the account menu (**🔑 Change Password** → modal requiring the current password), and admins can reset **anyone's** from the Manage Users page. Both enforce the 8-character minimum; self-service verifies the current password first, admin reset does not (that's the point of a reset).
+- **Forced change off the placeholder** — new accounts are handed out with `AuthController.TemporaryPassword` (`"TempPassword"`). `/api/auth/status` reports `usingTemporaryPassword` by verifying that string against the **stored hash** rather than remembering it from login, so it stays correct for someone already holding a 30-day cookie and for an admin resetting an account back to the placeholder. While it's true the app shows a blocking modal (`.lf-modal-overlay-blocking`) that can't be dismissed until the password is changed — the drawing is unreachable behind it. Costs one hash verification per page load.
 - **Account menu** — top-right of the toolbar in `Home.razor`, shows the current username, a "Manage Users" link for Admins, Change Password, and Logout.
 
 **Endpoints:**
@@ -178,18 +195,32 @@ The whole app sits behind a login gate — added so it can be safely exposed to 
 | `/api/users/{username}` | DELETE | Admin | Remove an account |
 | `/api/users/{username}/password` | PUT | Admin | Reset another user's password (no current password needed) |
 
+**The rest of the API** (everything below is behind the same auth gate — an unauthenticated `/api/*` request gets a 401):
+| Endpoint | Method | Auth | Purpose |
+|---|---|---|---|
+| `/api/devices` | GET/POST | signed-in | Read / replace the shared device library (`Server/devices.json`) |
+| `/api/logo?slot=logo\|stamp` | GET/POST/DELETE | signed-in | The title block's company logo and engineer's stamp, stored as data URIs. `slot` resolves against a fixed whitelist since it names a file |
+| `/api/featurerequests` | GET/POST | signed-in | List / submit feature requests |
+| `/api/featurerequests/{id}` | PUT | signed-in | Edit the text; changing the **status** is Admin-only (403 otherwise) |
+| `/api/featurerequests/{id}` | DELETE | Admin | Remove a request |
+
 ### Custom Classes (all defined inside Home.razor @code block)
-- **`LineFlowNode`** — extends `NodeModel`, holds `DeviceDefinition`, creates `LineFlowPort` instances
+- **`LineFlowNode`** — extends `NodeModel`, holds `DeviceDefinition`, creates `LineFlowPort` instances. Also carries a per-**instance** `Label` (the device tag, e.g. `SW-1`), serialized as `label` — without it two of the same model are indistinguishable on the drawing and in the cable schedule
 - **`LineFlowPort`** — extends `PortModel`, holds `PortDefinition` with name/type/direction
 - **`ElbowLinkModel`** — extends `LinkModel`; routing is driven by its `Vertices` collection (one or more draggable bend points). `MidX` is kept only as a legacy fallback for old saves with no vertices. `CableTypeName` names its assigned cable type; `Color`/`SelectedColor` are set from that type's color (neutral gray when unassigned) via `ApplyCableColor`. `LabelText`/`LabelNode` hold its optional connection label (see Connection Labels below). (`ColorForType()` — the old signal-type coloring — is retained but no longer used.)
 - **`ConnectionLabelNode`** — extends `NodeModel`, a draggable text bubble for a connection label; rendered by `ConnectionLabelWidget.razor`. `OwnerLink` points back at its `ElbowLinkModel` so deleting either side cleans up the other. `Rotation` holds a clockwise angle in 90° increments (0/90/180/270), applied as a CSS transform (see Connection Labels below).
 - **`ElbowRouter`** — extends `Router`, generates an orthogonal H-V-H-...-H path through all of the link's vertices, in order
-- **`LegendNode`** — extends `NodeModel`, holds a list of `(Type, Color)` entries; rendered by `LegendNodeWidget.razor`. Created/updated by the "Legend" toolbar button using only the signal types present in current connections.
+- **`LegendNode`** — extends `NodeModel`, holds a list of `(Name, Color, PartNumber, CableColor)` entries; rendered by `LegendNodeWidget.razor`. Created/updated by **Tools → Legend** from the **cable types** actually used by current connections (it used to key off port signal types — that changed when cable types took over connection coloring).
 - **`DeviceDefinition`** — manufacturer, model, category, list of ports
-- **`PortDefinition`** — name, type (HDMI/SDI/Audio/Network/USB/IR/COM/Other), direction (In/Out/Universal)
+- **`PortDefinition`** — name, type, direction (In/Out/Universal). The **type is free text**, not an enum: the Add/Edit Device form is an `<input list>` whose suggestions are the stock types (`BuiltInPortTypes`) unioned with every type already used anywhere in the library, so a new one (Dante, AES67, 12G-SDI…) becomes a suggestion for everyone once saved — nothing to keep in sync and no orphaned entries
 - **`BoxNode`** — extends `NodeModel`, resizable rectangle with a border color and no fill; rendered by `BoxNodeWidget.razor`, corner handles drag-resize via `Home.StartResize`
 - **`LineNode`** — extends `NodeModel`, freeform 2-point line (`Start`/`End`) not attached to any port; rendered by `LineNodeWidget.razor`, endpoint handles drag via `Home.StartResize`
 - **`TextNode`** — extends `NodeModel`, editable text label with `FontSize`/`Color`; rendered by `TextNodeWidget.razor`, double-click to edit, style row appears when selected
+- **`BreakTagNode`** — extends `NodeModel`, one of the two identical label blocks shown at the ends of a **broken** connection (`Text`, `Color`, `OwnerLink`, `IsSource`); rendered by `BreakTagWidget.razor`. Derived state — rebuilt from the link's `broken` + `srcTagX/Y`/`tgtTagX/Y` fields rather than saved as first-class nodes
+- **`BreakStubLink`** — extends `LinkModel`, the short straight run from a port to its `BreakTagNode`. `ElbowRouter` ignores links whose target isn't a `PortModel`, so these render straight with no bends for free. Locked — the tag block is what users grab, not the stub
+- **`CableType`** — name, on-screen `Color`, label `Prefix`, `PartNumber`, physical `CableColor`. Document-wide (shared by every sheet), managed in the right-hand panel
+- **`TitleBlockInfo`** / **`TitleBlockRevision`** — the document-wide title block: company details, client/project/location/discipline, issue fields, `SheetSize` (`11x17` default / `Letter` / `A4`), and the revision rows. The per-sheet drawing title and number live on `Sheet`, not here
+- **`Sheet`** — one tab: `Name`, `DrawingTitle`, `DrawingNumber`, and `Json` — the parked serialization of that sheet's canvas. Only the **active** sheet is live in `_diagram`; the others sit as JSON and round-trip through the same `BuildDiagramData`/`LoadDiagramJson` path undo and `.lf` saving use
 
 ### Connection Rules
 - Input → Output ✅
@@ -266,9 +297,15 @@ Legends are saved in `.lf` files as a top-level `legend` property (`{x, y, entri
 ## JS Functions (defined in index.html)
 All attached to `window` object for Blazor JS interop:
 - `window.saveAsFile(filename, content)` — triggers browser download
+- `window.setUnsavedChanges(bool)` — arms/disarms the `beforeunload` guard so closing the tab with unsaved work prompts (see Unsaved-Changes Warning)
+- `window.rasterizeSvg(dataUri, maxPx)` — renders an uploaded SVG (logo or stamp) to a PNG data URI, because jsPDF's `addImage` takes raster input only. Returns a rejected promise with a readable message for a malformed SVG or one that links to an external image (tainted canvas)
 - `window.getCanvasAreaSize()` — returns the canvas viewport `[width, height]` in px (used by the middle-click zoom-to-fit to compute the framing transform; not used by current `ExportPdf`)
 - `window.registerMiddleDblClickZoom(dotNetRef)` — called once on first render with a `DotNetObjectReference<Home>`; binds a capture-phase `mousedown` listener on `.canvas-area` that suppresses the middle button's default (autoscroll/paste) and, on a double middle-press within 400 ms, invokes `[JSInvokable] ZoomToFitContent()` to frame the whole diagram
-- `window.exportToPdf(title, version, bx, by, bw, bh)` — captures the diagram with html2canvas and generates a PDF with jsPDF (content fit to the page preserving aspect ratio, version stamped in the header). When content bounds are provided it captures the **full diagram** via an `onclone`-restyled copy of the page (see the PDF export feature bullet); with no bounds it falls back to capturing the visible view and trimming it with `cropToContent`
+- `window.exportToPdf(title, version, bx, by, bw, bh, titleBlock)` — captures the diagram with html2canvas and generates a PDF with jsPDF (content fit to the page preserving aspect ratio, version stamped in the header). When content bounds are provided it captures the **full diagram** via an `onclone`-restyled copy of the page (see the PDF export feature bullet); with no bounds it falls back to capturing the visible view and trimming it with `cropToContent`. `titleBlock` carries the whole title-block payload — including `sheetSize`, which picks the paper (`tabloid`/`letter`/`a4`, always landscape) **whether or not the block itself is enabled** — plus the logo and stamp data URIs
+
+Two module-level helpers are not on `window` (called only from `exportToPdf`):
+- `drawTitleBlock(pdf, tb, pageW, pageH, version)` — draws the border and the right-edge title-block strip, and **returns the rectangle left over** for the diagram to be fitted into
+- `cropToContent(canvas)` — trims surrounding whitespace off a capture so the drawing fills the page
 
 ## CSS Classes of Note
 - `.lf-node` — custom node box
@@ -281,6 +318,12 @@ All attached to `window` object for Blazor JS interop:
 - `.lf-connection-label` — the draggable connection label bubble (plain `<div>`, not the diagramming library's SVG-based link labels)
 - `.lf-file-meta` — the "Created by / Last modified by" info bar under the toolbar
 - `.lf-unsaved-badge` — the amber "● Unsaved" indicator shown in the toolbar when there are unsaved changes
+- `.lf-node-label` — the amber per-device tag (`SW-1`) drawn above the node title
+- `.lf-break-tag` — the label block at each end of a broken connection
+- `.lf-coord-chip` — the selected device's X/Y readout, bottom-left of the canvas. `pointer-events: none` so it can't intercept a click
+- `.lf-cc-*` — the Cable Count dialog (`-table`, `-row-on`, `-qty`, `-total`, `-actions`)
+- `.lf-tb-*` / `.lf-fr-*` — the Title Block editor and the Feature Requests dialog
+- **Stacking order** — `.diagram-node:has(…)` rules give annotations `z-index: 1` and devices/labels `z-index: 2`, so boxes and lines sit behind the blocks. `.lf-links-on-top .diagram-svg-layer` (Tools → Connections On Top) raises the whole connection layer above them so a bend handle hidden under a device can be grabbed; it needs `!important` because the library writes that layer's `z-index` as an **inline** style
 
 ## Known Issues / Work in Progress
 

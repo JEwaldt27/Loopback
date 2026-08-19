@@ -71,7 +71,7 @@ Once signed in, you'll see four main areas:
   - **👤 account menu** — your username, Manage Users (admins only), and Logout
 - **Devices panel (left)** — the shared device library, grouped by category, with a sort control and an "+ Add Device" button at the bottom.
 - **Cable Types panel (right)** — define the cabling types used in this diagram (color, prefix, part number, cable color); connections are colored and labeled from these (see Cable types under Making Connections).
-- **Canvas (middle)** — where the diagram lives. Scroll to zoom, drag empty space to pan. **Lost your diagram after zooming too far?** Double-click the middle mouse button (press the scroll wheel twice quickly) anywhere on the canvas to snap the whole diagram back into view. Along the bottom sits the **sheet tab bar** — multi-page diagrams, Excel-style (see [Sheets](#10-sheets-multi-page-diagrams)).
+- **Canvas (middle)** — where the diagram lives. Scroll to zoom, drag empty space to pan. **Lost your diagram after zooming too far?** Double-click the middle mouse button (press the scroll wheel twice quickly) anywhere on the canvas to snap the whole diagram back into view. Along the bottom sits the **sheet tab bar** — multi-page diagrams, Excel-style (see [Sheets](#10-sheets-multi-page-diagrams)) — and a chip in the bottom-left corner reads out the **X / Y of whichever device you have selected** (see [Lining things up](#lining-things-up)).
 
 When a diagram that has been saved before is open, a thin info bar under the toolbar shows **who created the file and when, and who last modified it** — e.g. *"Created by jsmith on Jul 6, 2026 3:12 PM · Last modified by mjones on Jul 8, 2026 9:41 AM."*
 
@@ -335,7 +335,7 @@ The diagram itself is automatically scaled to fit the space left beside the titl
 All exports are in the **Export** menu and download directly, like Save does.
 
 ### 📄 PDF
-Captures the **sheet you're viewing** onto a landscape A4 page with a header showing the **diagram title** (from the toolbar text box — plus the sheet name when the document has more than one sheet), today's date, and the app version. For a full drawing package, export each sheet in turn. The export always includes your **entire** diagram — every device, connection, and label, even parts spread far off-screen — no matter where you're currently panned or zoomed. Your on-screen view isn't affected at all. (Very large diagrams naturally come out at a smaller scale so everything fits on the page.)
+Captures the **sheet you're viewing** onto a landscape page — **11×17 by default**, or whatever **sheet size** you picked in the [Title Block](#12-title-block) (11×17 / Letter / A4), whether or not the title block itself is switched on — with a header showing the **diagram title** (from the toolbar text box — plus the sheet name when the document has more than one sheet), today's date, and the app version. For a full drawing package, export each sheet in turn. The export always includes your **entire** diagram — every device, connection, and label, even parts spread far off-screen — no matter where you're currently panned or zoomed. Your on-screen view isn't affected at all. (Very large diagrams naturally come out at a smaller scale so everything fits on the page.)
 
 ### 📐 DXF
 Generates an AutoCAD-compatible DXF with content organized on layers:
@@ -372,6 +372,8 @@ The other half of the paperwork: a **BOM-style device list** covering **every sh
 |-----|--------------|-------|----------|
 
 Rows are sorted by category, then manufacturer. Three of the same speaker on the canvas become one row with Qty 3. Downloads as `device-schedule.csv` — pair it with the cable schedule for quoting and ordering.
+
+> There's a third spreadsheet, `cable-count.csv`, but it lives with the tool that produces it: **Tools → 🧮 Cable Count** (see [Counting cables](#counting-cables-how-many-patch-cords)) — quantities per cable type rather than a row per cable.
 
 ---
 
