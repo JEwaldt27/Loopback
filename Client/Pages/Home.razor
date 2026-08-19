@@ -195,6 +195,20 @@
                     <DiagramCanvas />
                 </CascadingValue>
             </CascadingValue>
+            @* Position readout for the selected device(s). Same X/Y the .lf file stores —
+               the block's top-left corner in diagram space, so it lines up with what
+               Align/Distribute and the arrow-key nudge operate on. *@
+            @if (SelectedDevices is { Count: > 0 } sel)
+            {
+                <div class="lf-coord-chip" @onclick:stopPropagation="true">
+                    <span class="lf-coord-name">@DeviceDisplayName(sel[0])</span>
+                    <span class="lf-coord-xy">X @Math.Round(sel[0].Position.X) &nbsp; Y @Math.Round(sel[0].Position.Y)</span>
+                    @if (sel.Count > 1)
+                    {
+                        <span class="lf-coord-more">+@(sel.Count - 1) more selected</span>
+                    }
+                </div>
+            }
             @if (TraceActive)
             {
                 <div class="lf-trace-chip" @onclick:stopPropagation="true">
@@ -1969,6 +1983,16 @@
             PushUndoSnapshot(pending);
     }
 
+    // Devices currently selected, in canvas order. Drives the position readout chip.
+    private List<LineFlowNode> SelectedDevices =>
+        _diagram.Nodes.OfType<LineFlowNode>().Where(n => n.Selected).ToList();
+
+    // A device's tag if it has one, otherwise the model — whatever identifies it on the
+    // drawing, since the chip has to say WHICH block the coordinates belong to.
+    private static string DeviceDisplayName(LineFlowNode n) =>
+        !string.IsNullOrWhiteSpace(n.Label) ? n.Label.Trim()
+            : (!string.IsNullOrWhiteSpace(n.Device.Model) ? n.Device.Model : "Device");
+
     private void OnDiagramPointerDown(Model? model, Blazor.Diagrams.Core.Events.PointerEventArgs args)
     {
         // Clicking empty canvas dismisses a live signal trace.
@@ -2011,6 +2035,10 @@
                 ShowContextMenu(args.ClientX, args.ClientY);
             }
         }
+
+        // Selection is applied by the library's own behavior on this same event, so the
+        // readout has to re-render AFTER this handler returns rather than inline.
+        InvokeAsync(StateHasChanged);
     }
 
     // --- Signal path trace (right-click → 🔦 Trace Signal Path) ---

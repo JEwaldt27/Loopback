@@ -473,6 +473,40 @@ html, body {
     opacity: 0.18;
 }
 
+/* Position readout for the selected device. Bottom-left so it stays clear of the trace
+   chip (top-center) and of the sheet tabs. */
+.lf-coord-chip {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: #ddd;
+    background: rgba(22, 33, 62, 0.92);
+    border: 1px solid #0f3460;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    pointer-events: none;   /* never gets between the pointer and the canvas */
+    z-index: 50;
+}
+
+.lf-coord-name {
+    font-weight: 600;
+    color: #ffc107;
+}
+
+.lf-coord-xy {
+    font-family: Consolas, "Courier New", monospace;
+    color: #fff;
+}
+
+.lf-coord-more {
+    color: #9aa4b2;
+}
+
 .lf-trace-chip {
     position: absolute;
     top: 10px;

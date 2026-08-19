@@ -139,6 +139,7 @@ Hand-aligned blocks are most of what makes a drawing look messy — two tools fi
 
 - **Align / distribute** — select 2+ blocks, then **Tools → ⇤ Align Left / ⇥ Align Right / ⤒ Align Top / ⤓ Align Bottom**. With 3+ selected, **↔ Distribute Horizontally / ↕ Distribute Vertically** spreads the middle blocks so everything is evenly spaced (the outermost two stay put). Works on devices, annotations — anything selectable. Each action is one undo step.
 - **Keyboard nudge** — with blocks selected and the canvas focused, the **arrow keys** move them 1px per press; hold **Shift** for 10px. A quick burst of presses counts as a single undo step.
+- **Position readout** — click a device and a small chip appears in the **bottom-left of the canvas** showing its tag (or model) and its **X / Y**: the top-left corner of the block, the same coordinates the `.lf` file stores and the ones align and nudge work in. Select several and it reads the first one plus a `+N more selected` count. It refreshes when you release a drag, and disappears when nothing is selected — it's a readout only, so it never gets in the way of the pointer.
 
 ---
 
