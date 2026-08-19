@@ -42,6 +42,7 @@
                 </div>
                 <div class="lf-dropdown-item" @onclick="() => { OpenDeviceColors(); CloseMenus(); }">🎨 Device Colors…</div>
                 <div class="lf-dropdown-item" @onclick="() => { _titleBlockModalOpen = true; CloseMenus(); }">📋 Title Block…</div>
+                <div class="lf-dropdown-item" @onclick="() => { OpenCableCount(); CloseMenus(); }">🧮 Cable Count…</div>
                 <div class="lf-dropdown-item" @onclick="() => { AutoLabelConnections(); CloseMenus(); }">🔢 Auto-Label Connections</div>
                 <div class="lf-dropdown-item" @onclick="async () => { CloseMenus(); await ClearConnectionLabels(); }">🧹 Clear Connection Labels</div>
                 <div class="lf-dropdown-item" @onclick="() => { BreakAllConnections(); CloseMenus(); }">🔗 Break All Connections</div>
@@ -600,6 +601,89 @@
                 <input type="color" class="lf-node-color-input" title="Text color for all devices"
                        value="@FirstDeviceColor(n => n.TextColor, "#ffffff")"
                        @oninput="e => OnBulkColorInput((n, v) => n.TextColor = v, e)" @onchange="EndBulkColorEdit" />
+            </div>
+        }
+    </div>
+}
+
+@if (_cableCountOpen)
+{
+    <div class="lf-modal-overlay" @onclick="() => _cableCountOpen = false"></div>
+    <div class="lf-modal lf-modal-wide" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>Cable Count</span>
+            <button class="lf-modal-close" @onclick="() => _cableCountOpen = false">✕</button>
+        </div>
+
+        @if (_cableCountRows.Count == 0)
+        {
+            <div class="cable-type-empty">No connections drawn yet — nothing to count.</div>
+        }
+        else
+        {
+            <div class="lf-cc-hint">
+                Every connection counts as one cable. Tick the types you're pulling to get a subtotal —
+                e.g. the patch cords for one rack.
+            </div>
+            <div class="lf-cc-scroll">
+                <table class="lf-cc-table">
+                    <thead>
+                        <tr>
+                            <th class="lf-cc-check"></th>
+                            <th>Cable Type</th>
+                            <th>Part Number</th>
+                            <th>Jacket</th>
+                            @if (_cableCountSheets.Count > 1)
+                            {
+                                @foreach (var s in _cableCountSheets)
+                                {
+                                    <th class="lf-cc-num">@s</th>
+                                }
+                            }
+                            <th class="lf-cc-num">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in _cableCountRows)
+                        {
+                            <tr class="@(_cableCountSelected.Contains(row.Key) ? "lf-cc-row-on" : "")"
+                                @onclick="() => ToggleCableCount(row.Key)">
+                                <td class="lf-cc-check">
+                                    <input type="checkbox" checked="@_cableCountSelected.Contains(row.Key)"
+                                           @onclick:stopPropagation="true"
+                                           @onchange="() => ToggleCableCount(row.Key)" />
+                                </td>
+                                <td>
+                                    <span class="cable-picker-swatch" style="background:@row.Color;"></span>
+                                    @row.Name
+                                </td>
+                                <td class="lf-cc-dim">@(string.IsNullOrWhiteSpace(row.PartNumber) ? "—" : row.PartNumber)</td>
+                                <td class="lf-cc-dim">@(string.IsNullOrWhiteSpace(row.CableColor) ? "—" : row.CableColor)</td>
+                                @if (_cableCountSheets.Count > 1)
+                                {
+                                    @foreach (var s in _cableCountSheets)
+                                    {
+                                        <td class="lf-cc-num lf-cc-dim">@(row.PerSheet.GetValueOrDefault(s) is var q && q > 0 ? q.ToString() : "—")</td>
+                                    }
+                                }
+                                <td class="lf-cc-num lf-cc-qty">@row.Total</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="lf-cc-total">
+                <span>
+                    <b>@_cableCountRows.Where(r => _cableCountSelected.Contains(r.Key)).Sum(r => r.Total)</b>
+                    cable@(_cableCountRows.Where(r => _cableCountSelected.Contains(r.Key)).Sum(r => r.Total) == 1 ? "" : "s")
+                    selected of @_cableCountRows.Sum(r => r.Total)
+                </span>
+            </div>
+            <div class="lf-cc-actions">
+                <button class="add-device-btn" @onclick="SelectAllCableCounts">Select All</button>
+                <button class="add-device-btn" @onclick="() => _cableCountSelected.Clear()">Clear</button>
+                <button class="add-device-btn" @onclick="ExportCableCount">⬇ CSV</button>
             </div>
         }
     </div>
@@ -3438,6 +3522,106 @@
             using var doc = JsonDocument.Parse(s.Json ?? EmptySheetJson);
             yield return (s.Name, doc.RootElement);
         }
+    }
+
+    // ---- Tools -> Cable Count -------------------------------------------------------
+    // A takeoff, not a schedule: how many cables of each type the drawing calls for, so a
+    // rack's worth of patch cords can be counted off without reading the cable schedule
+    // line by line. One connection = one cable.
+
+    private bool _cableCountOpen;
+    private List<CableCountRow> _cableCountRows = new();
+    private List<string> _cableCountSheets = new();
+    private readonly HashSet<string> _cableCountSelected = new();
+
+    // Key is the cable type name; "" is the bucket for connections with no type assigned,
+    // which are worth showing rather than hiding — they're usually an oversight.
+    private record CableCountRow(string Key, string Name, string Color, string PartNumber,
+                                 string CableColor, int Total, Dictionary<string, int> PerSheet);
+
+    private void OpenCableCount()
+    {
+        // AllSheetRoots parks the active sheet, so this has to happen here and not during
+        // render. The counts are a snapshot of the drawing as it stands when you open it.
+        var perSheet = new Dictionary<string, Dictionary<string, int>>();
+        _cableCountSheets = new List<string>();
+
+        foreach (var (sheetName, root) in AllSheetRoots())
+        {
+            _cableCountSheets.Add(sheetName);
+            var ids = root.GetProperty("nodes").EnumerateArray()
+                .Select(n => n.GetProperty("id").GetString() ?? "").ToHashSet();
+
+            foreach (var l in root.GetProperty("links").EnumerateArray())
+            {
+                // Same guard as the cable schedule: skip links whose devices are gone.
+                if (!ids.Contains(l.GetProperty("sourceNodeId").GetString() ?? "")) continue;
+                if (!ids.Contains(l.GetProperty("targetNodeId").GetString() ?? "")) continue;
+
+                var key = l.TryGetProperty("cableType", out var ctEl) && ctEl.ValueKind == JsonValueKind.String
+                    ? ctEl.GetString() ?? "" : "";
+                var bySheet = perSheet.TryGetValue(key, out var b) ? b : perSheet[key] = new();
+                bySheet[sheetName] = bySheet.GetValueOrDefault(sheetName) + 1;
+            }
+        }
+
+        _cableCountRows = perSheet
+            .Select(kv =>
+            {
+                var ct = _cableTypes.FirstOrDefault(c => c.Name == kv.Key);
+                return new CableCountRow(
+                    kv.Key,
+                    kv.Key == "" ? "(no cable type)" : kv.Key,
+                    ct?.Color ?? NeutralLinkColor,
+                    ct?.PartNumber ?? "",
+                    ct?.CableColor ?? "",
+                    kv.Value.Values.Sum(),
+                    kv.Value);
+            })
+            // Untyped last — it's a loose end, not a line item to order.
+            .OrderBy(r => r.Key == "" ? 1 : 0)
+            .ThenByDescending(r => r.Total)
+            .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        // Everything ticked on open, so the total reads as "all cables" before you narrow it.
+        _cableCountSelected.Clear();
+        foreach (var r in _cableCountRows) _cableCountSelected.Add(r.Key);
+        _cableCountOpen = true;
+    }
+
+    private void ToggleCableCount(string key)
+    {
+        if (!_cableCountSelected.Add(key)) _cableCountSelected.Remove(key);
+    }
+
+    private void SelectAllCableCounts()
+    {
+        foreach (var r in _cableCountRows) _cableCountSelected.Add(r.Key);
+    }
+
+    private async Task ExportCableCount()
+    {
+        var rows = _cableCountRows.Where(r => _cableCountSelected.Contains(r.Key)).ToList();
+        if (rows.Count == 0) return;
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append('﻿'); // BOM so Excel opens the CSV with correct (UTF-8) encoding
+        var multi = _cableCountSheets.Count > 1;
+        sb.AppendLine(string.Join(",", new[] { "Cable Type", "Part Number", "Jacket Color" }
+            .Concat(multi ? _cableCountSheets.Select(Csv) : Enumerable.Empty<string>())
+            .Concat(new[] { "Qty" })));
+
+        foreach (var r in rows)
+            sb.AppendLine(string.Join(",", new[] { Csv(r.Name), Csv(r.PartNumber), Csv(r.CableColor) }
+                .Concat(multi ? _cableCountSheets.Select(s => r.PerSheet.GetValueOrDefault(s).ToString()) : Enumerable.Empty<string>())
+                .Concat(new[] { r.Total.ToString() })));
+
+        sb.AppendLine(string.Join(",", new[] { Csv("TOTAL"), "", "" }
+            .Concat(multi ? _cableCountSheets.Select(s => rows.Sum(r => r.PerSheet.GetValueOrDefault(s)).ToString()) : Enumerable.Empty<string>())
+            .Concat(new[] { rows.Sum(r => r.Total).ToString() })));
+
+        await JS.InvokeVoidAsync("saveAsFile", "cable-count.csv", sb.ToString());
     }
 
     // Exports a cable schedule (pull sheet) as CSV: one row per connection across ALL

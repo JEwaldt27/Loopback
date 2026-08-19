@@ -869,6 +869,95 @@ html, body {
     position: relative;
 }
 
+/* Cable count (takeoff) dialog */
+.lf-cc-hint {
+    font-size: 12px;
+    color: #9aa4b2;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.lf-cc-scroll {
+    max-height: 46vh;
+    overflow: auto;
+}
+
+.lf-cc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    color: #ddd;
+}
+
+.lf-cc-table th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #8b95a3;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-bottom: 1px solid #0f3460;
+    position: sticky;
+    top: 0;
+    background: #16213e;
+}
+
+.lf-cc-table td {
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(15,52,96,0.6);
+    white-space: nowrap;
+}
+
+.lf-cc-table tbody tr {
+    cursor: pointer;
+}
+
+.lf-cc-table tbody tr:hover {
+    background: rgba(233,69,96,0.08);
+}
+
+/* Unticked rows stay readable but recede, so the selected subtotal is what reads first. */
+.lf-cc-table tbody tr:not(.lf-cc-row-on) {
+    opacity: 0.5;
+}
+
+.lf-cc-check {
+    width: 26px;
+}
+
+.lf-cc-num {
+    text-align: right;
+}
+
+.lf-cc-dim {
+    color: #9aa4b2;
+}
+
+.lf-cc-qty {
+    font-weight: 700;
+    color: #fff;
+}
+
+.lf-cc-total {
+    display: flex;
+    justify-content: flex-end;
+    font-size: 13px;
+    color: #ddd;
+    padding: 10px 8px 0;
+}
+
+.lf-cc-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.lf-cc-actions .add-device-btn {
+    flex: 1;
+    margin-top: 0;
+}
+
 /* Title block editor */
 .lf-modal-wide {
     width: 520px;

@@ -61,7 +61,7 @@ Once signed in, you'll see four main areas:
 
 - **Toolbar (top)** — the app menus and controls (a small version number next to the "Loopback" title shows which build the server is running):
   - **File** → 🆕 New, 💾 Save, 📂 Open
-  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, ☐ 🔀 Connections On Top, 🎨 Device Colors, 📋 Title Block, 🔢 Auto-Label Connections, 🧹 Clear Connection Labels, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
+  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, ☐ 🔀 Connections On Top, 🎨 Device Colors, 📋 Title Block, 🧮 Cable Count, 🔢 Auto-Label Connections, 🧹 Clear Connection Labels, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
   - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV), 📦 Device Schedule (CSV)
   - **Help** → 📖 User Guide (opens this guide on GitHub in a new tab)
   - **💡 Feature Requests** — suggest an improvement and see what everyone else has asked for (see below)
@@ -172,6 +172,17 @@ You define your own **cable types** and their colors in the **Cable Types** pane
 **Auto-label every connection:** once your cable types have prefixes, **Tools → 🔢 Auto-Label Connections** labels every connection automatically — `PREFIX-1`, `PREFIX-2`, … per cable type — numbered in the same order as the Cable Schedule (by source device). Run it again anytime to renumber. The labels are ordinary labels, so you can still right-click a connection to edit its label by hand afterward.
 
 Cable types are saved inside each diagram's `.lf` file, so they travel with the drawing. (Port dots are always black — the color now lives on the cables, not the ports.)
+
+### Counting cables (how many patch cords?)
+**Tools → 🧮 Cable Count…** gives you a takeoff instead of a schedule: how many cables of each type the drawing calls for, so you can count off a rack's worth of patch cords without reading the Cable Schedule line by line. Every connection counts as one cable.
+
+The dialog lists each cable type with its part number, jacket color, and quantity. If the diagram has more than one sheet, you also get a **column per sheet** — so if each sheet is a rack, you can read that rack's count straight off the row. Connections you never assigned a type to are collected in a **(no cable type)** row at the bottom; it's usually worth a second look rather than an order line.
+
+Every type starts ticked, so the footer reads the whole drawing's cable count. Untick the ones you're not pulling — click anywhere on a row to toggle it — and the total narrows to just what's selected. **Select All** and **Clear** are there for bigger lists.
+
+**⬇ CSV** saves the ticked rows as `cable-count.csv`, per-sheet columns and a TOTAL row included, ready to paste into a materials request.
+
+The counts are a snapshot from the moment you opened the dialog — draw more connections and reopen it to refresh.
 
 ### Deleting a connection
 Right-click the connection → **🗑 Delete Connection**, or click it to select it and press the **Delete** key (or the **Delete Selected** toolbar button).
