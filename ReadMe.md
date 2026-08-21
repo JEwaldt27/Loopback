@@ -27,6 +27,14 @@ LineFlowAppHosted/
 │   ├── wwwroot/
 │   │   ├── index.html              ← Entry point, loads JS libs (jsPDF, html2canvas)
 │   │   └── css/app.css             ← All styles
+│   ├── Diagrams/                   ← Diagram model types (no UI, no component state)
+│   │   ├── Devices.cs              ← DeviceDefinition/PortDefinition + LineFlowNode/LineFlowPort
+│   │   ├── Connections.cs          ← ElbowLinkModel, ElbowRouter, label + break-tag nodes
+│   │   ├── Annotations.cs          ← Box/Line/Text, Legend, Schedule nodes
+│   │   └── Document.cs             ← CableType, TitleBlockInfo, Sheet
+│   ├── Export/                     ← Pure output generation, unit-testable without a browser
+│   │   ├── DxfWriter.cs            ← DXF R12 generation over a finished diagram
+│   │   └── ScheduleSource.cs       ← The rows behind both CSVs, the Cable Count dialog, and placed tables
 │   ├── AppVersion.cs               ← Displayed build version — bump before each deploy
 │   ├── _Imports.razor              ← Global using statements
 │   ├── App.razor                   ← Root component
@@ -205,7 +213,14 @@ The whole app sits behind a login gate — added so it can be safely exposed to 
 | `/api/featurerequests/{id}` | PUT | signed-in | Edit the text; changing the **status** is Admin-only (403 otherwise) |
 | `/api/featurerequests/{id}` | DELETE | Admin | Remove a request |
 
-### Custom Classes (all defined inside Home.razor @code block)
+### Code layout
+`Home.razor` still holds the page: markup, event handling, undo, sheet switching, and `.lf` serialization. What it no longer holds is anything that doesn't need the component — those moved to plain `.cs` files so they can be read, changed, and eventually tested on their own:
+
+- **`Client/Diagrams/`** — the model types (`namespace Client.Diagrams`). They were nested inside `Home`, so widgets had to say `Home.BoxNode`; they're now top-level.
+- **`Client/Export/DxfWriter.cs`** — `DxfWriter.Build(diagram, cableTypes, titleBlock, sheet, title, scheduleTable)` returns the DXF as a string. No component state, no JS interop; `Home.ExportDxf` is now four lines that hand the result to `saveAsFile`.
+- **`Client/Export/ScheduleSource.cs`** — a record over `(diagram, sheets, activeIndex, cableTypes, neutralColor)` with `Conns`, `DeviceCounts`, and `CableCounts` on it. Home exposes it as the `Schedules` property; every schedule in the app reads through it.
+
+### Custom Classes (defined in `Client/Diagrams/`)
 - **`LineFlowNode`** — extends `NodeModel`, holds `DeviceDefinition`, creates `LineFlowPort` instances. Also carries a per-**instance** `Label` (the device tag, e.g. `SW-1`), serialized as `label` — without it two of the same model are indistinguishable on the drawing and in the cable schedule
 - **`LineFlowPort`** — extends `PortModel`, holds `PortDefinition` with name/type/direction
 - **`ElbowLinkModel`** — extends `LinkModel`; routing is driven by its `Vertices` collection (one or more draggable bend points). `MidX` is kept only as a legacy fallback for old saves with no vertices. `CableTypeName` names its assigned cable type; `Color`/`SelectedColor` are set from that type's color (neutral gray when unassigned) via `ApplyCableColor`. `LabelText`/`LabelNode` hold its optional connection label (see Connection Labels below). (`ColorForType()` — the old signal-type coloring — is retained but no longer used.)
@@ -475,6 +490,7 @@ sudo apt-get update && sudo apt-get install -y dotnet-sdk-10.0
 - ✅ Server-side device library with add, edit, delete, and **duplicate** devices, via a centered modal dialog (not inline in the side panel); duplicating opens the Add-Device modal pre-filled with a copy of the device (ports included, model suffixed "Copy") so a near-identical device is a couple of edits away
 - ✅ Device list sorting by Type or Manufacturer, case-insensitive grouping
 - ✅ Device position readout — clicking a device shows a chip in the canvas's bottom-left with its tag/model and top-left **X / Y** (the coordinates the `.lf` stores, and what align/nudge operate on). Multi-select reads the first plus a `+N more` count; the chip is `pointer-events: none` so it can't intercept a click
+- ✅ Deploys land without a hard refresh — `/_framework` entry scripts (`blazor.webassembly.js`, `dotnet.js`, and any `.json`/`.map`) are served `no-cache` so browsers revalidate them each load, while everything else there is fingerprinted and served `immutable` for a year. Those two fixed-name files carry the map of the fingerprinted ones, so caching them kept clients on the *entire* previous build no matter how fresh `index.html` was — which is why deploys used to need a Ctrl+F5 and the toolbar kept showing the old version. `UseBlazorFrameworkFiles` takes no `StaticFileOptions`, so the header is stamped by a small middleware in front of it via `OnStarting`
 - ✅ Schedules placed on the drawing — **Tools → 📌 Place Cable / Device Schedule / Cable Count** drops the CSV contents onto the sheet as a table. `ScheduleNode` stores only position, `Kind`, and `AllSheets`; the rows are re-read from the diagram by `BuildScheduleTable` on every render, so a placed table can't go stale (there is nothing to refresh and nothing to keep in sync). With multiple sheets you're asked the scope on placement — per-sheet pull list vs. master list — and right-click flips it later. Renders in the PDF capture like any other node, and in the DXF as a real CAD table on a `SCHEDULES` layer, drawn from the same rows the widget shows
 - ✅ One schedule data path — `ScheduleConns`/`ScheduleDevices` back the CSV exports, the Cable Count dialog, and the placed tables alike, so a schedule printed on a drawing cannot disagree with the spreadsheet. The **active** sheet is read from the live diagram (a placed table renders continuously, and `AllSheetRoots` parks the active sheet — a side effect that must not happen mid-render); inactive sheets can't have changed since they were parked, so their JSON is authoritative
 - ✅ Cable count (takeoff) — **Tools → 🧮 Cable Count…** tallies connections per cable type across the whole document, one column per sheet when there's more than one, so a rack's patch-cord count reads straight off a row. Untyped connections get their own row; tick/untick types for a running subtotal, and ⬇ CSV writes the selection to `cable-count.csv` with a TOTAL row. A snapshot taken when the dialog opens

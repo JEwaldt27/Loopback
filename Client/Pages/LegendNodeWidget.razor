@@ -26,7 +26,7 @@
 </div>
 
 @code {
-    [Parameter] public Home.LegendNode Node { get; set; } = null!;
+    [Parameter] public LegendNode Node { get; set; } = null!;
 
     // Only show the Part # / Color columns when at least one entry has a value.
     private bool AnyPart => Node.Entries.Any(e => !string.IsNullOrWhiteSpace(e.PartNumber));

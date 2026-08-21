@@ -41,7 +41,7 @@
 </div>
 
 @code {
-    [Parameter] public Home.ScheduleNode Node { get; set; } = null!;
+    [Parameter] public ScheduleNode Node { get; set; } = null!;
 
     // Home is cascaded by the canvas; the widget needs it to ask for the current rows.
     [CascadingParameter] public Home Page { get; set; } = null!;

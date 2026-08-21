@@ -385,3 +385,6 @@ Server/feature-requests.json
 
 # Runtime device library (seeded from devices.seed.json on first run)
 Server/devices.json
+
+# JetBrains Rider / IntelliJ project settings (per-developer, not source)
+.idea/

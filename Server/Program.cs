@@ -96,6 +96,34 @@ app.UseAuthorization();
 
 app.MapGet("/login", () => Results.Content(LoginPage.Html, "text/html"));
 
+// The WASM payload under /_framework. Nearly everything here is FINGERPRINTED
+// (Client.z4jdve7srd.wasm) and therefore safe to cache forever — a new build produces a
+// new name. The exceptions are the entry scripts, which keep fixed names and carry the map
+// of those fingerprinted files: cache blazor.webassembly.js or dotnet.js and the browser
+// keeps loading the ENTIRE previous build, however fresh index.html is. That is what left
+// deploys needing a Ctrl+F5 — the toolbar would show the old version number because the
+// old Client.wasm was still being fetched.
+// UseBlazorFrameworkFiles takes no StaticFileOptions, so the header is stamped on the way
+// past instead. OnStarting runs after the static-file middleware has written its own
+// headers, so this wins.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/_framework"))
+    {
+        var name = Path.GetFileName(context.Request.Path.Value) ?? "";
+        var isEntryPoint = name is "blazor.webassembly.js" or "dotnet.js"
+                           || name.EndsWith(".json") || name.EndsWith(".map");
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers.CacheControl = isEntryPoint
+                ? "no-cache"                          // revalidate every load; a 304 is cheap
+                : "max-age=31536000, immutable";      // fingerprinted: the name changes instead
+            return Task.CompletedTask;
+        });
+    }
+    await next();
+});
+
 app.UseBlazorFrameworkFiles();
 // Serve entry-point assets (html/css/js) as no-cache so browsers revalidate them on every
 // load — with ETags that's a cheap 304 unless the file actually changed. Without this,

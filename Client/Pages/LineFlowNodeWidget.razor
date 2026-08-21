@@ -32,7 +32,7 @@
     <div class="lf-node-title">@Node.Title</div>
     <div class="lf-node-body">
         <div class="lf-ports-left">
-            @foreach (var port in Node.Ports.OfType<Home.LineFlowPort>()
+            @foreach (var port in Node.Ports.OfType<LineFlowPort>()
                         .Where(p => p.Alignment == PortAlignment.Left))
             {
                 var dotColor = "#000000";
@@ -43,7 +43,7 @@
             }
         </div>
         <div class="lf-ports-right">
-            @foreach (var port in Node.Ports.OfType<Home.LineFlowPort>()
+            @foreach (var port in Node.Ports.OfType<LineFlowPort>()
                         .Where(p => p.Alignment == PortAlignment.Right))
             {
                 var dotColor = "#000000";
@@ -57,7 +57,7 @@
 </div>
 
 @code {
-    [Parameter] public Home.LineFlowNode Node { get; set; } = null!;
+    [Parameter] public LineFlowNode Node { get; set; } = null!;
     [CascadingParameter] public Home Page { get; set; } = null!;
 
     private const string DefaultColor = "#16213e";
