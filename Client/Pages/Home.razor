@@ -43,6 +43,12 @@
                 <div class="lf-dropdown-item" @onclick="() => { OpenDeviceColors(); CloseMenus(); }">🎨 Device Colors…</div>
                 <div class="lf-dropdown-item" @onclick="() => { _titleBlockModalOpen = true; CloseMenus(); }">📋 Title Block…</div>
                 <div class="lf-dropdown-item" @onclick="() => { OpenCableCount(); CloseMenus(); }">🧮 Cable Count…</div>
+                <div class="lf-dropdown-sep"></div>
+                @* The same data as the CSV exports, placed on the drawing as a table. *@
+                <div class="lf-dropdown-item" @onclick="() => { PlaceSchedule(ScheduleKind.Cable); CloseMenus(); }">📌 Place Cable Schedule</div>
+                <div class="lf-dropdown-item" @onclick="() => { PlaceSchedule(ScheduleKind.Device); CloseMenus(); }">📌 Place Device Schedule</div>
+                <div class="lf-dropdown-item" @onclick="() => { PlaceSchedule(ScheduleKind.CableCount); CloseMenus(); }">📌 Place Cable Count</div>
+                <div class="lf-dropdown-sep"></div>
                 <div class="lf-dropdown-item" @onclick="() => { AutoLabelConnections(); CloseMenus(); }">🔢 Auto-Label Connections</div>
                 <div class="lf-dropdown-item" @onclick="async () => { CloseMenus(); await ClearConnectionLabels(); }">🧹 Clear Connection Labels</div>
                 <div class="lf-dropdown-item" @onclick="() => { BreakAllConnections(); CloseMenus(); }">🔗 Break All Connections</div>
@@ -291,12 +297,23 @@
                 {
                     <div class="context-menu-item" @onclick="RotateContextLabel">↻ Rotate Label 90°</div>
                 }
+                @if (_contextNode is ScheduleNode sched && _sheets.Count > 1)
+                {
+                    <div class="context-menu-item" @onclick="() => ToggleScheduleScope(sched)">
+                        🔁 Show @(sched.AllSheets ? $"this sheet only ({ActiveSheetName})" : "all sheets")
+                    </div>
+                }
                 @if (_contextNode is LineFlowNode dev)
                 {
                     <div class="context-menu-item" @onclick="OpenDeviceLabel">🏷 @(string.IsNullOrEmpty(dev.Label) ? "Add Device Label" : "Edit Device Label")</div>
                     <div class="context-menu-item" @onclick="TraceContextNode">🔦 Trace Signal Path</div>
                 }
-                <div class="context-menu-item" @onclick="DuplicateContextNode">⧉ Duplicate</div>
+                @* Schedules aren't copyable (same as the legend) — CopySelection ignores
+                   them, so offering Duplicate here would be a menu item that does nothing. *@
+                @if (_contextNode is not ScheduleNode)
+                {
+                    <div class="context-menu-item" @onclick="DuplicateContextNode">⧉ Duplicate</div>
+                }
                 <div class="context-menu-item" @onclick="DeleteContextNode">🗑 Delete Node</div>
             }
             @if (_contextTarget == "link")
@@ -639,6 +656,24 @@
                        @oninput="e => OnBulkColorInput((n, v) => n.TextColor = v, e)" @onchange="EndBulkColorEdit" />
             </div>
         }
+    </div>
+}
+
+@if (_pendingSchedule is { } pendingKind)
+{
+    <div class="lf-modal-overlay" @onclick="() => _pendingSchedule = null"></div>
+    <div class="lf-modal" style="width:300px;" @onclick:stopPropagation="true">
+        <div class="lf-modal-header">
+            <span>Place @ScheduleKindName(pendingKind)</span>
+            <button class="lf-modal-close" @onclick="() => _pendingSchedule = null">✕</button>
+        </div>
+        <div class="lf-tb-hint">Which rows should this table list? You can flip it later by right-clicking the table.</div>
+        <button class="add-device-btn" @onclick="() => AddScheduleNode(pendingKind, false)">
+            📄 This sheet only — @ActiveSheetName
+        </button>
+        <button class="add-device-btn" @onclick="() => AddScheduleNode(pendingKind, true)">
+            📚 All @_sheets.Count sheets
+        </button>
     </div>
 }
 
@@ -1181,7 +1216,14 @@
         _diagram.RegisterComponent<TextNode, TextNodeWidget>();
         _diagram.RegisterComponent<ConnectionLabelNode, ConnectionLabelWidget>();
         _diagram.RegisterComponent<BreakTagNode, BreakTagWidget>();
+        _diagram.RegisterComponent<ScheduleNode, ScheduleNodeWidget>();
         _diagram.PointerDown += OnDiagramPointerDown;
+        // Drawing or deleting a cable happens inside the library, without a render of this
+        // page, so placed schedules are refreshed from the diagram's own events too.
+        _diagram.Links.Added += (_) => RefreshSchedules();
+        _diagram.Links.Removed += (_) => RefreshSchedules();
+        _diagram.Nodes.Added += (_) => RefreshSchedules();
+        _diagram.Nodes.Removed += (_) => RefreshSchedules();
         _diagram.Links.Added += (link) => OnLinkAdded((LinkModel)link);
         _diagram.Links.Removed += (link) =>
         {
@@ -1256,6 +1298,18 @@
             try { await JS.InvokeVoidAsync("registerMiddleDblClickZoom", _selfRef); }
             catch { }
         }
+
+        // A placed schedule reads the diagram on every render, but it's a node widget the
+        // library owns — a re-render of this page doesn't reach it. Nudging it after each
+        // of our renders is what keeps a placed table in step with the edit that just
+        // happened (a cleared label, a renamed device, a deleted cable).
+        RefreshSchedules();
+    }
+
+    // No-op when nothing is placed, which is the common case.
+    private void RefreshSchedules()
+    {
+        foreach (var s in _diagram.Nodes.OfType<ScheduleNode>()) s.Refresh();
     }
 
     // Invoked from JS on a middle-mouse-button double-click: frame the entire diagram so
@@ -3035,6 +3089,15 @@
             ["boxes"] = _diagram.Nodes.OfType<BoxNode>().Select(BoxToJson).ToList(),
             ["lines"] = _diagram.Nodes.OfType<LineNode>().Select(LineToJson).ToList(),
             ["texts"] = _diagram.Nodes.OfType<TextNode>().Select(TextToJson).ToList(),
+            // Only the position and what to show — the rows are always re-read from the
+            // diagram, so there's nothing else worth saving.
+            ["schedules"] = _diagram.Nodes.OfType<ScheduleNode>().Select(s => new
+            {
+                x = s.Position.X,
+                y = s.Position.Y,
+                kind = s.Kind.ToString(),
+                allSheets = s.AllSheets
+            }).ToList(),
             ["legend"] = _diagram.Nodes.OfType<LegendNode>().Select(g => new
             {
                 x = g.Position.X,
@@ -3260,7 +3323,7 @@
         };
         using var doc = JsonDocument.Parse(json);
         foreach (var prop in doc.RootElement.EnumerateObject())
-            if (prop.Name is "nodes" or "links" or "boxes" or "lines" or "texts" or "legend")
+            if (prop.Name is "nodes" or "links" or "boxes" or "lines" or "texts" or "legend" or "schedules")
                 dict[prop.Name] = prop.Value.Clone();
         return dict;
     }
@@ -3580,6 +3643,20 @@
             }
         }
 
+        if (doc.RootElement.TryGetProperty("schedules", out var schedEl) && schedEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var sEl in schedEl.EnumerateArray())
+            {
+                var kindName = sEl.TryGetProperty("kind", out var kEl) ? kEl.GetString() ?? "" : "";
+                _diagram.Nodes.Add(new ScheduleNode(new Point(
+                    sEl.GetProperty("x").GetDouble(), sEl.GetProperty("y").GetDouble()))
+                {
+                    Kind = Enum.TryParse<ScheduleKind>(kindName, out var kind) ? kind : ScheduleKind.Cable,
+                    AllSheets = sEl.TryGetProperty("allSheets", out var aEl) && aEl.ValueKind == JsonValueKind.True
+                });
+            }
+        }
+
         if (doc.RootElement.TryGetProperty("legend", out var legendEl) && legendEl.ValueKind == JsonValueKind.Object)
         {
             var legend = new LegendNode(new Point(legendEl.GetProperty("x").GetDouble(), legendEl.GetProperty("y").GetDouble()));
@@ -3620,6 +3697,252 @@
         }
     }
 
+    // ---- Shared schedule data -------------------------------------------------------
+    // One source of truth behind the CSV exports AND the tables you can place on a sheet,
+    // so a schedule printed on the drawing can't disagree with the spreadsheet.
+    //
+    // The active sheet is read from the LIVE diagram rather than its parked JSON: a placed
+    // table re-reads on every render, and parking mid-render (AllSheetRoots calls
+    // ParkActiveSheet) would be a side effect in the render path. Inactive sheets can't
+    // have changed since they were parked, so their JSON is authoritative.
+
+    private record SchedConn(string Sheet, string Cable, string CableType, string Signal,
+                             string FromTag, string FromDevice, string FromPort,
+                             string ToTag, string ToDevice, string ToPort, int PortIdx);
+
+    private record SchedDev(string Sheet, string Manufacturer, string Model, string Category);
+
+    private string ActiveSheetName => _sheets[_activeSheetIndex].Name;
+
+    private static string DeviceTitle(string mfr, string model) => $"{mfr} {model}".Trim();
+
+    // Rows sort by source device then source port, so every cable off one box groups
+    // together — the order a pull sheet is read in.
+    private static List<SchedConn> SortConns(IEnumerable<SchedConn> rows) => rows
+        .OrderBy(r => r.FromDevice, StringComparer.OrdinalIgnoreCase)
+        .ThenBy(r => r.PortIdx)
+        .ToList();
+
+    private IEnumerable<SchedConn> LiveConns(string sheetName)
+    {
+        foreach (var l in _diagram.Links.OfType<ElbowLinkModel>())
+        {
+            if (l.Source.Model is not LineFlowPort sp || l.Target?.Model is not LineFlowPort tp) continue;
+            if (sp.Parent is not LineFlowNode src || tp.Parent is not LineFlowNode tgt) continue;
+
+            var spi = sp.Parent.Ports.ToList().IndexOf(sp);
+            yield return new SchedConn(
+                sheetName, l.LabelText ?? "", l.CableTypeName ?? "", sp.Definition.Type,
+                src.Label, DeviceTitle(src.Device.Manufacturer, src.Device.Model), sp.Definition.Name,
+                tgt.Label, DeviceTitle(tgt.Device.Manufacturer, tgt.Device.Model), tp.Definition.Name,
+                spi);
+        }
+    }
+
+    private static IEnumerable<SchedConn> JsonConns(string sheetName, JsonElement root)
+    {
+        var nodes = new Dictionary<string, (string Label, string Title, List<PortDefinition> Ports)>();
+        foreach (var n in root.GetProperty("nodes").EnumerateArray())
+        {
+            var mfr = n.TryGetProperty("manufacturer", out var mEl) ? mEl.GetString() ?? "" : "";
+            var model = n.TryGetProperty("model", out var moEl) ? moEl.GetString() ?? "" : "";
+            var label = n.TryGetProperty("label", out var lEl) ? lEl.GetString() ?? "" : "";
+            var ports = n.TryGetProperty("ports", out var pEl) ? pEl.Deserialize<List<PortDefinition>>() ?? new() : new();
+            nodes[n.GetProperty("id").GetString()!] = (label, DeviceTitle(mfr, model), ports);
+        }
+
+        foreach (var l in root.GetProperty("links").EnumerateArray())
+        {
+            if (!nodes.TryGetValue(l.GetProperty("sourceNodeId").GetString() ?? "", out var src)) continue;
+            if (!nodes.TryGetValue(l.GetProperty("targetNodeId").GetString() ?? "", out var tgt)) continue;
+            int spi = l.GetProperty("sourcePortIndex").GetInt32();
+            int tpi = l.GetProperty("targetPortIndex").GetInt32();
+            if (spi >= src.Ports.Count || tpi >= tgt.Ports.Count) continue;
+
+            yield return new SchedConn(
+                sheetName,
+                l.TryGetProperty("label", out var lbEl) ? lbEl.GetString() ?? "" : "",
+                l.TryGetProperty("cableType", out var ctEl) && ctEl.ValueKind == JsonValueKind.String ? ctEl.GetString() ?? "" : "",
+                src.Ports[spi].Type,
+                src.Label, src.Title, src.Ports[spi].Name,
+                tgt.Label, tgt.Title, tgt.Ports[tpi].Name,
+                spi);
+        }
+    }
+
+    // allSheets: the whole document (sheets in tab order, sorted within each) vs just the
+    // sheet you're on.
+    private List<SchedConn> ScheduleConns(bool allSheets)
+    {
+        if (!allSheets) return SortConns(LiveConns(ActiveSheetName));
+
+        var rows = new List<SchedConn>();
+        for (int i = 0; i < _sheets.Count; i++)
+        {
+            if (i == _activeSheetIndex)
+            {
+                rows.AddRange(SortConns(LiveConns(_sheets[i].Name)));
+            }
+            else
+            {
+                using var doc = JsonDocument.Parse(_sheets[i].Json ?? EmptySheetJson);
+                rows.AddRange(SortConns(JsonConns(_sheets[i].Name, doc.RootElement)));
+            }
+        }
+        return rows;
+    }
+
+    private record DeviceCountRow(int Qty, string Manufacturer, string Model, string Category);
+
+    // One row per manufacturer+model with a quantity — a BOM, not an inventory list.
+    // Sorted by category then manufacturer, like the device palette.
+    private List<DeviceCountRow> BuildDeviceCounts(bool allSheets)
+    {
+        var counts = new Dictionary<(string Mfr, string Model, string Cat), int>();
+        foreach (var d in ScheduleDevices(allSheets))
+        {
+            var key = (d.Manufacturer, d.Model, d.Category);
+            counts[key] = counts.GetValueOrDefault(key) + 1;
+        }
+
+        return counts
+            .Select(kv => new DeviceCountRow(kv.Value, kv.Key.Mfr, kv.Key.Model, kv.Key.Cat))
+            .OrderBy(r => r.Category, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Manufacturer, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Model, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private List<SchedDev> ScheduleDevices(bool allSheets)
+    {
+        var rows = new List<SchedDev>();
+        for (int i = 0; i < _sheets.Count; i++)
+        {
+            if (!allSheets && i != _activeSheetIndex) continue;
+
+            if (i == _activeSheetIndex)
+            {
+                rows.AddRange(_diagram.Nodes.OfType<LineFlowNode>().Select(n =>
+                    new SchedDev(_sheets[i].Name, n.Device.Manufacturer, n.Device.Model, n.Device.Category)));
+            }
+            else
+            {
+                using var doc = JsonDocument.Parse(_sheets[i].Json ?? EmptySheetJson);
+                foreach (var n in doc.RootElement.GetProperty("nodes").EnumerateArray())
+                    rows.Add(new SchedDev(
+                        _sheets[i].Name,
+                        n.TryGetProperty("manufacturer", out var mEl) ? mEl.GetString() ?? "" : "",
+                        n.TryGetProperty("model", out var moEl) ? moEl.GetString() ?? "" : "",
+                        n.TryGetProperty("category", out var cEl) ? cEl.GetString() ?? "" : ""));
+            }
+        }
+        return rows;
+    }
+
+    // ---- Schedules placed on the drawing --------------------------------------------
+    // Called by ScheduleNodeWidget on every render, so a placed table always reflects the
+    // diagram as it stands. Returns the title, the column headers, and the rows as text —
+    // the widget only lays out what it's given, and the DXF export reuses this verbatim so
+    // the CAD table matches what's on screen.
+    public (string Title, List<string> Headers, List<List<string>> Rows) BuildScheduleTable(ScheduleNode node)
+    {
+        var scope = node.AllSheets ? "All Sheets" : ActiveSheetName;
+        // The Sheet column is dead weight on a single-sheet table — every row would repeat
+        // the name already in the title.
+        var showSheet = node.AllSheets && _sheets.Count > 1;
+
+        switch (node.Kind)
+        {
+            case ScheduleKind.Device:
+            {
+                var headers = new List<string> { "Qty", "Manufacturer", "Model", "Category" };
+                var rows = BuildDeviceCounts(node.AllSheets)
+                    .Select(r => new List<string> { r.Qty.ToString(), r.Manufacturer, r.Model, r.Category })
+                    .ToList();
+                return ($"Device Schedule — {scope}", headers, rows);
+            }
+
+            case ScheduleKind.CableCount:
+            {
+                var headers = new List<string> { "Cable Type", "Part Number", "Jacket", "Qty" };
+                var counts = BuildCableCounts(node.AllSheets);
+                var rows = counts
+                    .Select(r => new List<string> { r.Name, r.PartNumber, r.CableColor, r.Total.ToString() })
+                    .ToList();
+                if (rows.Count > 0)
+                    rows.Add(new List<string> { "TOTAL", "", "", counts.Sum(r => r.Total).ToString() });
+                return ($"Cable Count — {scope}", headers, rows);
+            }
+
+            default:
+            {
+                var headers = new List<string> { "#" };
+                if (showSheet) headers.Add("Sheet");
+                headers.AddRange(new[] { "Cable", "Cable Type", "Part Number", "Signal",
+                                         "From Tag", "From Device", "From Port",
+                                         "To Tag", "To Device", "To Port" });
+
+                var rows = new List<List<string>>();
+                int i = 1;
+                foreach (var r in ScheduleConns(node.AllSheets))
+                {
+                    var ct = _cableTypes.FirstOrDefault(c => c.Name == r.CableType);
+                    var row = new List<string> { (i++).ToString() };
+                    if (showSheet) row.Add(r.Sheet);
+                    row.AddRange(new[] { r.Cable, r.CableType, ct?.PartNumber ?? "", r.Signal,
+                                         r.FromTag, r.FromDevice, r.FromPort,
+                                         r.ToTag, r.ToDevice, r.ToPort });
+                    rows.Add(row);
+                }
+                return ($"Cable Schedule — {scope}", headers, rows);
+            }
+        }
+    }
+
+    // The scope prompt shown when placing a table. Parked until the user picks, because
+    // "this sheet" and "all sheets" are both routinely wanted — per-sheet lists on the
+    // drawings, a master list on a cover sheet.
+    private ScheduleKind? _pendingSchedule;
+
+    private static string ScheduleKindName(ScheduleKind k) => k switch
+    {
+        ScheduleKind.Device => "Device Schedule",
+        ScheduleKind.CableCount => "Cable Count",
+        _ => "Cable Schedule"
+    };
+
+    private void PlaceSchedule(ScheduleKind kind)
+    {
+        // With one sheet there's nothing to choose — the two scopes are the same drawing.
+        if (_sheets.Count == 1) AddScheduleNode(kind, allSheets: false);
+        else _pendingSchedule = kind;
+    }
+
+    private void AddScheduleNode(ScheduleKind kind, bool allSheets)
+    {
+        _pendingSchedule = null;
+        PushUndoSnapshot();
+
+        // Stagger successive tables so a second one doesn't land exactly on the first.
+        var n = _diagram.Nodes.OfType<ScheduleNode>().Count();
+        _diagram.Nodes.Add(new ScheduleNode(new Point(40 + n * 24, 40 + n * 24))
+        {
+            Kind = kind,
+            AllSheets = allSheets
+        });
+        StateHasChanged();
+    }
+
+    // Right-click a placed table -> flip its scope. Cheaper than deleting and re-placing,
+    // and it keeps the position you dragged it to.
+    private void ToggleScheduleScope(ScheduleNode node)
+    {
+        PushUndoSnapshot();
+        node.AllSheets = !node.AllSheets;
+        node.Refresh();
+        HideContextMenu();
+    }
+
     // ---- Tools -> Cable Count -------------------------------------------------------
     // A takeoff, not a schedule: how many cables of each type the drawing calls for, so a
     // rack's worth of patch cords can be counted off without reading the cable schedule
@@ -3635,33 +3958,18 @@
     private record CableCountRow(string Key, string Name, string Color, string PartNumber,
                                  string CableColor, int Total, Dictionary<string, int> PerSheet);
 
-    private void OpenCableCount()
+    // Counts per cable type, keyed by type then sheet. Shared by the dialog and by a
+    // Cable Count table placed on a sheet.
+    private List<CableCountRow> BuildCableCounts(bool allSheets)
     {
-        // AllSheetRoots parks the active sheet, so this has to happen here and not during
-        // render. The counts are a snapshot of the drawing as it stands when you open it.
         var perSheet = new Dictionary<string, Dictionary<string, int>>();
-        _cableCountSheets = new List<string>();
-
-        foreach (var (sheetName, root) in AllSheetRoots())
+        foreach (var c in ScheduleConns(allSheets))
         {
-            _cableCountSheets.Add(sheetName);
-            var ids = root.GetProperty("nodes").EnumerateArray()
-                .Select(n => n.GetProperty("id").GetString() ?? "").ToHashSet();
-
-            foreach (var l in root.GetProperty("links").EnumerateArray())
-            {
-                // Same guard as the cable schedule: skip links whose devices are gone.
-                if (!ids.Contains(l.GetProperty("sourceNodeId").GetString() ?? "")) continue;
-                if (!ids.Contains(l.GetProperty("targetNodeId").GetString() ?? "")) continue;
-
-                var key = l.TryGetProperty("cableType", out var ctEl) && ctEl.ValueKind == JsonValueKind.String
-                    ? ctEl.GetString() ?? "" : "";
-                var bySheet = perSheet.TryGetValue(key, out var b) ? b : perSheet[key] = new();
-                bySheet[sheetName] = bySheet.GetValueOrDefault(sheetName) + 1;
-            }
+            var bySheet = perSheet.TryGetValue(c.CableType, out var b) ? b : perSheet[c.CableType] = new();
+            bySheet[c.Sheet] = bySheet.GetValueOrDefault(c.Sheet) + 1;
         }
 
-        _cableCountRows = perSheet
+        return perSheet
             .Select(kv =>
             {
                 var ct = _cableTypes.FirstOrDefault(c => c.Name == kv.Key);
@@ -3679,6 +3987,13 @@
             .ThenByDescending(r => r.Total)
             .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private void OpenCableCount()
+    {
+        // A snapshot of the drawing as it stands when the dialog opens.
+        _cableCountSheets = _sheets.Select(s => s.Name).ToList();
+        _cableCountRows = BuildCableCounts(allSheets: true);
 
         // Everything ticked on open, so the total reads as "all cables" before you narrow it.
         _cableCountSelected.Clear();
@@ -3726,63 +4041,19 @@
     // port so cables from the same box group together.
     private async Task ExportCableSchedule()
     {
-        var rows = new List<(string Sheet, string Cable, string CableType, string Signal,
-                             string FromLabel, string FromDevice, string FromPort,
-                             string ToLabel, string ToDevice, string ToPort)>();
-
-        foreach (var (sheetName, root) in AllSheetRoots())
-        {
-            // id -> (tag, title, ports) lookup for this sheet's devices
-            var nodes = new Dictionary<string, (string Label, string Title, List<PortDefinition> Ports)>();
-            foreach (var n in root.GetProperty("nodes").EnumerateArray())
-            {
-                var mfr = n.TryGetProperty("manufacturer", out var mEl) ? mEl.GetString() ?? "" : "";
-                var model = n.TryGetProperty("model", out var moEl) ? moEl.GetString() ?? "" : "";
-                var label = n.TryGetProperty("label", out var lEl) ? lEl.GetString() ?? "" : "";
-                var ports = n.TryGetProperty("ports", out var pEl) ? pEl.Deserialize<List<PortDefinition>>() ?? new() : new();
-                nodes[n.GetProperty("id").GetString()!] = (label, $"{mfr} {model}".Trim(), ports);
-            }
-
-            var sheetRows = new List<(string Sheet, string Cable, string CableType, string Signal,
-                                      string FromLabel, string FromDevice, string FromPort,
-                                      string ToLabel, string ToDevice, string ToPort, int PortIdx)>();
-            foreach (var l in root.GetProperty("links").EnumerateArray())
-            {
-                if (!nodes.TryGetValue(l.GetProperty("sourceNodeId").GetString() ?? "", out var src)) continue;
-                if (!nodes.TryGetValue(l.GetProperty("targetNodeId").GetString() ?? "", out var tgt)) continue;
-                int spi = l.GetProperty("sourcePortIndex").GetInt32();
-                int tpi = l.GetProperty("targetPortIndex").GetInt32();
-                if (spi >= src.Ports.Count || tpi >= tgt.Ports.Count) continue;
-                sheetRows.Add((
-                    sheetName,
-                    l.TryGetProperty("label", out var lbEl) ? lbEl.GetString() ?? "" : "",
-                    l.TryGetProperty("cableType", out var ctEl) && ctEl.ValueKind == JsonValueKind.String ? ctEl.GetString() ?? "" : "",
-                    src.Ports[spi].Type,
-                    src.Label, src.Title, src.Ports[spi].Name,
-                    tgt.Label, tgt.Title, tgt.Ports[tpi].Name,
-                    spi));
-            }
-            rows.AddRange(sheetRows
-                .OrderBy(r => r.FromDevice, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(r => r.PortIdx)
-                .Select(r => (r.Sheet, r.Cable, r.CableType, r.Signal,
-                              r.FromLabel, r.FromDevice, r.FromPort,
-                              r.ToLabel, r.ToDevice, r.ToPort)));
-        }
-
         var sb = new System.Text.StringBuilder();
-        sb.Append('\uFEFF'); // BOM so Excel opens the CSV with correct (UTF-8) encoding
+        sb.Append('﻿'); // BOM so Excel opens the CSV with correct (UTF-8) encoding
         // From/To Tag sit before their device columns: with two of the same model, the model
         // name alone can't tell an interconnect apart from a port patched into itself.
         sb.AppendLine("#,Sheet,Cable,Cable Type,Part Number,Cable Color,Signal,From Tag,From Device,From Port,To Tag,To Device,To Port");
         int i = 1;
-        foreach (var r in rows)
+        foreach (var r in ScheduleConns(allSheets: true))
         {
             var ct = _cableTypes.FirstOrDefault(c => c.Name == r.CableType);
             sb.AppendLine(string.Join(",",
                 i++.ToString(), Csv(r.Sheet), Csv(r.Cable), Csv(r.CableType), Csv(ct?.PartNumber ?? ""), Csv(ct?.CableColor ?? ""),
-                Csv(r.Signal), Csv(r.FromLabel), Csv(r.FromDevice), Csv(r.FromPort),
-                Csv(r.ToLabel), Csv(r.ToDevice), Csv(r.ToPort)));
+                Csv(r.Signal), Csv(r.FromTag), Csv(r.FromDevice), Csv(r.FromPort),
+                Csv(r.ToTag), Csv(r.ToDevice), Csv(r.ToPort)));
         }
 
         await JS.InvokeVoidAsync("saveAsFile", "cable-schedule.csv", sb.ToString());
@@ -3793,30 +4064,10 @@
     // for quoting/ordering. Sorted by category then manufacturer, like the palette.
     private async Task ExportDeviceSchedule()
     {
-        var counts = new Dictionary<(string Mfr, string Model, string Cat), int>();
-        foreach (var (_, root) in AllSheetRoots())
-        {
-            foreach (var n in root.GetProperty("nodes").EnumerateArray())
-            {
-                var key = (
-                    n.TryGetProperty("manufacturer", out var mEl) ? mEl.GetString() ?? "" : "",
-                    n.TryGetProperty("model", out var moEl) ? moEl.GetString() ?? "" : "",
-                    n.TryGetProperty("category", out var cEl) ? cEl.GetString() ?? "" : "");
-                counts[key] = counts.GetValueOrDefault(key) + 1;
-            }
-        }
-
-        var rows = counts
-            .Select(kv => new { Qty = kv.Value, Manufacturer = kv.Key.Mfr, kv.Key.Model, Category = kv.Key.Cat })
-            .OrderBy(r => r.Category, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(r => r.Manufacturer, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(r => r.Model, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
         var sb = new System.Text.StringBuilder();
         sb.Append((char)0xFEFF); // BOM so Excel opens the CSV with correct (UTF-8) encoding
         sb.AppendLine("Qty,Manufacturer,Model,Category");
-        foreach (var r in rows)
+        foreach (var r in BuildDeviceCounts(allSheets: true))
             sb.AppendLine(string.Join(",", r.Qty.ToString(), Csv(r.Manufacturer), Csv(r.Model), Csv(r.Category)));
 
         await JS.InvokeVoidAsync("saveAsFile", "device-schedule.csv", sb.ToString());
@@ -3981,7 +4232,7 @@
         // with no cable type fall back to the generic CONNECTIONS layer.
         var cableLayers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var takenLayers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            { "0", "NODES", "CONNECTIONS", "ANNOTATIONS", "LEGEND", "TITLEBLOCK" };
+            { "0", "NODES", "CONNECTIONS", "ANNOTATIONS", "LEGEND", "SCHEDULES", "TITLEBLOCK" };
         foreach (var ctName in _diagram.Links.OfType<ElbowLinkModel>()
                      .Where(l => l.Source.Model is PortModel && l.Target?.Model is PortModel
                                  && !string.IsNullOrWhiteSpace(l.CableTypeName))
@@ -3998,7 +4249,7 @@
 
         var layers = new List<(string Name, int Color)>
         {
-            ("NODES", 7), ("CONNECTIONS", 7), ("ANNOTATIONS", 7), ("LEGEND", 7), ("TITLEBLOCK", 7)
+            ("NODES", 7), ("CONNECTIONS", 7), ("ANNOTATIONS", 7), ("LEGEND", 7), ("SCHEDULES", 7), ("TITLEBLOCK", 7)
         };
         foreach (var (typeName, layerName) in cableLayers)
             layers.Add((layerName, DxfAciColor(_cableTypes.FirstOrDefault(c => c.Name == typeName)?.Color)));
@@ -4368,6 +4619,59 @@
             }
         }
 
+        // Schedules placed on the sheet, redrawn as real CAD tables on their own SCHEDULES
+        // layer. Rows come from the same BuildScheduleTable the on-screen widget uses, so
+        // the CAD table and the drawing can't disagree.
+        foreach (var schedule in _diagram.Nodes.OfType<ScheduleNode>())
+        {
+            var (title, headers, rows) = BuildScheduleTable(schedule);
+            if (headers.Count == 0) continue;
+
+            const double rowH = 4.6, textH = 1.8, cellPad = 1.4;
+            // Generous per-character advance: real Arial is narrower, but over-estimating
+            // only pads the cells, whereas under-estimating runs one column into the next.
+            static double TextW(string? str, double h) => (str ?? "").Length * h * 0.78;
+
+            // Column widths: widest of header vs. any cell in that column, plus padding.
+            var colWidths = headers.Select((h, c) =>
+                Math.Max(TextW(h, textH),
+                         rows.Count == 0 ? 0 : rows.Max(r => c < r.Count ? TextW(r[c], textH) : 0))
+                + cellPad * 2).ToList();
+
+            double tx = schedule.Position.X * scale;
+            double ty = -(schedule.Position.Y * scale);   // top edge; DXF Y grows upward
+            var colX = new List<double> { tx };
+            foreach (var w in colWidths) colX.Add(colX[^1] + w);
+            double right = colX[^1];
+
+            // Title sits above the frame, like the on-screen table's caption.
+            DxfText(tx, ty + cellPad, title, textH * 1.2, "SCHEDULES", 0);
+
+            double bottom = ty - rowH * (rows.Count + 1);   // +1 for the header row
+            for (int r = 0; r <= rows.Count + 1; r++)
+            {
+                double gy = ty - rowH * r;
+                DxfLine(tx, gy, right, gy, "SCHEDULES");
+            }
+            foreach (var gx in colX)
+                DxfLine(gx, ty, gx, bottom, "SCHEDULES");
+
+            double headerBaseline = ty - rowH + (rowH - textH) / 2;
+            for (int c = 0; c < headers.Count; c++)
+                DxfText(colX[c] + cellPad, headerBaseline, headers[c], textH, "SCHEDULES", 0);
+
+            for (int r = 0; r < rows.Count; r++)
+            {
+                double baseline = ty - rowH * (r + 2) + (rowH - textH) / 2;
+                for (int c = 0; c < headers.Count && c < rows[r].Count; c++)
+                    DxfText(colX[c] + cellPad, baseline, rows[r][c], textH, "SCHEDULES", 0);
+            }
+
+            // Keep the table inside the drawing extents so the title block frames it too.
+            exMinX = Math.Min(exMinX, tx); exMaxX = Math.Max(exMaxX, right);
+            exMinY = Math.Min(exMinY, bottom); exMaxY = Math.Max(exMaxY, ty + cellPad + textH);
+        }
+
         // Title block: a drawing sheet laid out around the finished geometry. DXF is model
         // space with no notion of paper, so the sheet is sized to the chosen aspect ratio
         // and scaled up until the content fits inside its drawing area, then centered there.
@@ -4646,6 +4950,19 @@
     // port by a BreakStubLink. It's an ordinary diagram node, so dragging, selection,
     // undo capture, and PDF/DXF bounds all come from the diagram engine — the device
     // block itself is never touched. Recreated from the owning link's data on load.
+    // A schedule printed on the drawing itself: the same data as the CSV exports, as a
+    // table you can place, drag, and export with the sheet. Deliberately holds NO rows —
+    // only what to show and how wide to cast the net. The widget asks Home for the data on
+    // every render, so the table can't drift out of step with the diagram under it.
+    public class ScheduleNode : NodeModel
+    {
+        public ScheduleKind Kind { get; set; }
+        public bool AllSheets { get; set; }
+        public ScheduleNode(Point position) : base(position) { }
+    }
+
+    public enum ScheduleKind { Cable, Device, CableCount }
+
     public class BreakTagNode : NodeModel
     {
         public string Text { get; set; } = "";

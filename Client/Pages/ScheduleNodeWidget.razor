@@ -1,0 +1,50 @@
+@using Blazor.Diagrams.Core.Models
+
+@* A schedule printed on the drawing. The rows are NOT stored on the node — they're read
+   from the diagram on every render (see Home.BuildScheduleTable), so the table can't fall
+   out of step with the cables and devices under it. *@
+
+@{
+    var (title, headers, rows) = Page.BuildScheduleTable(Node);
+}
+
+<div class="lf-schedule">
+    <div class="lf-schedule-title">@title</div>
+    @if (rows.Count == 0)
+    {
+        <div class="lf-schedule-empty">Nothing to list yet.</div>
+    }
+    else
+    {
+        <table class="lf-schedule-table">
+            <thead>
+                <tr>
+                    @foreach (var h in headers)
+                    {
+                        <th class="@(IsNumeric(h) ? "lf-schedule-num" : "")">@h</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        @for (var c = 0; c < row.Count; c++)
+                        {
+                            <td class="@(c < headers.Count && IsNumeric(headers[c]) ? "lf-schedule-num" : "")">@row[c]</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    [Parameter] public Home.ScheduleNode Node { get; set; } = null!;
+
+    // Home is cascaded by the canvas; the widget needs it to ask for the current rows.
+    [CascadingParameter] public Home Page { get; set; } = null!;
+
+    private static bool IsNumeric(string header) => header is "#" or "Qty";
+}

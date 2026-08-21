@@ -1066,6 +1066,7 @@ html, body {
 
 .diagram-node:has(.lf-node),
 .diagram-node:has(.lf-legend),
+.diagram-node:has(.lf-schedule),
 .diagram-node:has(.lf-text-node),
 .diagram-node:has(.lf-connection-label),
 .diagram-node:has(.lf-break-tag) {
@@ -1266,6 +1267,63 @@ html, body {
     display: block !important;
     cursor: crosshair !important;
     flex-shrink: 0;
+}
+
+/* Schedules placed on the drawing. Same visual family as the legend — it's the other
+   table that lives on the canvas — but sized for many more rows. */
+.lf-schedule {
+    background: #16213e;
+    border: 2px solid #e94560;
+    border-radius: 6px;
+    padding: 8px 12px;
+    min-width: 160px;
+    cursor: move;
+}
+
+.lf-schedule-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #e94560;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    white-space: nowrap;
+}
+
+.lf-schedule-empty {
+    font-size: 11px;
+    color: #9aa4b2;
+}
+
+.lf-schedule-table {
+    border-collapse: collapse;
+    font-size: 10px;
+    color: #fff;
+}
+
+.lf-schedule-table th,
+.lf-schedule-table td {
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    padding: 2px 7px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.lf-schedule-table th {
+    background: #0f3460;
+    color: #ff7b90;
+    font-weight: 600;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.lf-schedule-table tbody tr:nth-child(even) td {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.lf-schedule-num {
+    text-align: right;
 }
 
 .lf-legend {

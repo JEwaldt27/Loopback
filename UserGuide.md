@@ -61,7 +61,7 @@ Once signed in, you'll see four main areas:
 
 - **Toolbar (top)** — the app menus and controls (a small version number next to the "Loopback" title shows which build the server is running):
   - **File** → 🆕 New, 💾 Save, 📂 Open
-  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, ☐ 🔀 Connections On Top, 🎨 Device Colors, 📋 Title Block, 🧮 Cable Count, 🔢 Auto-Label Connections, 🧹 Clear Connection Labels, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
+  - **Tools** → 🏷 Legend, ▭ Box, ╱ Line, T Text, ☐ 🔀 Connections On Top, 🎨 Device Colors, 📋 Title Block, 🧮 Cable Count, 📌 Place Cable/Device Schedule & Cable Count, 🔢 Auto-Label Connections, 🧹 Clear Connection Labels, 🔗 Break All / Rejoin All Connections, ⇤⇥⤒⤓ Align, ↔↕ Distribute
   - **Export** → 📄 Export PDF, 📐 Export DXF, 🧾 Cable Schedule (CSV), 📦 Device Schedule (CSV)
   - **Help** → 📖 User Guide (opens this guide on GitHub in a new tab)
   - **💡 Feature Requests** — suggest an improvement and see what everyone else has asked for (see below)
@@ -372,6 +372,21 @@ The other half of the paperwork: a **BOM-style device list** covering **every sh
 |-----|--------------|-------|----------|
 
 Rows are sorted by category, then manufacturer. Three of the same speaker on the canvas become one row with Qty 3. Downloads as `device-schedule.csv` — pair it with the cable schedule for quoting and ordering.
+
+### 📌 Putting a schedule on the drawing itself
+Each of the three spreadsheets can also be placed **on the sheet as a table**, so the drawing carries its own schedule instead of sending someone off to a separate file:
+
+- **Tools → 📌 Place Cable Schedule**
+- **Tools → 📌 Place Device Schedule**
+- **Tools → 📌 Place Cable Count**
+
+If the diagram has more than one sheet you're asked what the table should list — **this sheet only** (its own pull list, the way a drawing set usually reads) or **all sheets** (a master schedule for a cover sheet). With a single sheet there's nothing to choose and it just places.
+
+The table drops onto the canvas like a legend: drag it where you want it, and delete it with the **Delete** key or right-click → Delete. Right-click also offers **🔁 Show this sheet only / all sheets** to flip its scope without losing where you put it.
+
+**The rows are live.** The table re-reads the diagram continuously — draw a cable, tag a device, clear the labels, undo — and it updates immediately. There's no refresh to remember and no way for it to be quietly out of date. A table set to "all sheets" shows the other sheets too, so you can read the whole job from one drawing.
+
+It exports with the sheet: it's part of the **PDF** capture, and in the **DXF** it's redrawn as a real CAD table on its own **SCHEDULES** layer, so you can freeze or restyle it in CAD.
 
 > There's a third spreadsheet, `cable-count.csv`, but it lives with the tool that produces it: **Tools → 🧮 Cable Count** (see [Counting cables](#counting-cables-how-many-patch-cords)) — quantities per cable type rather than a row per cable.
 
