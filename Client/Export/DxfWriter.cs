@@ -287,6 +287,18 @@ public static class DxfWriter
             }
         }
 
+        // Bend vertices, connection labels and break tags are all NodeModel positions in the
+        // same diagram coordinate space as node.Position, so they convert to DXF exactly the
+        // way the device blocks do.
+        //
+        // This used to be anchored per link on its source port, to splice together two
+        // different spaces: blocks are drawn from an IDEALIZED model (fixed width, fixed port
+        // pitch) while these positions come from the real rendered layout. That made every
+        // cable inherit its own source node's layout error — so cables that lined up on screen
+        // came out scattered in CAD, worst of all for broken connections, whose tag blocks sit
+        // far from the port they were anchored to.
+        (double x, double y) ToDxf(double sx, double sy) => (sx * scale, -(sy * scale));
+
         foreach (var link in diagram.Links)
         {
             if (link.Source.Model is not PortModel sourcePort) continue;
@@ -296,17 +308,6 @@ public static class DxfWriter
 
             var verts = link.Vertices;
             List<(double x, double y)> pts;
-
-            // Vertices/label positions are in screen/port coordinate space.
-            // Convert to DXF space using source port as reference:
-            //   dxfX = (screenX - srcScreenX) * scale + srcPos.x
-            //   dxfY = -(screenY - srcScreenY) * scale + srcPos.y  (Y axis is flipped in DXF)
-            double srcScreenX = (sourcePort.Position?.X ?? 0) + (sourcePort.Size?.Width / 2 ?? 0);
-            double srcScreenY = (sourcePort.Position?.Y ?? 0) + (sourcePort.Size?.Height / 2 ?? 0);
-
-            (double x, double y) ToDxf(double sx, double sy) =>
-                ((sx - srcScreenX) * scale + srcPos.x,
-                 -(sy - srcScreenY) * scale + srcPos.y);
 
             if (verts.Count == 0)
             {
