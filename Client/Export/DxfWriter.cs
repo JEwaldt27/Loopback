@@ -72,6 +72,67 @@ public static class DxfWriter
 
         double scale = 0.3;
 
+        // Text heights come from the CSS font sizes the browser actually renders, scaled the
+        // same way geometry is. They used to be unrelated constants (2.5/1.8/2.0), which made
+        // every label ~35% smaller in CAD than on the drawing the PDF shows.
+        double titleTextH = 13 * scale;   // .lf-node-title
+        double portTextH  = 10 * scale;   // .lf-port-label-*
+        double tagTextH   = 10 * scale;   // .lf-break-tag
+        double labelTextH = 11 * scale;   // .lf-connection-label
+        double nodeTagTextH = 10 * scale; // .lf-node-label (the per-instance tag row)
+
+        // A DXF TEXT sits on its baseline; cap height is about 0.7 of the text height, so
+        // this drops the baseline to put the glyphs' middle on a box's center line.
+        double Baseline(double h) => h * 0.35;
+
+        // Advance width of one character as a fraction of text height, for the plain CAD
+        // font this writer names in its STYLE table. Only used to keep text inside a box,
+        // never to position it, so an approximation is fine.
+        const double DxfGlyphWidth = 0.6;
+
+        // Greedy word wrap, matching how the browser flows a block of text inside a card.
+        // avgCharW is in the same units as maxWidth (CSS pixels for card layout).
+        List<string> WrapText(string text, double maxWidth, double avgCharW)
+        {
+            var lines = new List<string>();
+            if (string.IsNullOrWhiteSpace(text)) return lines;
+            if (avgCharW <= 0 || maxWidth <= 0) { lines.Add(text); return lines; }
+
+            int perLine = Math.Max(1, (int)(maxWidth / avgCharW));
+            var current = "";
+            foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var candidate = current.Length == 0 ? word : current + " " + word;
+                if (candidate.Length <= perLine) { current = candidate; continue; }
+
+                if (current.Length > 0) { lines.Add(current); current = ""; }
+
+                // A single word longer than the line gets split rather than overflowing.
+                var rest = word;
+                while (rest.Length > perLine)
+                {
+                    lines.Add(rest[..perLine]);
+                    rest = rest[perLine..];
+                }
+                current = rest;
+            }
+            if (current.Length > 0) lines.Add(current);
+            return lines;
+        }
+
+        // Where a stub meets a label box: the point on the box outline facing the port, so
+        // the line stops at the border instead of running under the text.
+        (double x, double y) ClipToBox((double x, double y) from, (double x, double y) c,
+                                       double halfW, double halfH)
+        {
+            double dx = c.x - from.x, dy = c.y - from.y;
+            if (dx == 0 && dy == 0) return c;
+            double tx = dx != 0 ? halfW / Math.Abs(dx) : double.MaxValue;
+            double ty = dy != 0 ? halfH / Math.Abs(dy) : double.MaxValue;
+            double t = Math.Min(Math.Min(tx, ty), 1.0);
+            return (c.x - dx * t, c.y - dy * t);
+        }
+
         // Running extents of everything emitted, used to size the title-block sheet around
         // the finished drawing (DXF is model space — there's no page until we draw one).
         double exMinX = double.MaxValue, exMinY = double.MaxValue;
@@ -240,6 +301,12 @@ public static class DxfWriter
             return pts[^1];
         }
 
+        // Bend vertices, connection labels, break tags, device blocks and ports are all in
+        // ONE space: the diagram coordinates the .lf file stores and the browser renders.
+        // The PDF export is an html2canvas raster of that same rendered DOM, so matching it
+        // means reading real geometry here and applying a single transform to all of it.
+        (double x, double y) ToDxf(double sx, double sy) => (sx * scale, -(sy * scale));
+
         foreach (var node in diagram.Nodes.OfType<LineFlowNode>())
         {
             var leftPorts = node.Ports.OfType<LineFlowPort>()
@@ -247,57 +314,98 @@ public static class DxfWriter
             var rightPorts = node.Ports.OfType<LineFlowPort>()
                 .Where(p => p.Alignment == PortAlignment.Right).ToList();
 
+            // The block header mirrors app.css, in CSS pixels: a 2px card border, an
+            // optional 16px .lf-node-label row, then .lf-node-title — 8px padding top and
+            // bottom, a 1px rule, and 19.5px per line of 13px text, which wraps inside the
+            // card like any other block element. .lf-port-label-* height 16 + the 6px
+            // .lf-ports-* gap give the 22px port pitch.
+            const double portPitch = 22;
+            const double cardBorder = 2;
+            const double labelRowH = 16;
+            const double titlePad = 17;      // 8 above + 8 below + the 1px rule
+            const double titleLineH = 19.5;
+            const double titleSidePad = 16;
+            const double bodyPadding = 8;
+
+            bool hasLabel = !string.IsNullOrWhiteSpace(node.Label);
+            double labelH = hasLabel ? labelRowH : 0;
+
             int maxPorts = Math.Max(leftPorts.Count, rightPorts.Count);
-            double portHeight = 16;
-            double titleHeight = 20;
-            double padding = 8;
-            double nodeHeight = titleHeight + (maxPorts * portHeight) + padding;
-            double nodeWidth = 180;
+            double nodeWidth = node.Size?.Width ?? 200;
+
+            // Wrap the title the way the card does, so a long model number runs onto a
+            // second line instead of out through the sides of the block.
+            double titleInnerW = nodeWidth - (2 * cardBorder) - (2 * titleSidePad);
+            var titleLines = WrapText(node.Title ?? "", titleInnerW, 13 * 0.54);
+            double titleAreaH = titlePad + (titleLines.Count * titleLineH);
+
+            double nodeHeight = node.Size?.Height
+                                ?? (2 * cardBorder) + labelH + titleAreaH + (maxPorts * portPitch) + bodyPadding;
 
             double x = node.Position.X * scale;
             double y = -(node.Position.Y * scale);
             double w = nodeWidth * scale;
             double h = nodeHeight * scale;
-            double sph = portHeight * scale;
-            double sth = titleHeight * scale;
+            // node.Position is the card's BORDER-box top-left, so every row inside it starts
+            // one border width down. Leaving this out floated the tag, the model name and
+            // the rule 2px high, which crowded the first port row against the rule.
+            double titleTopPx = cardBorder + labelH;
+            double sth = (titleTopPx + titleAreaH) * scale;   // header depth: rule sits here
 
             DxfLine(x, y, x + w, y);
             DxfLine(x + w, y, x + w, y - h);
             DxfLine(x + w, y - h, x, y - h);
             DxfLine(x, y - h, x, y);
             DxfLine(x, y - sth, x + w, y - sth);
-            // Tag first when set, so two of the same model are distinguishable in CAD too.
-            var nodeTitle = string.IsNullOrWhiteSpace(node.Label) ? node.Title : $"[{node.Label}] {node.Title}";
-            DxfText(x + w / 2, y - sth + sth * 0.3, nodeTitle, 2.5, "NODES", 1);
+            // The card shows the instance tag on its own row above the model name. These
+            // used to be concatenated into one "[TAG] Model" string on the title line, which
+            // for anything but the shortest names ran straight out through the block's sides.
+            if (hasLabel)
+                DxfText(x + w / 2, y - ((cardBorder + (labelRowH / 2)) * scale) - Baseline(nodeTagTextH), node.Label, nodeTagTextH, "NODES", 1);
+
+            // A CAD font is wider per unit height than the browser's UI font, so a line that
+            // fits the card can still overrun the block. Shrink the whole title a little
+            // rather than let it cross the border.
+            double availW = titleInnerW * scale;
+            double titleH = titleTextH;
+            double widest = titleLines.Count == 0 ? 0
+                            : titleLines.Max(l => l.Length) * titleH * DxfGlyphWidth;
+            if (widest > availW && widest > 0) titleH *= availW / widest;
+
+            for (int li = 0; li < titleLines.Count; li++)
+            {
+                double lineCy = y - ((titleTopPx + 8 + (li * titleLineH) + (titleLineH / 2)) * scale);
+                DxfText(x + w / 2, lineCy - Baseline(titleH), titleLines[li], titleH, "NODES", 1);
+            }
+
+            // A port's own measured center is where the browser actually draws its dot, and
+            // therefore where the PDF shows the cable meeting the block. Falling back to a
+            // computed row only matters for a never-rendered node.
+            (double x, double y) PortPoint(LineFlowPort port, int index, bool left)
+            {
+                if (port.Size != null && port.Position != null)
+                    return ToDxf(port.Position.X + port.Size.Width / 2,
+                                 port.Position.Y + port.Size.Height / 2);
+
+                double fy = node.Position.Y + cardBorder + labelH + titleAreaH + (index * portPitch) + (portPitch / 2);
+                double fx = left ? node.Position.X : node.Position.X + nodeWidth;
+                return ToDxf(fx, fy);
+            }
 
             for (int i = 0; i < leftPorts.Count; i++)
             {
-                double py = y - sth - (i * sph) - (sph * 0.5);
-                double px = x;
-                DxfText(px + 1, py - 1, leftPorts[i].Definition.Name, 1.8, "NODES", 0);
-                portPositions[leftPorts[i].Id] = (px, py);
+                var p = PortPoint(leftPorts[i], i, true);
+                DxfText(p.x + 2, p.y - Baseline(portTextH), leftPorts[i].Definition.Name, portTextH, "NODES", 0);
+                portPositions[leftPorts[i].Id] = p;
             }
 
             for (int i = 0; i < rightPorts.Count; i++)
             {
-                double py = y - sth - (i * sph) - (sph * 0.5);
-                double px = x + w;
-                DxfText(px - 1, py - 1, rightPorts[i].Definition.Name, 1.8, "NODES", 2);
-                portPositions[rightPorts[i].Id] = (px, py);
+                var p = PortPoint(rightPorts[i], i, false);
+                DxfText(p.x - 2, p.y - Baseline(portTextH), rightPorts[i].Definition.Name, portTextH, "NODES", 2);
+                portPositions[rightPorts[i].Id] = p;
             }
         }
-
-        // Bend vertices, connection labels and break tags are all NodeModel positions in the
-        // same diagram coordinate space as node.Position, so they convert to DXF exactly the
-        // way the device blocks do.
-        //
-        // This used to be anchored per link on its source port, to splice together two
-        // different spaces: blocks are drawn from an IDEALIZED model (fixed width, fixed port
-        // pitch) while these positions come from the real rendered layout. That made every
-        // cable inherit its own source node's layout error — so cables that lined up on screen
-        // came out scattered in CAD, worst of all for broken connections, whose tag blocks sit
-        // far from the port they were anchored to.
-        (double x, double y) ToDxf(double sx, double sy) => (sx * scale, -(sy * scale));
 
         foreach (var link in diagram.Links)
         {
@@ -351,18 +459,33 @@ public static class DxfWriter
                 var s = pts[0];
                 var t = pts[^1];
                 var tag = brokenLink.LabelText ?? "";
-                if (brokenLink.SrcTagNode != null)
+                // A tag's stored position is the TOP-LEFT of its rendered box, not its
+                // middle — writing the text there put every tag up and left of where the
+                // drawing shows it, by more than the text's own height. Draw the box, centre
+                // the text in it, and stop the stub on the border like the screen does.
+                void DrawTag(BreakTagNode node, (double x, double y) from)
                 {
-                    var p = ToDxf(brokenLink.SrcTagNode.Position.X, brokenLink.SrcTagNode.Position.Y);
-                    DxfLine(s.x, s.y, p.x, p.y, cableLayer);
-                    DxfText(p.x, p.y, tag, 2.0, cableLayer, 0);
+                    double bw = (node.Size?.Width ?? 0) * scale;
+                    double bh = (node.Size?.Height ?? 0) * scale;
+                    var tl = ToDxf(node.Position.X, node.Position.Y);
+                    var c = (x: tl.x + bw / 2, y: tl.y - bh / 2);
+
+                    var edge = ClipToBox(from, c, bw / 2, bh / 2);
+                    DxfLine(from.x, from.y, edge.x, edge.y, cableLayer);
+
+                    if (bw > 0 && bh > 0)
+                    {
+                        DxfLine(tl.x, tl.y, tl.x + bw, tl.y, cableLayer);
+                        DxfLine(tl.x + bw, tl.y, tl.x + bw, tl.y - bh, cableLayer);
+                        DxfLine(tl.x + bw, tl.y - bh, tl.x, tl.y - bh, cableLayer);
+                        DxfLine(tl.x, tl.y - bh, tl.x, tl.y, cableLayer);
+                    }
+
+                    DxfText(c.x, c.y - Baseline(tagTextH), tag, tagTextH, cableLayer, 1);
                 }
-                if (brokenLink.TgtTagNode != null)
-                {
-                    var p = ToDxf(brokenLink.TgtTagNode.Position.X, brokenLink.TgtTagNode.Position.Y);
-                    DxfLine(t.x, t.y, p.x, p.y, cableLayer);
-                    DxfText(p.x, p.y, tag, 2.0, cableLayer, 0);
-                }
+
+                if (brokenLink.SrcTagNode != null) DrawTag(brokenLink.SrcTagNode, s);
+                if (brokenLink.TgtTagNode != null) DrawTag(brokenLink.TgtTagNode, t);
             }
             else
             {
@@ -377,7 +500,7 @@ public static class DxfWriter
                     // Screen rotation is clockwise; the DXF Y-axis is flipped, which turns that
                     // into the counterclockwise-positive angle DXF's group code 50 expects.
                     double labelRot = elbowLink.LabelNode?.Rotation ?? 0;
-                    DxfText(labelPos.x, labelPos.y, elbowLink.LabelText, 2.0, cableLayer, 1, labelRot);
+                    DxfText(labelPos.x, labelPos.y - Baseline(labelTextH), elbowLink.LabelText, labelTextH, cableLayer, 1, labelRot);
                 }
             }
         }
