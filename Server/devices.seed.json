@@ -1239,5 +1239,908 @@
         "direction": "Out"
       }
     ]
+  },
+  {
+    "manufacturer": "LG",
+    "model": "55UR340C9UD",
+    "category": "Display",
+    "ports": [
+      {
+        "name": "HDMI 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "RS232 IN",
+        "type": "SERIAL",
+        "direction": "In"
+      },
+      {
+        "name": "CABLE IN",
+        "type": "COAX",
+        "direction": "In"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "OPTICAL OUT",
+        "type": "AUDIO",
+        "direction": "Out"
+      },
+      {
+        "name": "LAN",
+        "type": "LAN",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Surge X",
+    "model": "SX-DS-158",
+    "category": "Power Distribution ",
+    "ports": [
+      {
+        "name": "POWER IN",
+        "type": "POWER",
+        "direction": "In"
+      },
+      {
+        "name": "POWER OUT",
+        "type": "POWER",
+        "direction": "Out"
+      },
+      {
+        "name": "POWER OUT",
+        "type": "POWER",
+        "direction": "Out"
+      },
+      {
+        "name": "POWER OUT",
+        "type": "POWER",
+        "direction": "Out"
+      },
+      {
+        "name": "POWER OUT",
+        "type": "POWER",
+        "direction": "Out"
+      },
+      {
+        "name": "POWER OUT",
+        "type": "POWER",
+        "direction": "Out"
+      },
+      {
+        "name": "POWER OUT",
+        "type": "POWER",
+        "direction": "Out"
+      },
+      {
+        "name": "POWER OUT",
+        "type": "POWER",
+        "direction": "Out"
+      },
+      {
+        "name": "POWER OUT",
+        "type": "POWER",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "DMF-CI-8",
+    "category": "AV OVER IP",
+    "ports": [
+      {
+        "name": "Card Slot 1",
+        "type": "CARD SLOT",
+        "direction": "Out"
+      },
+      {
+        "name": "Card Slot 2",
+        "type": "CARD SLOT",
+        "direction": "Out"
+      },
+      {
+        "name": "Card Slot 3",
+        "type": "CARD SLOT",
+        "direction": "Out"
+      },
+      {
+        "name": "Card Slot 4",
+        "type": "CARD SLOT",
+        "direction": "Out"
+      },
+      {
+        "name": "Card Slot 5",
+        "type": "CARD SLOT",
+        "direction": "Out"
+      },
+      {
+        "name": "Card Slot 6",
+        "type": "CARD SLOT",
+        "direction": "Out"
+      },
+      {
+        "name": "Card Slot 7",
+        "type": "CARD SLOT",
+        "direction": "Out"
+      },
+      {
+        "name": "Card Slot 8",
+        "type": "CARD SLOT",
+        "direction": "Out"
+      },
+      {
+        "name": "Power In",
+        "type": "POWER",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "CEN-SWPOE-12",
+    "category": "Network Switch",
+    "ports": [
+      {
+        "name": "OOB",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "CONSOLE",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 1",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 2",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 3",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 4",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 5",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 6",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 7",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 8",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 9",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 10",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 1",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 2",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB-C",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Power In",
+        "type": "Power",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "TS-1070-W-S",
+    "category": "Touch Panel",
+    "ports": [
+      {
+        "name": "LAN",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "DM-NVX-E20",
+    "category": "AV OVER IP",
+    "ports": [
+      {
+        "name": "Input",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "LAN",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "DM-NVX-D20",
+    "category": "AV OVER IP",
+    "ports": [
+      {
+        "name": "DC Power",
+        "type": "Power",
+        "direction": "In"
+      },
+      {
+        "name": "IR",
+        "type": "Serial",
+        "direction": "Out"
+      },
+      {
+        "name": "RS232",
+        "type": "Serial",
+        "direction": "Universal"
+      },
+      {
+        "name": "LAN",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "HDMI",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "AUDIO OUT",
+        "type": "Audio",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "DM-NAX-AMP-X300",
+    "category": "Amplifier",
+    "ports": [
+      {
+        "name": "CH 1",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "CH 2",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "CH 3",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "CH 4",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Line In 1",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Line In 2",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Line In 3",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Line In 4",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Line Out 1",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Line Out 2",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Line Out 3",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Line Out 4",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Remote",
+        "type": "Control",
+        "direction": "In"
+      },
+      {
+        "name": "Power",
+        "type": "POWER",
+        "direction": "In"
+      },
+      {
+        "name": "LAN 1",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "LAN 2",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "SAROS IC6T-W-T-EACH",
+    "category": "Speakers",
+    "ports": [
+      {
+        "name": "Audio In",
+        "type": "Audio",
+        "direction": "In"
+      },
+      {
+        "name": "Audio Out",
+        "type": "Audio",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "",
+    "model": "HDMI Wall Plate",
+    "category": "INPUTS",
+    "ports": [
+      {
+        "name": "HDMI In 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI Out 1",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "HDMI Out 2",
+        "type": "HDMI",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "",
+    "model": "AV Wall Plate",
+    "category": "P158",
+    "ports": [
+      {
+        "name": "Port 1 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 2 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 3 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 4 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 5 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 6 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 7 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 8 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 9 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 10 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 11 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 12 - Front",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 1 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 2 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 3 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 4 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 5 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 6 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 7 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 8 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 9 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 10 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 11 - Back",
+        "type": "port",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 12 - Back",
+        "type": "port",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "CEN-SWPOE-48",
+    "category": "Network Switch",
+    "ports": [
+      {
+        "name": "Port 1",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 2",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 3",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 4",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 5",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 6",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 7",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 8",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 9",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 10",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 11",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 12",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 13",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 14",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 15",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 16",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 17",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 18",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 19",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 20",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 21",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 22",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 23",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 24",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 25",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 26",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 27",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 28",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 29",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 30",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 31",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 32",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 33",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 34",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 35",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 36",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 37",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 38",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 39",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Port 40",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 1",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 2",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 3",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 4",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 5",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 6",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 7",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "SFP 8",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "OOB",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Console",
+        "type": "Serial",
+        "direction": "Universal"
+      },
+      {
+        "name": "Power",
+        "type": "POWER",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "RMC4",
+    "category": "Control Processor",
+    "ports": [
+      {
+        "name": "LAN",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Cresnet",
+        "type": "Control",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "LG",
+    "model": "75UR340C9UD",
+    "category": "Display",
+    "ports": [
+      {
+        "name": "HDMI In 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 3",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "RS-232C",
+        "type": "SERIAL",
+        "direction": "Universal"
+      },
+      {
+        "name": "LG SVC Only",
+        "type": "Other",
+        "direction": "In"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "RF In",
+        "type": "COAX",
+        "direction": "In"
+      },
+      {
+        "name": "Digital Audio Out (Optical)",
+        "type": "AUDIO",
+        "direction": "Out"
+      },
+      {
+        "name": "LAN",
+        "type": "LAN",
+        "direction": "Universal"
+      },
+      {
+        "name": "Power",
+        "type": "POWER",
+        "direction": "In"
+      }
+    ]
   }
 ]
