@@ -557,7 +557,7 @@
   },
   {
     "manufacturer": "NETGEAR",
-    "model": "M4250-26G4F-PoE\u002B",
+    "model": "M4250-26G4F-PoE+",
     "category": "Network Switch",
     "ports": [
       {
@@ -581,7 +581,7 @@
         "direction": "Universal"
       },
       {
-        "name": "SFP\u002B Uplink",
+        "name": "SFP+ Uplink",
         "type": "Network",
         "direction": "Universal"
       }
@@ -711,23 +711,178 @@
     "category": "Control Processor",
     "ports": [
       {
-        "name": "Network",
+        "name": "LAN",
         "type": "Network",
         "direction": "Universal"
       },
       {
-        "name": "IR",
+        "name": "Control Subnet",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "COM 1",
+        "type": "COM",
+        "direction": "Universal"
+      },
+      {
+        "name": "COM 2",
+        "type": "COM",
+        "direction": "Universal"
+      },
+      {
+        "name": "COM 3",
+        "type": "COM",
+        "direction": "Universal"
+      },
+      {
+        "name": "IR-Serial 1",
         "type": "IR",
         "direction": "Out"
       },
       {
-        "name": "RS-232",
-        "type": "COM",
+        "name": "IR-Serial 2",
+        "type": "IR",
         "direction": "Out"
+      },
+      {
+        "name": "IR-Serial 3",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "IR-Serial 4",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "IR-Serial 5",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "IR-Serial 6",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "IR-Serial 7",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "IR-Serial 8",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay 1",
+        "type": "Other",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay 2",
+        "type": "Other",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay 3",
+        "type": "Other",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay 4",
+        "type": "Other",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay 5",
+        "type": "Other",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay 6",
+        "type": "Other",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay 7",
+        "type": "Other",
+        "direction": "Out"
+      },
+      {
+        "name": "Relay 8",
+        "type": "Other",
+        "direction": "Out"
+      },
+      {
+        "name": "I/O 1",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "I/O 2",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "I/O 3",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "I/O 4",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "I/O 5",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "I/O 6",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "I/O 7",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "I/O 8",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "NET (Cresnet)",
+        "type": "Control",
+        "direction": "Universal"
       },
       {
         "name": "USB",
         "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Computer (Front)",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "Memory (SD)",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "24VDC 2.0A",
+        "type": "Power",
+        "direction": "In"
+      },
+      {
+        "name": "Ground",
+        "type": "Other",
         "direction": "Universal"
       }
     ]
@@ -2092,28 +2247,23 @@
     "category": "Display",
     "ports": [
       {
-        "name": "HDMI In 1",
+        "name": "HDMI 1",
         "type": "HDMI",
         "direction": "In"
       },
       {
-        "name": "HDMI In 2",
+        "name": "HDMI 2",
         "type": "HDMI",
         "direction": "In"
       },
       {
-        "name": "HDMI In 3",
-        "type": "HDMI",
-        "direction": "In"
-      },
-      {
-        "name": "RS-232C",
+        "name": "RS232 IN",
         "type": "SERIAL",
-        "direction": "Universal"
+        "direction": "In"
       },
       {
-        "name": "LG SVC Only",
-        "type": "Other",
+        "name": "CABLE IN",
+        "type": "COAX",
         "direction": "In"
       },
       {
@@ -2122,12 +2272,7 @@
         "direction": "Universal"
       },
       {
-        "name": "RF In",
-        "type": "COAX",
-        "direction": "In"
-      },
-      {
-        "name": "Digital Audio Out (Optical)",
+        "name": "OPTICAL OUT",
         "type": "AUDIO",
         "direction": "Out"
       },
@@ -2135,11 +2280,393 @@
         "name": "LAN",
         "type": "LAN",
         "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Contemporary Research",
+    "model": "ATSC-Mini",
+    "category": "Tuner",
+    "ports": [
+      {
+        "name": "Air/Cable",
+        "type": "COAX",
+        "direction": "In"
       },
       {
-        "name": "Power",
-        "type": "POWER",
+        "name": "HDMI",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "SPDIF",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Audio",
+        "type": "Audio",
+        "direction": "Out"
+      },
+      {
+        "name": "Ethernet",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "RS-232",
+        "type": "COM",
+        "direction": "Universal"
+      },
+      {
+        "name": "IR In",
+        "type": "IR",
         "direction": "In"
+      },
+      {
+        "name": "USB (Service)",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB (Front)",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "I/O",
+        "type": "Other",
+        "direction": "Universal"
+      },
+      {
+        "name": "Power In",
+        "type": "Power",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "DM-NVX-384C",
+    "category": "AV over IP",
+    "ports": [
+      {
+        "name": "Card Chassis",
+        "type": "CARD SLOT",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI In 2 (eARC)",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "USB-C In 3",
+        "type": "USB",
+        "direction": "In"
+      },
+      {
+        "name": "USB-C In 4",
+        "type": "USB",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI Out (eARC)",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "Audio I/O",
+        "type": "Audio",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB2 To Device",
+        "type": "USB",
+        "direction": "Out"
+      },
+      {
+        "name": "HID To Device",
+        "type": "USB",
+        "direction": "Out"
+      },
+      {
+        "name": "Ethernet 1",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Ethernet 2 (LAN)",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Ethernet 3 (SFP)",
+        "type": "Network",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Antronix",
+    "model": "VRA900B",
+    "category": "RF Distribution",
+    "ports": [
+      {
+        "name": "Input",
+        "type": "COAX",
+        "direction": "In"
+      },
+      {
+        "name": "Output 1",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 2",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 3",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 4",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 5",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 6",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 7",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 8",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "VoIP (Passive)",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Power (12 VDC)",
+        "type": "Power",
+        "direction": "In"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Blonder Tongue",
+    "model": "SDS-12",
+    "category": "RF Distribution",
+    "ports": [
+      {
+        "name": "Input",
+        "type": "COAX",
+        "direction": "In"
+      },
+      {
+        "name": "Output 1",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 2",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 3",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 4",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 5",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 6",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 7",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 8",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 9",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 10",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 11",
+        "type": "COAX",
+        "direction": "Out"
+      },
+      {
+        "name": "Output 12",
+        "type": "COAX",
+        "direction": "Out"
+      }
+    ]
+  },
+  {
+    "manufacturer": "LG",
+    "model": "65UR340C9UD",
+    "category": "Display",
+    "ports": [
+      {
+        "name": "HDMI 1",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "HDMI 2",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "RS232 IN",
+        "type": "SERIAL",
+        "direction": "In"
+      },
+      {
+        "name": "CABLE IN",
+        "type": "COAX",
+        "direction": "In"
+      },
+      {
+        "name": "USB",
+        "type": "USB",
+        "direction": "Universal"
+      },
+      {
+        "name": "OPTICAL OUT",
+        "type": "AUDIO",
+        "direction": "Out"
+      },
+      {
+        "name": "LAN",
+        "type": "LAN",
+        "direction": "Universal"
+      }
+    ]
+  },
+  {
+    "manufacturer": "Crestron",
+    "model": "DM-NVX-360",
+    "category": "AV over IP",
+    "ports": [
+      {
+        "name": "HDMI In",
+        "type": "HDMI",
+        "direction": "In"
+      },
+      {
+        "name": "USB Device",
+        "type": "USB",
+        "direction": "In"
+      },
+      {
+        "name": "Audio I/O",
+        "type": "Audio",
+        "direction": "Universal"
+      },
+      {
+        "name": "HDMI Out",
+        "type": "HDMI",
+        "direction": "Out"
+      },
+      {
+        "name": "Ethernet 1 (PoE+)",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Ethernet 2",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Ethernet 3 (10/100)",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "Ethernet 4 (SFP)",
+        "type": "Network",
+        "direction": "Universal"
+      },
+      {
+        "name": "USB Host",
+        "type": "USB",
+        "direction": "Out"
+      },
+      {
+        "name": "USB HID",
+        "type": "USB",
+        "direction": "Out"
+      },
+      {
+        "name": "COM",
+        "type": "COM",
+        "direction": "Universal"
+      },
+      {
+        "name": "IR 1",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "IR 2",
+        "type": "IR",
+        "direction": "Out"
+      },
+      {
+        "name": "24VDC 1.25A",
+        "type": "Power",
+        "direction": "In"
+      },
+      {
+        "name": "Ground",
+        "type": "Other",
+        "direction": "Universal"
       }
     ]
   }
