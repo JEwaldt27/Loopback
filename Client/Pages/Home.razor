@@ -71,6 +71,7 @@
             <div class="lf-dropdown-menu">
                 <div class="lf-dropdown-item" @onclick="async () => { await ExportPdf(); CloseMenus(); }">📄 Export PDF</div>
                 <div class="lf-dropdown-item" @onclick="async () => { await ExportDxf(); CloseMenus(); }">📐 Export DXF</div>
+                <div class="lf-dropdown-item" @onclick="async () => { await ExportHtml(); CloseMenus(); }">🌐 Export HTML</div>
                 <div class="lf-dropdown-item" @onclick="async () => { await ExportCableSchedule(); CloseMenus(); }">🧾 Cable Schedule (CSV)</div>
                 <div class="lf-dropdown-item" @onclick="async () => { await ExportDeviceSchedule(); CloseMenus(); }">📦 Device Schedule (CSV)</div>
             </div>
@@ -3389,8 +3390,22 @@
         _modifiedBy = _currentUsername;
         _modifiedAt = now;
 
+        var json = JsonSerializer.Serialize(BuildDocumentData(),
+            new JsonSerializerOptions { WriteIndented = true });
+
+        await JS.InvokeVoidAsync("saveAsFile", "diagram.lf", json);
+        MarkClean();
+    }
+
+    // The whole document, in the shape a .lf file stores: every sheet with its nodes,
+    // ports and links, plus the title block and cable types. SaveDiagram writes this
+    // verbatim and the HTML export reads it, so there is one document serializer rather
+    // than two that can drift. Callers that are saving set the meta fields first;
+    // exporting deliberately leaves them alone, since an export isn't an edit.
+    private Dictionary<string, object?> BuildDocumentData()
+    {
         ParkActiveSheet();   // sync the active sheet's parked JSON
-        var data = new Dictionary<string, object?>
+        return new Dictionary<string, object?>
         {
             ["sheets"] = _sheets.Select(s => SheetContentFromJson(s, s.Json ?? Sheet.EmptyJson)).ToList(),
             ["activeSheet"] = _activeSheetIndex,
@@ -3404,12 +3419,6 @@
                 modifiedAt = _modifiedAt
             }
         };
-
-        var json = JsonSerializer.Serialize(data,
-            new JsonSerializerOptions { WriteIndented = true });
-
-        await JS.InvokeVoidAsync("saveAsFile", "diagram.lf", json);
-        MarkClean();
     }
 
     private async Task OpenDiagram(InputFileChangeEventArgs e)
@@ -4019,5 +4028,15 @@
         var dxf = DxfWriter.Build(_diagram, _cableTypes, _titleBlock, _sheets[_activeSheetIndex],
                                   _diagramTitle, BuildScheduleTable);
         await JS.InvokeVoidAsync("saveAsFile", "diagram.dxf", dxf);
+    }
+
+    // Export -> HTML: one self-contained, pan/zoom page covering EVERY sheet, with each
+    // device showing all of its ports and each cable drawn port-to-port. Unlike the PDF
+    // (a raster of the canvas) it stays searchable and clickable, so it travels well as
+    // an as-built: no app, no network, just the file.
+    private async Task ExportHtml()
+    {
+        var json = JsonSerializer.Serialize(BuildDocumentData());
+        await JS.InvokeVoidAsync("saveAsFile", "connections.html", HtmlWriter.Build(json));
     }
 }
